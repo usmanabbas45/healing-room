@@ -1,19 +1,28 @@
 import mongoose from "mongoose";
 
-const { MONGODB_URI } = process.env;
+const MONGODB_URI = process.env.MONGODB_URI;
 
-if (!MONGODB_URI) {
-  throw new Error("MONGODB_URI must be defined");
-}
+let isConnected = false;
 
 export const connectDB = async () => {
+  if (!MONGODB_URI) {
+    console.warn("⚠️  MONGODB_URI not set - database features disabled");
+    return false;
+  }
+
+  if (isConnected) {
+    return true;
+  }
+
   try {
     const { connection } = await mongoose.connect(MONGODB_URI);
-    if (connection.readyState === 1) {
-      return Promise.resolve(true);
+    isConnected = connection.readyState === 1;
+    if (isConnected) {
+      console.log("✅ MongoDB connected");
     }
+    return isConnected;
   } catch (error) {
-    console.error(error);
-    return Promise.reject(error);
+    console.error("❌ MongoDB connection error:", error);
+    return false;
   }
 };

@@ -1,16 +1,16 @@
 "use server";
 
-import { kv } from "@vercel/kv";
 import { revalidatePath } from "next/cache";
 import { Schema } from "mongoose";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/libs/auth";
 import { Session } from "next-auth";
 import { Product } from "@/models/Products";
+import Cart, { CartDocument } from "@/models/Cart";
 import { EnrichedProducts, VariantsDocument } from "@/types/types";
 import { connectDB } from "@/libs/mongodb";
 
-export type Cart = {
+export type CartType = {
   userId: string;
   items: Array<{
     productId: Schema.Types.ObjectId;
@@ -21,17 +21,31 @@ export type Cart = {
   }>;
 };
 
+async function getCart(userId: string): Promise<CartDocument | null> {
+  await connectDB();
+  return Cart.findOne({ userId });
+}
+
+async function saveCart(userId: string, items: CartType["items"]): Promise<void> {
+  await connectDB();
+  await Cart.findOneAndUpdate(
+    { userId },
+    { userId, items },
+    { upsert: true, new: true }
+  );
+}
+
 export async function getItems(userId: string) {
-  connectDB();
+  await connectDB();
 
   if (!userId) {
     console.error(`User Id not found.`);
     return undefined;
   }
 
-  const cart: Cart | null = await kv.get(`cart-${userId}`);
+  const cart = await getCart(userId);
 
-  if (cart === null) {
+  if (!cart || !cart.items.length) {
     return undefined;
   }
 
@@ -52,7 +66,11 @@ export async function getItems(userId: string) {
               variant.priceId === cartItem.variantId,
           );
           const updatedCartItem: EnrichedProducts = {
-            ...cartItem,
+            productId: cartItem.productId,
+            size: cartItem.size,
+            variantId: cartItem.variantId,
+            quantity: cartItem.quantity,
+            price: cartItem.price,
             color: matchingVariant.color,
             category: matchingProduct.category,
             image: [matchingVariant.images[0]],
@@ -75,7 +93,10 @@ export async function getItems(userId: string) {
 }
 
 export async function getTotalItems(session: Session | null) {
-  const cart: Cart | null = await kv.get(`cart-${session?.user._id}`);
+  if (!session?.user._id) return 0;
+  
+  await connectDB();
+  const cart = await getCart(session.user._id);
   const total: number =
     cart?.items.reduce((sum, item) => sum + item.quantity, 0) || 0;
 
@@ -97,40 +118,38 @@ export async function addItem(
   }
 
   const userId = session.user._id;
-  let cart: Cart | null = await kv.get(`cart-${userId}`);
+  await connectDB();
+  const cart = await getCart(userId);
 
-  let myCart = {} as Cart;
+  let items: CartType["items"] = [];
 
-  if (!cart || !cart.items) {
-    myCart = {
-      userId: userId,
-      items: [
-        {
-          productId: productId,
-          size: size,
-          variantId: variantId,
-          quantity: 1,
-          price: price,
-        },
-      ],
-    };
+  if (!cart || !cart.items.length) {
+    items = [
+      {
+        productId: productId,
+        size: size,
+        variantId: variantId,
+        quantity: 1,
+        price: price,
+      },
+    ];
   } else {
     let itemFound = false;
 
-    myCart.items = cart.items.map((item) => {
+    items = cart.items.map((item) => {
       if (
-        item.productId === productId &&
+        item.productId.toString() === productId.toString() &&
         item.variantId === variantId &&
         item.size === size
       ) {
         itemFound = true;
-        item.quantity += 1;
+        return { ...item, quantity: item.quantity + 1 };
       }
       return item;
-    }) as Cart["items"];
+    }) as CartType["items"];
 
     if (!itemFound) {
-      myCart.items.push({
+      items.push({
         productId: productId,
         size: size,
         variantId: variantId,
@@ -140,7 +159,7 @@ export async function addItem(
     }
   }
 
-  await kv.set(`cart-${userId}`, myCart);
+  await saveCart(userId, items);
   revalidatePath(`/${category}/${productId}`);
 }
 
@@ -151,22 +170,23 @@ export async function delItem(
 ) {
   const session: Session | null = await getServerSession(authOptions);
   const userId = session?.user._id;
-  let cart: Cart | null = await kv.get(`cart-${userId}`);
+  
+  if (!userId) return;
 
-  if (cart && cart.items) {
-    const updatedCart = {
-      userId: userId,
-      items: cart.items.filter(
-        (item) =>
-          !(
-            item.productId === productId &&
-            item.variantId === variantId &&
-            item.size === size
-          ),
-      ),
-    };
+  await connectDB();
+  const cart = await getCart(userId);
 
-    await kv.set(`cart-${userId}`, updatedCart);
+  if (cart && cart.items.length) {
+    const updatedItems = cart.items.filter(
+      (item) =>
+        !(
+          item.productId.toString() === productId.toString() &&
+          item.variantId === variantId &&
+          item.size === size
+        ),
+    );
+
+    await saveCart(userId, updatedItems);
     revalidatePath("/cart");
   }
 }
@@ -179,30 +199,31 @@ export async function delOneItem(
   try {
     const session: Session | null = await getServerSession(authOptions);
     const userId = session?.user._id;
-    let cart: Cart | null = await kv.get(`cart-${userId}`);
+    
+    if (!userId) return;
 
-    if (cart && cart.items) {
-      const updatedCart = {
-        userId: userId,
-        items: cart.items
-          .map((item) => {
-            if (
-              item.productId === productId &&
-              item.variantId === variantId &&
-              item.size === size
-            ) {
-              if (item.quantity > 1) {
-                item.quantity -= 1;
-              } else {
-                return null;
-              }
+    await connectDB();
+    const cart = await getCart(userId);
+
+    if (cart && cart.items.length) {
+      const updatedItems = cart.items
+        .map((item) => {
+          if (
+            item.productId.toString() === productId.toString() &&
+            item.variantId === variantId &&
+            item.size === size
+          ) {
+            if (item.quantity > 1) {
+              return { ...item, quantity: item.quantity - 1 };
+            } else {
+              return null;
             }
-            return item;
-          })
-          .filter(Boolean) as Cart["items"],
-      };
+          }
+          return item;
+        })
+        .filter(Boolean) as CartType["items"];
 
-      await kv.set(`cart-${userId}`, updatedCart);
+      await saveCart(userId, updatedItems);
       revalidatePath("/cart");
     }
   } catch (error) {
@@ -212,16 +233,14 @@ export async function delOneItem(
 
 export const emptyCart = async (userId: string) => {
   try {
-    let cart: Cart | null = await kv.get(`cart-${userId}`);
-
-    if (cart && cart.items) {
-      cart.items = [];
-      await kv.set(`cart-${userId}`, cart);
-      revalidatePath("/cart");
-      console.log("Cart emptied successfully.");
-    } else {
-      console.log("Cart is already empty.");
-    }
+    await connectDB();
+    await Cart.findOneAndUpdate(
+      { userId },
+      { items: [] },
+      { upsert: true }
+    );
+    revalidatePath("/cart");
+    console.log("Cart emptied successfully.");
   } catch (error) {
     console.error("Error emptying cart:", error);
   }

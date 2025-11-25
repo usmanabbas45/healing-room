@@ -11,22 +11,25 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Proton Mail SMTP Configuration (requires paid plan + custom domain)
   const transporter = nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    service: "gmail",
+    host: "smtp.protonmail.ch",
+    port: 587,
+    secure: false, // Use STARTTLS
     auth: {
-      user: process.env.NEXT_PUBLIC_EMAIL_USERNAME,
-      pass: process.env.NEXT_PUBLIC_EMAIL_PASSWORD,
+      user: process.env.PROTON_EMAIL_ADDRESS, // Your custom domain email (e.g., orders@healingroom.com)
+      pass: process.env.PROTON_SMTP_TOKEN,    // SMTP token from Proton settings
     },
     tls: {
-      rejectUnauthorized: false,
+      ciphers: "SSLv3",
+      rejectUnauthorized: true,
     },
   });
 
   const mailOptions = {
-    from: process.env.NEXT_PUBLIC_EMAIL_USERNAME,
+    from: `"Healing Room" <${process.env.PROTON_EMAIL_ADDRESS}>`,
     to: email,
-    replyTo: process.env.NEXT_PUBLIC_PERSONAL_EMAIL,
+    replyTo: process.env.PROTON_EMAIL_ADDRESS,
     subject: subject,
     html: ` 
             <p>Hello ${name}!</p>
