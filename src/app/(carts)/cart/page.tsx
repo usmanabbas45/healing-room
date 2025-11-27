@@ -77,7 +77,7 @@ const ProductsCart = async ({ session }: { session: Session }) => {
   };
 
   const filteredCart: EnrichedProducts[] | undefined = await getItems(
-    session.user._id,
+    session.user._id || "",
   );
   const totalPrice = calculateTotalPrice(filteredCart);
 

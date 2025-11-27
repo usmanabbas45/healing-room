@@ -1,110 +1,124 @@
-import { Document, Schema } from "mongoose";
+// Types for Healing Room E-commerce
 
 export interface EnrichedOrders {
+  id: string;
   name: string;
   email: string;
   phone: string | null;
-  address: AddressDocument;
-  products: [EnrichedProducts];
+  address: AddressType;
+  products: EnrichedProducts[];
   orderId: string;
   total_price: number;
   orderNumber: string;
-  expectedDeliveryDate: Date;
-  purchaseDate: string;
-  _id: string;
+  expectedDeliveryDate: Date | null;
+  purchaseDate: Date;
+  status: string;
 }
 
 export interface EnrichedProducts {
+  _id: string;
+  id?: string;
   name: string;
   category: string;
-  image: [string];
+  image: string[];
   price: number;
   purchased: boolean;
   color: string;
   size: string;
   quantity: number;
-  productId: Schema.Types.ObjectId;
-  _id: Schema.Types.ObjectId;
+  productId: string;
   variantId: string;
 }
 
-export interface OrdersDocument extends Document {
-  userId: string;
-  orders: [OrderDocument];
-}
-
-export interface OrderDocument {
-  name: string;
-  email: string;
-  phone: number;
-  address: AddressDocument;
-  products: [ProductsDocument];
-  orderId: string;
-  purchaseDate: Date;
-  expectedDeliveryDate: Date;
-  total_price: number;
-  orderNumber: string;
-  _id: Schema.Types.ObjectId;
-}
-
-export interface AddressDocument {
+export interface AddressType {
   city: string;
   country: string;
   line1: string;
-  line2: string;
+  line2?: string | null;
   postal_code: string;
-  state: string;
+  state?: string | null;
 }
 
-export interface ProductsDocument {
-  productId: Schema.Types.ObjectId;
-  image: string;
-  color: string;
-  size: string;
-  quantity: number;
-  _id: string;
-}
-
-export interface FavoritesDocument extends Document {
-  userId: string;
-  favorites: [Schema.Types.ObjectId];
-}
-
-export interface ItemDocument {
-  productId: Schema.Types.ObjectId;
-  color: string;
-  size: string;
-  quantity: number;
-  variantId: string;
-  price: number;
-}
-
-export interface ProductDocument extends Document {
+export interface ProductType {
+  id: string;
   name: string;
   description: string;
   price: number;
   category: string;
-  sizes: [string];
-  image: [string];
-  variants: [VariantsDocument];
+  sizes: string[];
+  images: string[];
+  variants: VariantType[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface VariantType {
+  id: string;
+  priceId: string;
+  color: string;
+  images: string[];
+  productId: string;
+}
+
+export interface UserType {
+  id: string;
+  email: string;
+  name: string;
+  phone?: string | null;
+  image?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CartItemType {
+  id: string;
+  productId: string;
+  variantId?: string | null;
+  size: string;
   quantity: number;
-  productId: Schema.Types.ObjectId;
-  purchased: boolean;
+  price: number;
+}
+
+export interface OrderItemType {
+  id: string;
+  productId: string;
+  variantId?: string | null;
+  size: string;
+  quantity: number;
+  price: number;
+  color?: string | null;
+  image?: string | null;
+}
+
+// Legacy types for compatibility
+export interface ProductDocument extends ProductType {
+  _id?: string;
+  image?: string[];
 }
 
 export interface VariantsDocument {
   priceId: string;
   color: string;
-  images: [string];
+  images: string[];
 }
+
+export interface ItemDocument {
+  productId: string;
+  color: string;
+  size: string;
+  quantity: number;
+  variantId: string;
+  price: number;
+}
+
 export interface UserDocument {
+  id: string;
   email: string;
-  password: string;
+  password?: string | null;
   name: string;
-  phone: string;
-  address: AddressDocument;
-  image: string;
-  _id: string;
-  createdAt: Date;
-  updatedAt: Date;
+  phone?: string | null;
+  image?: string | null;
+  _id?: string;
+  createdAt?: Date;
+  updatedAt?: Date;
 }

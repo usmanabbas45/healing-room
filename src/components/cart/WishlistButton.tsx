@@ -2,7 +2,6 @@
 
 import React, { useMemo, useCallback } from "react";
 import { Wishlists, delItem, addItem } from "@/app/(carts)/wishlist/action";
-import { Schema } from "mongoose";
 import { Session } from "next-auth";
 import { toast } from "sonner";
 
@@ -17,18 +16,25 @@ const WishlistButton = ({
   productId,
   wishlistString,
 }: WishlistButtonProps) => {
-  const id: Schema.Types.ObjectId = useMemo(
-    () => JSON.parse(productId),
-    [productId]
-  );
+  const id: string = useMemo(() => {
+    try {
+      return JSON.parse(productId);
+    } catch {
+      return productId;
+    }
+  }, [productId]);
 
   const isFavorite = useMemo(() => {
     if (session?.user && wishlistString) {
-      const wishlist: Wishlists = JSON.parse(wishlistString);
-      return wishlist.items.some(
-        (wishlistProduct) =>
-          wishlistProduct.productId.toString() === id.toString()
-      );
+      try {
+        const wishlist: Wishlists = JSON.parse(wishlistString);
+        return wishlist.items.some(
+          (wishlistProduct) =>
+            wishlistProduct.productId.toString() === id.toString()
+        );
+      } catch {
+        return false;
+      }
     }
     return false;
   }, [session, wishlistString, id]);

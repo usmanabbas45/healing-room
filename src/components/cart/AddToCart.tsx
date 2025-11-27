@@ -42,7 +42,7 @@ export default function AddToCart({
     startTransition(() => {
       addItem(
         product.category,
-        product._id,
+        product._id || product.id,
         selectedSize,
         selectedVariant.priceId,
         product.price

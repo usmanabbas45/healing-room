@@ -1,21 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createHikeupClient } from '@/libs/hikeup';
-import { connectDB } from '@/libs/mongodb';
 
 /**
- * API Route to sync products from Hikeup POS to MongoDB
+ * API Route to sync products from Hikeup POS to PostgreSQL
  * 
  * Usage:
  * POST /api/hikeup/sync
- * 
- * This endpoint syncs products from Hikeup to your local database
  */
 export async function POST(request: NextRequest) {
   try {
-    await connectDB();
-    
     const hikeupClient = createHikeupClient();
-    await hikeupClient.syncProductsToMongoDB();
+    await hikeupClient.syncProductsToDatabase();
 
     return NextResponse.json(
       { message: 'Products synced successfully from Hikeup' },
@@ -53,4 +48,3 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-

@@ -60,7 +60,7 @@ export default function EditProfile() {
           </Label>
           <Input
             id="phone"
-            defaultValue={session?.user.phone}
+            defaultValue={session?.user.phone || ""}
             disabled={session?.user.image ? true : false}
             onChange={(e) => setUser({ ...user, phone: e.target.value })}
             className="col-span-3"

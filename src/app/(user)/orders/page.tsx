@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { format } from "date-fns";
-import { OrderDocument, OrdersDocument } from "@/types/types";
 import { getUserOrders } from "./action";
 import { Suspense } from "react";
 import { Loader } from "@/components/common/Loader";
@@ -9,7 +8,7 @@ import { authOptions } from "@/libs/auth";
 
 export async function generateMetadata() {
   return {
-    title: `Orders | Ecommerce Template`,
+    title: `Orders | Healing Room`,
   };
 }
 
@@ -45,9 +44,9 @@ const UserOrders = async () => {
 };
 
 const Orders = async () => {
-  const orders: OrdersDocument | undefined | null = await getUserOrders();
+  const orders = await getUserOrders();
 
-  if (orders === undefined || orders === null) {
+  if (!orders || orders.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center w-full h-[80vh] gap-2 px-4">
         <h2 className="mb-6 text-4xl font-bold">NO ORDERS YET</h2>
@@ -66,22 +65,22 @@ const Orders = async () => {
 
   return (
     <div className="grid items-center justify-between pt-12 grid-cols-auto-fill-350 gap-7">
-      {orders.orders.map((order: OrderDocument, index: number) => (
+      {orders.map((order, index: number) => (
         <div
           key={index}
           className="w-full transition duration-150 border border-solid rounded border-border-primary bg-background-secondary hover:bg-color-secondary"
         >
           <Link
-            href={`/orders/${order._id}?items=${order.products.length}`}
+            href={`/orders/${order.id}?items=${order.items.length}`}
             className="flex flex-col justify-between h-full gap-2 px-4 py-5"
           >
             <h4 className="font-semibold">{`${format(
               order.purchaseDate,
               "dd LLL yyyy"
-            )} | ${(order.total_price / 100).toFixed(
+            )} | ${order.totalPrice.toFixed(
               2
-            )}€ | Items: ${order.products.reduce(
-              (total, product) => total + product.quantity,
+            )}€ | Items: ${order.items.reduce(
+              (total, item) => total + item.quantity,
               0
             )} `}</h4>
             <p className="text-sm">Order number: {order.orderNumber}</p>

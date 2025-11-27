@@ -61,10 +61,12 @@ const OrderProducts = async ({ id }: { id: string }) => {
               <span>Order Date</span>{" "}
               <span>{format(order.purchaseDate, "dd LLL yyyy")}</span>
             </div>
-            <div className={bxInfoStyles}>
-              <span>Expected Delivery Date</span>{" "}
-              <span>{format(order.expectedDeliveryDate, "dd LLL yyyy")}</span>
-            </div>
+            {order.expectedDeliveryDate && (
+              <div className={bxInfoStyles}>
+                <span>Expected Delivery Date</span>{" "}
+                <span>{format(order.expectedDeliveryDate, "dd LLL yyyy")}</span>
+              </div>
+            )}
           </div>
           <div className="pt-10 mb-10 border-t border-solid border-border-primary">
             <h3 className={detailsH3Styles}>Delivery Address</h3>

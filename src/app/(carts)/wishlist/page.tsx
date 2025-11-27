@@ -47,7 +47,7 @@ const Wishlists = async () => {
 };
 
 const ProductsWishlists = async ({ session }: { session: Session }) => {
-  const filteredWishlist = await getItems(session.user._id);
+  const filteredWishlist = await getItems(session.user._id || "");
 
   if (filteredWishlist && filteredWishlist?.length > 0) {
     return (

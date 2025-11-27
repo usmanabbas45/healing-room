@@ -1,13 +1,13 @@
 import { SingleProduct } from "@/components/products/SingleProduct";
 import { Products } from "@/components/products/Products";
 import { getProduct, getRandomProducts } from "@/app/actions";
-import { ProductDocument } from "@/types/types";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/libs/auth";
 import { Session } from "next-auth";
 import { Suspense } from "react";
 import ProductSkeleton from "@/components/skeletons/ProductSkeleton";
 import SingleProductSkeleton from "@/components/skeletons/SingleProductSkeleton";
+import { notFound } from "next/navigation";
 
 type Props = {
   params: {
@@ -20,11 +20,18 @@ const capitalizeFirstLetter = (string: string) => {
 };
 
 export async function generateMetadata({ params }: Props) {
-  const product: ProductDocument = await getProduct(params.id);
+  const product = await getProduct(params.id);
+  
+  if (!product) {
+    return {
+      title: "Product Not Found | Healing Room",
+    };
+  }
+  
   const capitalizedName = capitalizeFirstLetter(product.name);
 
   return {
-    title: `${capitalizedName} | Ecommerce Template`,
+    title: `${capitalizedName} | Healing Room`,
     description: product.description,
   };
 }
@@ -52,9 +59,27 @@ const ProductPage = async ({ params }: Props) => (
 
 const AllProducts = async ({ id }: { id: string }) => {
   const session: Session | null = await getServerSession(authOptions);
-  const product: ProductDocument = await getProduct(id);
+  const product = await getProduct(id);
+  
+  if (!product) {
+    notFound();
+  }
+  
   const randomProducts = await getRandomProducts(id);
-  const productJSON = JSON.stringify(product);
+  
+  // Transform product for SingleProduct component
+  const productForComponent = {
+    ...product,
+    _id: product.id,
+    image: product.images,
+    variants: product.variants.map((v) => ({
+      priceId: v.priceId,
+      color: v.color,
+      images: v.images,
+    })),
+  };
+  
+  const productJSON = JSON.stringify(productForComponent);
 
   return (
     <>

@@ -1,40 +1,46 @@
 "use server";
 
-import { connectDB } from "@/libs/mongodb";
-import { Orders } from "@/models/Orders";
+import prisma from "@/libs/prisma";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/libs/auth";
 import { Session } from "next-auth";
-import {
-  EnrichedProducts,
-  OrderDocument,
-  OrdersDocument,
-  ProductsDocument,
-  VariantsDocument,
-} from "@/types/types";
-import { Product } from "@/models/Products";
 import Stripe from "stripe";
 import { emptyCart, getItems } from "@/app/(carts)/cart/action";
 
-connectDB();
+// Generate random order number
+function generateOrderNumber(): string {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  let result = "";
+  for (let i = 0; i < 8; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return `ORD-${result}`;
+}
 
 export const getUserOrders = async () => {
   try {
     const session: Session | null = await getServerSession(authOptions);
     const userId = session?.user._id;
-    const userOrders: OrdersDocument | null = await Orders.findOne({ userId });
 
-    if (userOrders && userOrders.orders && userOrders.orders.length > 0) {
-      userOrders.orders.sort((a: OrderDocument, b: OrderDocument) => {
-        const dateA = new Date(a.purchaseDate.toString());
-        const dateB = new Date(b.purchaseDate.toString());
-        return dateB.getTime() - dateA.getTime();
-      });
-    }
+    if (!userId) return null;
 
-    return userOrders;
+    const orders = await prisma.order.findMany({
+      where: { userId },
+      include: {
+        items: {
+          include: {
+            product: true,
+            variant: true,
+          },
+        },
+      },
+      orderBy: { purchaseDate: "desc" },
+    });
+
+    return orders;
   } catch (error) {
     console.error("Error getting orders:", error);
+    return null;
   }
 };
 
@@ -42,60 +48,64 @@ export const getOrder = async (orderId: string) => {
   try {
     const session: Session | null = await getServerSession(authOptions);
     const userId = session?.user._id;
-    const userOrders: OrdersDocument | null = await Orders.findOne({ userId });
-    const orderFound: OrderDocument | undefined = userOrders?.orders.find(
-      (order: OrderDocument) => order._id.toString() === orderId.toString()
-    );
 
-    if (!orderFound) {
+    if (!userId) return null;
+
+    const order = await prisma.order.findFirst({
+      where: {
+        id: orderId,
+        userId,
+      },
+      include: {
+        items: {
+          include: {
+            product: {
+              include: { variants: true },
+            },
+            variant: true,
+          },
+        },
+      },
+    });
+
+    if (!order) {
       console.log("Order not found");
       return null;
     }
 
-    const enrichedProducts = await Promise.all(
-      orderFound.products.map(async (product: ProductsDocument) => {
-        const matchingProduct = await Product.findById(product.productId);
-        if (matchingProduct) {
-          const matchingVariant = matchingProduct.variants.find(
-            (variant: VariantsDocument) => variant.color === product.color
-          );
-          if (matchingVariant) {
-            return {
-              productId: matchingProduct._id,
-              name: matchingProduct.name,
-              category: matchingProduct.category,
-              image: [matchingVariant.images[0]],
-              price: matchingProduct.price,
-              purchased: true,
-              color: product.color,
-              size: product.size,
-              quantity: product.quantity,
-            };
-          }
-        }
-        return null;
-      })
-    );
+    const enrichedProducts = order.items.map((item) => ({
+      productId: item.productId,
+      name: item.product.name,
+      category: item.product.category,
+      image: item.image ? [item.image] : item.variant?.images.slice(0, 1) || item.product.images.slice(0, 1),
+      price: item.price,
+      purchased: true,
+      color: item.color || item.variant?.color || "",
+      size: item.size,
+      quantity: item.quantity,
+    }));
 
-    const filteredEnrichedProducts = enrichedProducts.filter(
-      (product) => product !== null
-    );
-
-    const enrichedOrder = {
-      name: orderFound.name,
-      email: orderFound.email,
-      phone: orderFound.phone,
-      address: orderFound.address,
-      products: filteredEnrichedProducts,
-      orderId: orderFound.orderId,
-      purchaseDate: orderFound.purchaseDate,
-      expectedDeliveryDate: orderFound.expectedDeliveryDate,
-      total_price: orderFound.total_price,
-      orderNumber: orderFound.orderNumber,
-      _id: orderFound._id,
+    return {
+      id: order.id,
+      orderNumber: order.orderNumber,
+      name: order.shippingName,
+      email: order.shippingEmail,
+      phone: order.shippingPhone,
+      address: {
+        line1: order.shippingAddressLine1,
+        line2: order.shippingAddressLine2,
+        city: order.shippingCity,
+        state: order.shippingState,
+        postal_code: order.shippingPostalCode,
+        country: order.shippingCountry,
+      },
+      products: enrichedProducts,
+      orderId: order.stripeSessionId,
+      purchaseDate: order.purchaseDate,
+      expectedDeliveryDate: order.expectedDeliveryDate,
+      total_price: order.totalPrice,
+      status: order.status,
     };
-
-    return enrichedOrder;
   } catch (error) {
     console.error("Error getting order:", error);
     return null;
@@ -111,58 +121,59 @@ export const saveOrder = async (data: Stripe.Checkout.Session) => {
     }
 
     const cart = await getItems(userId);
-    if (!cart) {
+    if (!cart || cart.length === 0) {
       console.error("Products or cart not found.");
       return null;
     }
 
-    const products = cart.map((item) => ({
-      productId: item.productId,
-      quantity: item.quantity,
-      size: item.size,
-      color: item.color,
-      image: item.image,
-    }));
+    // Check if order already exists
+    const existingOrder = await prisma.order.findFirst({
+      where: { stripeSessionId: data.id },
+    });
 
-    const newOrder: any = {
-      name: data.customer_details?.name,
-      email: data.customer_details?.email,
-      phone: data.customer_details?.phone,
-      address: {
-        line1: data.customer_details?.address?.line1,
-        line2: data.customer_details?.address?.line2,
-        city: data.customer_details?.address?.city,
-        state: data.customer_details?.address?.state,
-        postal_code: data.customer_details?.address?.postal_code,
-        country: data.customer_details?.address?.country,
-      },
-      products: products,
-      orderId: data.id,
-      total_price: data.amount_total,
-    };
-
-    const userOrders: OrdersDocument | null = await Orders.findOne({ userId });
-
-    if (userOrders) {
-      const orderIdMatch = userOrders.orders.some(
-        (order: OrderDocument) => order.orderId === data.id
-      );
-      if (!orderIdMatch) {
-        userOrders.orders.push(newOrder);
-        await Orders.findOneAndUpdate({ userId: userId }, userOrders, {
-          new: true,
-        });
-        console.log("Order successfully updated.");
-      } else {
-        console.info("This order has already been saved.");
-      }
-    } else {
-      await Orders.create({ userId, orders: [newOrder] });
-      console.info("New order document created and saved successfully.");
+    if (existingOrder) {
+      console.info("This order has already been saved.");
+      return existingOrder;
     }
 
+    // Create new order
+    const order = await prisma.order.create({
+      data: {
+        orderNumber: generateOrderNumber(),
+        userId,
+        stripeSessionId: data.id,
+        totalPrice: (data.amount_total || 0) / 100,
+        status: "confirmed",
+        shippingName: data.customer_details?.name || "",
+        shippingEmail: data.customer_details?.email || "",
+        shippingPhone: data.customer_details?.phone || null,
+        shippingAddressLine1: data.customer_details?.address?.line1 || "",
+        shippingAddressLine2: data.customer_details?.address?.line2 || null,
+        shippingCity: data.customer_details?.address?.city || "",
+        shippingState: data.customer_details?.address?.state || null,
+        shippingPostalCode: data.customer_details?.address?.postal_code || "",
+        shippingCountry: data.customer_details?.address?.country || "",
+        expectedDeliveryDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+        items: {
+          create: cart.map((item) => ({
+            productId: item.productId,
+            variantId: item.variantId || null,
+            size: item.size,
+            quantity: item.quantity,
+            price: item.price,
+            color: item.color,
+            image: item.image[0] || null,
+          })),
+        },
+      },
+    });
+
+    console.info("Order saved successfully:", order.orderNumber);
     await emptyCart(userId);
+
+    return order;
   } catch (error) {
     console.error("Error saving the order:", error);
+    return null;
   }
 };

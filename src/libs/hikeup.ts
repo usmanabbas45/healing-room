@@ -6,18 +6,13 @@
  * Developer Portal: https://developer.hikeup.com
  */
 
+import prisma from "@/libs/prisma";
+
 interface HikeupConfig {
   clientId: string;
   clientSecret: string;
   storeId: string;
   baseUrl?: string;
-}
-
-interface HikeupTokenResponse {
-  access_token: string;
-  token_type: string;
-  expires_in: number;
-  refresh_token?: string;
 }
 
 interface HikeupProduct {
@@ -77,16 +72,9 @@ class HikeupClient {
    * You'll need to implement OAuth flow - this is a placeholder
    */
   private async getAccessToken(): Promise<string> {
-    // Check if token is still valid
     if (this.accessToken && Date.now() < this.tokenExpiry) {
       return this.accessToken;
     }
-
-    // TODO: Implement OAuth 2.0 flow
-    // 1. Register your app at https://developer.hikeup.com
-    // 2. Get OAuth credentials (clientId, clientSecret)
-    // 3. Implement authorization code flow or client credentials flow
-    // 4. Store and refresh tokens securely
 
     throw new Error('OAuth token not implemented. Please implement OAuth flow.');
   }
@@ -121,7 +109,6 @@ class HikeupClient {
    * Get all products from Hikeup
    */
   async getProducts(): Promise<HikeupProduct[]> {
-    // TODO: Update endpoint based on actual Hikeup API documentation
     return this.apiRequest<HikeupProduct[]>('/v1/products');
   }
 
@@ -177,49 +164,59 @@ class HikeupClient {
   }
 
   /**
-   * Sync products from Hikeup to MongoDB
-   * This maps Hikeup products to your Product model
+   * Sync products from Hikeup to PostgreSQL
    */
-  async syncProductsToMongoDB(): Promise<void> {
-    const { Product } = await import('@/models/Products');
-    const { connectDB } = await import('@/libs/mongodb');
-    
-    await connectDB();
-    
+  async syncProductsToDatabase(): Promise<void> {
     const hikeupProducts = await this.getProducts();
     
     for (const hikeupProduct of hikeupProducts) {
-      // Map Hikeup product to your Product schema
-      const productData = {
-        name: hikeupProduct.name,
-        description: hikeupProduct.description || '',
-        price: hikeupProduct.price,
-        category: hikeupProduct.category || 'uncategorized',
-        sizes: hikeupProduct.variants?.map(v => v.name) || ['default'],
-        image: hikeupProduct.images || [],
-        variants: hikeupProduct.variants?.map((variant, index) => ({
-          priceId: variant.id,
-          color: variant.name,
+      // Upsert product
+      await prisma.product.upsert({
+        where: { id: hikeupProduct.id },
+        update: {
+          name: hikeupProduct.name,
+          description: hikeupProduct.description || '',
+          price: hikeupProduct.price,
+          category: hikeupProduct.category || 'uncategorized',
           images: hikeupProduct.images || [],
-        })) || [],
-      };
+        },
+        create: {
+          id: hikeupProduct.id,
+          name: hikeupProduct.name,
+          description: hikeupProduct.description || '',
+          price: hikeupProduct.price,
+          category: hikeupProduct.category || 'uncategorized',
+          sizes: ['default'],
+          images: hikeupProduct.images || [],
+        },
+      });
 
-      // Update or create product
-      await Product.findOneAndUpdate(
-        { name: hikeupProduct.name },
-        productData,
-        { upsert: true, new: true }
-      );
+      // Sync variants
+      if (hikeupProduct.variants) {
+        for (const variant of hikeupProduct.variants) {
+          await prisma.productVariant.upsert({
+            where: { id: variant.id },
+            update: {
+              priceId: variant.id,
+              color: variant.name,
+              images: hikeupProduct.images || [],
+            },
+            create: {
+              id: variant.id,
+              priceId: variant.id,
+              color: variant.name,
+              images: hikeupProduct.images || [],
+              productId: hikeupProduct.id,
+            },
+          });
+        }
+      }
     }
   }
 }
 
 /**
  * Create a Hikeup client instance
- * Make sure to set these environment variables:
- * - HIKEUP_CLIENT_ID
- * - HIKEUP_CLIENT_SECRET
- * - HIKEUP_STORE_ID
  */
 export function createHikeupClient(): HikeupClient {
   const clientId = process.env.HIKEUP_CLIENT_ID;
@@ -240,4 +237,3 @@ export function createHikeupClient(): HikeupClient {
 }
 
 export type { HikeupProduct, HikeupCustomer, HikeupOrder, HikeupConfig };
-

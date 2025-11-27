@@ -1,5 +1,4 @@
-import { connectDB } from "@/libs/mongodb";
-import User from "@/models/User";
+import prisma from "@/libs/prisma";
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
@@ -19,12 +18,13 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        await connectDB();
-        const userFound = await User.findOne({
-          email: credentials?.email,
-        }).select("+password");
+        const userFound = await prisma.user.findUnique({
+          where: { email: credentials?.email },
+        });
 
         if (!userFound) throw new Error("Invalid Email");
+
+        if (!userFound.password) throw new Error("Please use Google sign-in");
 
         const passwordMatch = await bcrypt.compare(
           credentials!.password,
@@ -32,7 +32,13 @@ export const authOptions: NextAuthOptions = {
         );
 
         if (!passwordMatch) throw new Error("Invalid Password");
-        return userFound;
+        
+        return {
+          id: userFound.id,
+          email: userFound.email,
+          name: userFound.name,
+          phone: userFound.phone,
+        };
       },
     }),
   ],
@@ -72,6 +78,25 @@ export const authOptions: NextAuthOptions = {
           phone: token.phone,
         },
       };
+    },
+    async signIn({ user, account }) {
+      // Handle Google OAuth - create user if doesn't exist
+      if (account?.provider === "google") {
+        const existingUser = await prisma.user.findUnique({
+          where: { email: user.email! },
+        });
+
+        if (!existingUser) {
+          await prisma.user.create({
+            data: {
+              email: user.email!,
+              name: user.name || "User",
+              image: user.image,
+            },
+          });
+        }
+      }
+      return true;
     },
   },
 };
