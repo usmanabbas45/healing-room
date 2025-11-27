@@ -4,9 +4,10 @@ import { FormEvent, useCallback, useEffect, useState } from "react";
 import axios, { AxiosError } from "axios";
 import { signIn, useSession } from "next-auth/react";
 import Link from "next/link";
+import Image from "next/image";
 
 const Signup = () => {
-  const labelStyles = "w-full text-sm";
+  const labelStyles = "w-full text-sm text-text-primary";
   const [error, setError] = useState();
   const [showPassword, setShowPassword] = useState(false);
   const { data: session } = useSession();
@@ -53,10 +54,21 @@ const Signup = () => {
       <form
         onSubmit={handleSubmit}
         className="p-6 xs:p-10 w-full max-w-350 flex flex-col justify-between items-center gap-2.5	
-                border border-solid border-[#2E2E2E] bg-[#0A0A0A] rounded-md"
+                border border-solid border-border-primary bg-white rounded-lg shadow-sm"
       >
+        {/* Logo */}
+        <div className="mb-4">
+          <Image
+            src="/logo.png"
+            alt="Healing Room"
+            width={60}
+            height={60}
+            className="h-16 w-auto"
+          />
+        </div>
+
         {error && (
-          <div className="text-[#FF6166] flex items-center justify-center gap-2">
+          <div className="text-red-500 flex items-center justify-center gap-2 bg-red-50 px-4 py-2 rounded-md w-full">
             <svg
               data-testid="geist-icon"
               height="16"
@@ -75,13 +87,13 @@ const Signup = () => {
             <div className="text-sm">{error}</div>
           </div>
         )}
-        <h1 className="w-full mb-5 text-2xl font-bold">Signup</h1>
+        <h1 className="w-full mb-3 text-2xl font-bold text-text-primary">Create Account</h1>
 
-        <label className={labelStyles}>Fullname:</label>
+        <label className={labelStyles}>Full Name:</label>
         <input
           type="text"
-          placeholder="Fullname"
-          className="w-full h-8 border text-[#A1A1A1] border-solid border-[#2E2E2E] bg-black py-1 px-2.5 rounded text-13"
+          placeholder="Full Name"
+          className="w-full h-10 border text-text-primary border-solid border-border-primary bg-bg-alt py-1 px-3 rounded-md text-sm focus:outline-none focus:border-primary transition-colors"
           name="name"
         />
 
@@ -89,7 +101,7 @@ const Signup = () => {
         <input
           type="email"
           placeholder="Email"
-          className="w-full h-8 text-[#A1A1A1] border border-solid border-[#2E2E2E] bg-black py-1 px-2.5 rounded text-13"
+          className="w-full h-10 text-text-primary border border-solid border-border-primary bg-bg-alt py-1 px-3 rounded-md text-sm focus:outline-none focus:border-primary transition-colors"
           name="email"
         />
 
@@ -98,11 +110,11 @@ const Signup = () => {
           <input
             type={showPassword ? "text" : "password"}
             placeholder="Password"
-            className="w-full h-8 text-[#A1A1A1] border border-solid border-[#2E2E2E] bg-black py-1 px-2.5 rounded-l  text-13"
+            className="w-full h-10 text-text-primary border border-solid border-border-primary bg-bg-alt py-1 px-3 rounded-l-md text-sm focus:outline-none focus:border-primary transition-colors"
             name="password"
           />
           <button
-            className="flex items-center text-[#A1A1A1] justify-center w-2/12 transition-all duration-150 border-[#2E2E2E] bg-black border-r border-solid rounded-r border-y ease hover:bg-[#1F1F1F]"
+            className="flex items-center text-text-muted justify-center w-12 transition-all duration-150 border-border-primary bg-bg-alt border-r border-solid rounded-r-md border-y ease hover:bg-border-primary hover:text-text-primary"
             onClick={() => setShowPassword(!showPassword)}
             type="button"
           >
@@ -145,27 +157,27 @@ const Signup = () => {
         <label className={labelStyles}>Phone:</label>
         <input
           type="text"
-          placeholder="Phone (not required)"
-          className="w-full h-8 text-[#A1A1A1] border border-solid border-[#2E2E2E] py-1 px-2.5 rounded bg-black text-13"
+          placeholder="Phone (optional)"
+          className="w-full h-10 text-text-primary border border-solid border-border-primary py-1 px-3 rounded-md bg-bg-alt text-sm focus:outline-none focus:border-primary transition-colors"
           name="phone"
         />
 
         <button
-          className="w-full bg-black border border-solid border-[#2E2E2E] py-1.5 mt-2.5 rounded transition-all hover:bg-[#1F1F1F] hover:border-[#454545] text-13"
+          className="w-full bg-primary text-white border border-solid border-primary py-2.5 mt-2.5 rounded-md transition-all hover:bg-primary-dark text-sm font-medium"
           type="submit"
         >
-          Signup
+          Create Account
         </button>
 
         <div className="relative flex items-center justify-center w-full h-10">
-          <div className="absolute w-full h-px top-2/4 bg-[#2E2E2E]"></div>
-          <p className="z-10 flex items-center justify-center w-8 h-6 bg-background-secondary">
+          <div className="absolute w-full h-px top-2/4 bg-border-primary"></div>
+          <p className="z-10 flex items-center justify-center w-8 h-6 bg-white text-text-muted text-sm">
             or
           </p>
         </div>
 
         <button
-          className="flex text-[#A1A1A1] items-center gap-3 px-4 py-2 text-sm align-middle transition-all bg-black border border-solid rounded border-border-primary ease hover:bg-[#1F1F1F] hover:border-[#454545]"
+          className="flex text-text-primary items-center gap-3 px-4 py-2.5 text-sm align-middle transition-all bg-white border border-solid rounded-md border-border-primary ease hover:bg-bg-alt hover:border-border-dark w-full justify-center"
           onClick={() => signIn("google")}
           type="button"
         >
@@ -198,7 +210,7 @@ const Signup = () => {
         </button>
         <Link
           href="/login"
-          className="text-sm transition-all duration-150 text-[#A1A1A1] ease hover:text-white"
+          className="text-sm transition-all duration-150 text-text-light ease hover:text-primary"
         >
           Already have an account?
         </Link>

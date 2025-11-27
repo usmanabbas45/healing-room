@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useState } from "react";
 import { Session } from "next-auth";
 import { LinksDesktop } from "./LinksDesktop";
@@ -32,9 +33,10 @@ export const Navbar = ({ session, totalItemsCart, totalWishlists }: Navbar) => {
   };
 
   const linksData = [
-    { path: "/t-shirts", name: "T-SHIRTS" },
-    { path: "/pants", name: "PANTS" },
-    { path: "/sweatshirts", name: "SWEATSHIRTS" },
+    { path: "/flower", name: "FLOWER" },
+    { path: "/pre-rolls", name: "PRE-ROLLS" },
+    { path: "/edibles", name: "EDIBLES" },
+    { path: "/vapes", name: "VAPES" },
   ];
 
   const authLinks = () => {
@@ -44,7 +46,7 @@ export const Navbar = ({ session, totalItemsCart, totalWishlists }: Navbar) => {
           <li className="flex lg:hidden">
             <Dialog>
               <DialogTrigger asChild>
-                <button className="flex items-center w-full h-full px-4 py-2">
+                <button className="flex items-center w-full h-full px-4 py-2 text-text-primary hover:text-primary transition-colors">
                   <svg
                     data-testid="geist-icon"
                     height="16"
@@ -79,7 +81,7 @@ export const Navbar = ({ session, totalItemsCart, totalWishlists }: Navbar) => {
           <Link
             href="/login"
             onClick={() => setIsHeaderOpen(false)}
-            className="text-sm px-4 py-2 transition-all lg:text-[#A1A1A1] hover:text-[#EDEDED] font-medium"
+            className="text-sm px-4 py-2 transition-all text-text-light hover:text-primary font-medium"
           >
             Login
           </Link>
@@ -89,13 +91,14 @@ export const Navbar = ({ session, totalItemsCart, totalWishlists }: Navbar) => {
   };
 
   return (
-    <header className="pointer-events-auto w-full px-3.5 gap-4 xs:px-6 sm:px-12 py-6 flex items-center justify-between bg-background-secondary border-b border-solid border-border-primary">
+    <header className="pointer-events-auto w-full px-3.5 gap-4 xs:px-6 sm:px-12 py-4 flex items-center justify-between bg-white border-b border-solid border-border-primary shadow-sm">
+      {/* Mobile menu button */}
       <button
         onClick={() => {
           toggleHeader();
           document.body.style.overflow = "hidden";
         }}
-        className="flex px-4 py-2 lg:hidden"
+        className="flex px-4 py-2 lg:hidden text-text-primary hover:text-primary transition-colors"
       >
         <svg
           width="24"
@@ -113,8 +116,9 @@ export const Navbar = ({ session, totalItemsCart, totalWishlists }: Navbar) => {
         </svg>
       </button>
 
+      {/* Mobile menu overlay */}
       <div
-        className={`fixed top-0 left-0 h-screen w-full bg-background-secondary py-6 px-3.5 xs:px-6 transition ease duration-200 z-20 translate-x-0 ${isHeaderOpen ? "translate-x-0" : "translate-x-hide"}`}
+        className={`fixed top-0 left-0 h-screen w-full bg-white py-6 px-3.5 xs:px-6 transition ease duration-200 z-20 translate-x-0 ${isHeaderOpen ? "translate-x-0" : "translate-x-hide"}`}
       >
         <ul className="flex justify-between text-sm gap-9">
           <li>
@@ -123,7 +127,7 @@ export const Navbar = ({ session, totalItemsCart, totalWishlists }: Navbar) => {
                 toggleHeader();
                 document.body.style.overflow = "auto";
               }}
-              className="px-4 py-2"
+              className="px-4 py-2 text-text-primary hover:text-primary transition-colors"
             >
               <svg
                 width="24"
@@ -149,7 +153,11 @@ export const Navbar = ({ session, totalItemsCart, totalWishlists }: Navbar) => {
           <ul className="flex flex-col justify-between text-sm gap-9">
             {linksData.map((link, index) => (
               <li key={index} className="flex items-center justify-center">
-                <Link href={link.path} onClick={toggleHeader}>
+                <Link 
+                  href={link.path} 
+                  onClick={toggleHeader}
+                  className="text-text-primary hover:text-primary transition-colors font-medium"
+                >
                   {link.name}
                 </Link>
               </li>
@@ -158,7 +166,7 @@ export const Navbar = ({ session, totalItemsCart, totalWishlists }: Navbar) => {
               <>
                 <li className="flex items-center">
                   <Link
-                    className="flex items-center w-full h-full px-4 py-2"
+                    className="flex items-center w-full h-full px-4 py-2 text-text-primary hover:text-primary transition-colors"
                     onClick={toggleHeader}
                     href="/orders"
                   >
@@ -192,6 +200,7 @@ export const Navbar = ({ session, totalItemsCart, totalWishlists }: Navbar) => {
         </div>
       </div>
 
+      {/* Desktop navigation */}
       <ul className="justify-between hidden gap-2 text-sm lg:flex">
         {authLinks()}
         <li>
@@ -199,14 +208,30 @@ export const Navbar = ({ session, totalItemsCart, totalWishlists }: Navbar) => {
         </li>
       </ul>
 
+      {/* Logo - Center */}
+      <Link href="/" className="flex items-center gap-2">
+        <Image
+          src="/logo.png"
+          alt="Healing Room"
+          width={50}
+          height={50}
+          className="h-12 w-auto"
+        />
+        <span className="hidden sm:block font-semibold text-text-primary text-lg">
+          Healing Room
+        </span>
+      </Link>
+
+      {/* Search */}
       <SearchInput />
 
+      {/* Cart & Wishlist */}
       <ul className="flex gap-2">
         <li className="flex items-center justify-center">
           <Link
             href="/cart"
             aria-label="Products saved in the shopping cart"
-            className="text-sm py-3 px-3 rounded-md transition-all text-[#EDEDED] hover:bg-[#1F1F1F] relative"
+            className="text-sm py-3 px-3 rounded-md transition-all text-text-primary hover:bg-bg-alt hover:text-primary relative"
           >
             <svg
               data-testid="geist-icon"
@@ -223,7 +248,7 @@ export const Navbar = ({ session, totalItemsCart, totalWishlists }: Navbar) => {
                 fill="currentColor"
               ></path>
             </svg>
-            <span className="flex items-center bg-[#0072F5] font-medium text-[#EDEDED] justify-center absolute w-[20px] rounded-full top-[-3px] right-[-3px]">
+            <span className="flex items-center bg-primary font-medium text-white justify-center absolute w-[20px] rounded-full top-[-3px] right-[-3px] text-xs">
               {totalItemsCart}
             </span>
           </Link>
@@ -231,8 +256,8 @@ export const Navbar = ({ session, totalItemsCart, totalWishlists }: Navbar) => {
         <li className="flex items-center justify-center">
           <Link
             href="/wishlist"
-            aria-label="Products saved in whishlist"
-            className="text-sm py-3 px-3 rounded-md transition-all text-[#EDEDED] hover:bg-[#1F1F1F] relative"
+            aria-label="Products saved in wishlist"
+            className="text-sm py-3 px-3 rounded-md transition-all text-text-primary hover:bg-bg-alt hover:text-primary relative"
           >
             <svg
               data-testid="geist-icon"
@@ -247,7 +272,7 @@ export const Navbar = ({ session, totalItemsCart, totalWishlists }: Navbar) => {
                 fill="currentColor"
               ></path>
             </svg>
-            <span className="flex items-center bg-[#0072F5] font-medium text-[#EDEDED] justify-center absolute w-[20px] rounded-full top-[-3px] right-[-3px]">
+            <span className="flex items-center bg-primary font-medium text-white justify-center absolute w-[20px] rounded-full top-[-3px] right-[-3px] text-xs">
               {totalWishlists || 0}
             </span>
           </Link>

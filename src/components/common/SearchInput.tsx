@@ -14,8 +14,8 @@ const SearchInput = () => {
   }, []);
 
   return (
-    <div className="flex w-full border border-[#2E2E2E] rounded-md overflow-hidden">
-      <span className="h-[40px] w-[40px] px-3 flex items-center justify-center">
+    <div className="flex w-full border border-border-primary rounded-md overflow-hidden bg-bg-alt hover:border-border-dark transition-colors">
+      <span className="h-[40px] w-[40px] px-3 flex items-center justify-center text-text-muted">
         <svg
           data-testid="geist-icon"
           height="16"
@@ -35,7 +35,7 @@ const SearchInput = () => {
       <input
         placeholder="Search Products..."
         aria-label="Search"
-        className="w-full h-[40px] px-3 bg-[#0A0A0A] text-sm focus:outline-none"
+        className="w-full h-[40px] px-3 bg-transparent text-sm text-text-primary placeholder:text-text-muted focus:outline-none"
         type="search"
         defaultValue={searchParams.get("q")?.toString()}
         onChange={(e) => handleChange(e.target.value)}

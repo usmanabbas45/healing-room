@@ -22,15 +22,15 @@ export function UserMenu({ fastSession }: { fastSession: Session }) {
     <Dialog>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button className="text-sm px-4 py-2 font-medium transition-all text-[#A1A1A1] hover:text-[#EDEDED]">
+          <button className="text-sm px-4 py-2 font-medium transition-all text-text-light hover:text-primary">
             {fastSession.user.name.split(" ")[0]}
           </button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent className="w-40">
-          <DropdownMenuLabel>My Account</DropdownMenuLabel>
-          <DropdownMenuSeparator />
+        <DropdownMenuContent className="w-40 bg-white border-border-primary">
+          <DropdownMenuLabel className="text-text-primary">My Account</DropdownMenuLabel>
+          <DropdownMenuSeparator className="bg-border-primary" />
           <DropdownMenuGroup>
-            <DropdownMenuItem>
+            <DropdownMenuItem className="text-text-primary hover:bg-bg-alt hover:text-primary cursor-pointer">
               <DialogTrigger asChild>
                 <button className="flex items-center w-full h-full">
                   <svg
@@ -53,7 +53,7 @@ export function UserMenu({ fastSession }: { fastSession: Session }) {
                 </button>
               </DialogTrigger>
             </DropdownMenuItem>
-            <DropdownMenuItem>
+            <DropdownMenuItem className="text-text-primary hover:bg-bg-alt hover:text-primary cursor-pointer">
               <Link className="flex items-center w-full h-full" href="/orders">
                 <svg
                   data-testid="geist-icon"
@@ -75,8 +75,8 @@ export function UserMenu({ fastSession }: { fastSession: Session }) {
               </Link>
             </DropdownMenuItem>
           </DropdownMenuGroup>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem>
+          <DropdownMenuSeparator className="bg-border-primary" />
+          <DropdownMenuItem className="text-text-primary hover:bg-bg-alt cursor-pointer">
             <SignOutButton />
           </DropdownMenuItem>
         </DropdownMenuContent>

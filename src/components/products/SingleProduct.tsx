@@ -23,7 +23,7 @@ export const SingleProduct = ({ product, session }: SingleProduct) => {
   );
 
   if (!product) {
-    return <div>Produnct not found</div>;
+    return <div className="text-text-primary">Product not found</div>;
   }
 
   return (
@@ -36,13 +36,13 @@ export const SingleProduct = ({ product, session }: SingleProduct) => {
       </div>
 
       <div className="sticky flex flex-col items-center justify-center w-full h-full gap-5 grow basis-600 top-8">
-        <div className="w-full border border-solid rounded border-border-primary bg-background-secondary">
+        <div className="w-full border border-solid rounded-lg border-border-primary bg-white shadow-sm overflow-hidden">
           <div className="flex flex-col justify-between gap-3 p-5 border-b border-solid border-border-primary">
-            <h1 className="text-base font-semibold">
+            <h1 className="text-lg font-semibold text-text-primary">
               {productPlainObject.name}
             </h1>
-            <span className="text-sm">{productPlainObject.price}€</span>
-            <p className="text-sm">{productPlainObject.description}</p>
+            <span className="text-xl font-bold text-primary">${productPlainObject.price}</span>
+            <p className="text-sm text-text-light leading-relaxed">{productPlainObject.description}</p>
           </div>
 
           <AddToCart
@@ -53,45 +53,42 @@ export const SingleProduct = ({ product, session }: SingleProduct) => {
           />
         </div>
 
-        <Accordion type="single" collapsible className="w-full">
-          <AccordionItem value="item-1">
-            <AccordionTrigger className="text-sm">COMPOSITION</AccordionTrigger>
-            <AccordionContent>
+        <Accordion type="single" collapsible className="w-full bg-white border border-border-primary rounded-lg overflow-hidden">
+          <AccordionItem value="item-1" className="border-border-primary">
+            <AccordionTrigger className="text-sm text-text-primary hover:text-primary px-5">
+              PRODUCT INFO
+            </AccordionTrigger>
+            <AccordionContent className="text-text-light px-5">
               <p>
-                We work with monitoring programmes to ensure compliance with our
-                social, environmental and health and safety standards for our
-                products. To assess compliance, we have developed a programme of
-                audits and continuous improvement plans.
+                All products are lab-tested for quality and potency. 
+                Certificate of Analysis (COA) available upon request.
               </p>
             </AccordionContent>
           </AccordionItem>
-          <AccordionItem value="item-2">
-            <AccordionTrigger className="text-sm">CARE</AccordionTrigger>
-            <AccordionContent className="flex flex-col gap-2">
-              <p> Caring for your clothes is caring for the environment.</p>
+          <AccordionItem value="item-2" className="border-border-primary">
+            <AccordionTrigger className="text-sm text-text-primary hover:text-primary px-5">
+              STORAGE
+            </AccordionTrigger>
+            <AccordionContent className="flex flex-col gap-2 text-text-light px-5">
+              <p>Store in a cool, dry place away from direct sunlight.</p>
               <p>
-                Lower temperature washes and delicate spin cycles are gentler on
-                garments and help to protect the colour, shape and structure of
-                the fabric. Furthermore, they reduce the amount of energy used
-                in care processes.
+                Keep products in their original packaging to maintain freshness
+                and potency.
               </p>
             </AccordionContent>
           </AccordionItem>
-          <AccordionItem value="item-3">
-            <AccordionTrigger className="text-sm">ORIGIN</AccordionTrigger>
-            <AccordionContent className="flex flex-col gap-2">
+          <AccordionItem value="item-3" className="border-b-0 border-border-primary">
+            <AccordionTrigger className="text-sm text-text-primary hover:text-primary px-5">
+              LEGAL
+            </AccordionTrigger>
+            <AccordionContent className="flex flex-col gap-2 text-text-light px-5">
               <p>
-                We work with our suppliers, workers, unions and international
-                organisations to develop a supply chain in which human rights
-                are respected and promoted, contributing to the United Nations
-                Sustainable Development Goals.
+                Must be 21 years or older to purchase. Keep out of reach of 
+                children and pets.
               </p>
               <p>
-                Thanks to the collaboration with our suppliers, we work to know
-                the facilities and processes used to manufacture our products in
-                order to understand their traceability.
+                Do not operate vehicles or machinery while using cannabis products.
               </p>
-              <p>Made in Portugal</p>
             </AccordionContent>
           </AccordionItem>
         </Accordion>

@@ -55,7 +55,7 @@ export const Products = async ({
         } = product;
         const productLink = `/${category}/${quantity ? productId : _id}`;
         const containerClassname = [
-          "flex justify-between border border-solid border-border-primary rounded-md overflow-hidden",
+          "flex justify-between border border-solid border-border-primary rounded-md overflow-hidden bg-white shadow-sm hover:shadow-md transition-shadow",
           extraClassname === "cart-ord-mobile"
             ? "flex-row sm:flex-col"
             : "flex-col",
@@ -68,7 +68,7 @@ export const Products = async ({
             : "hover:scale-105 transition-all";
         const infoClassname = [
           extraClassname === "cart-ord-mobile" ? "w-6/12 sm:w-full" : "",
-          "flex justify-between flex-col gap-2.5 p-3.5 bg-background-secondary z-10",
+          "flex justify-between flex-col gap-2.5 p-3.5 bg-bg-alt z-10",
         ]
           .filter(Boolean)
           .join(" ");
@@ -88,11 +88,11 @@ export const Products = async ({
             <div className={infoClassname}>
               <div className="flex justify-between w-full">
                 <Link href={productLink} className="w-10/12">
-                  <h2 className="text-sm font-semibold truncate">{name}</h2>
+                  <h2 className="text-sm font-semibold truncate text-text-primary">{name}</h2>
                 </Link>
                 {quantity ? (
                   purchased ? (
-                    quantity > 1 && <span className="text-sm">{quantity}</span>
+                    quantity > 1 && <span className="text-sm text-text-light">{quantity}</span>
                   ) : (
                     <DeleteButton product={product} />
                   )
@@ -105,8 +105,8 @@ export const Products = async ({
                 )}
               </div>
               {!purchased && (
-                <div className="text-sm">
-                  {quantity ? (price * quantity).toFixed(2) : price} €
+                <div className="text-sm font-medium text-primary">
+                  ${quantity ? (price * quantity).toFixed(2) : price}
                 </div>
               )}
               {quantity !== undefined && <ProductCartInfo product={product} />}

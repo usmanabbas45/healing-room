@@ -5,9 +5,10 @@ import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
+import Image from "next/image";
 
 const Signin = () => {
-  const labelStyles = "w-full text-sm";
+  const labelStyles = "w-full text-sm text-text-primary";
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
@@ -43,12 +44,23 @@ const Signin = () => {
   return (
     <section className="flex items-center justify-center w-full pt-12 xs:h-80vh">
       <form
-        className="p-6 xs:p-10	w-full max-w-350 flex flex-col justify-between items-center gap-2.5	
-                border border-solid border-[#2E2E2E] bg-[#0A0A0A] rounded-md"
+        className="p-6 xs:p-10 w-full max-w-350 flex flex-col justify-between items-center gap-2.5	
+                border border-solid border-border-primary bg-white rounded-lg shadow-sm"
         onSubmit={handleSubmit}
       >
+        {/* Logo */}
+        <div className="mb-4">
+          <Image
+            src="/logo.png"
+            alt="Healing Room"
+            width={60}
+            height={60}
+            className="h-16 w-auto"
+          />
+        </div>
+
         {error && (
-          <div className="text-[#FF6166] flex items-center justify-center gap-2">
+          <div className="text-red-500 flex items-center justify-center gap-2 bg-red-50 px-4 py-2 rounded-md w-full">
             <svg
               data-testid="geist-icon"
               height="16"
@@ -67,13 +79,13 @@ const Signin = () => {
             <div className="text-sm">{error}</div>
           </div>
         )}
-        <h1 className="w-full mb-5 text-2xl font-bold">Signin</h1>
+        <h1 className="w-full mb-3 text-2xl font-bold text-text-primary">Sign In</h1>
 
         <label className={labelStyles}>Email:</label>
         <input
           type="email"
           placeholder="Email"
-          className="w-full text-[#A1A1A1] h-8 border border-solid border-[#2E2E2E] py-1 px-2.5 rounded bg-black text-13"
+          className="w-full text-text-primary h-10 border border-solid border-border-primary py-1 px-3 rounded-md bg-bg-alt text-sm focus:outline-none focus:border-primary transition-colors"
           name="email"
         />
 
@@ -82,11 +94,11 @@ const Signin = () => {
           <input
             type={showPassword ? "text" : "password"}
             placeholder="Password"
-            className="w-full text-[#A1A1A1] h-8 border border-solid border-[#2E2E2E] py-1 px-2.5 rounded-l bg-black text-13"
+            className="w-full text-text-primary h-10 border border-solid border-border-primary py-1 px-3 rounded-l-md bg-bg-alt text-sm focus:outline-none focus:border-primary transition-colors"
             name="password"
           />
           <button
-            className="flex text-[#A1A1A1] items-center justify-center w-2/12 transition duration-150 bg-black border-r border-solid rounded-r border-y border-[#2E2E2E] ease hover:bg-[#1F1F1F]"
+            className="flex text-text-muted items-center justify-center w-12 transition duration-150 bg-bg-alt border-r border-solid rounded-r-md border-y border-border-primary ease hover:bg-border-primary hover:text-text-primary"
             onClick={(e) => {
               e.preventDefault();
               setShowPassword(!showPassword);
@@ -129,21 +141,21 @@ const Signin = () => {
           </button>
         </div>
         <button
-          className="w-full bg-black border border-solid border-[#2E2E2E] py-1.5 mt-2.5 rounded transition-all hover:bg-[#1F1F1F] hover:border-[#454545] text-13"
+          className="w-full bg-primary text-white border border-solid border-primary py-2.5 mt-2.5 rounded-md transition-all hover:bg-primary-dark text-sm font-medium"
           type="submit"
         >
-          Signup
+          Sign In
         </button>
 
         <div className="relative flex items-center justify-center w-full h-10">
-          <div className="absolute w-full h-px top-2/4 bg-[#2E2E2E]"></div>
-          <p className="z-10 flex items-center justify-center w-8 h-6 bg-[#0A0A0A]">
+          <div className="absolute w-full h-px top-2/4 bg-border-primary"></div>
+          <p className="z-10 flex items-center justify-center w-8 h-6 bg-white text-text-muted text-sm">
             or
           </p>
         </div>
 
         <button
-          className="flex text-[#A1A1A1] items-center gap-3 px-4 py-2 text-sm align-middle transition-all bg-black border border-solid rounded border-[#2E2E2E] ease hover:bg-[#1F1F1F] hover:border-[#454545]"
+          className="flex text-text-primary items-center gap-3 px-4 py-2.5 text-sm align-middle transition-all bg-white border border-solid rounded-md border-border-primary ease hover:bg-bg-alt hover:border-border-dark w-full justify-center"
           onClick={(e) => {
             e.preventDefault();
             signIn("google");
@@ -179,7 +191,7 @@ const Signin = () => {
         </button>
         <Link
           href="/register"
-          className="text-sm transition duration-150 text-[#A1A1A1] ease hover:text-white"
+          className="text-sm transition duration-150 text-text-light ease hover:text-primary"
         >
           Don&apos;t have an account?
         </Link>

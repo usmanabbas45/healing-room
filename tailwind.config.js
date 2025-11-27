@@ -17,6 +17,32 @@ module.exports = {
       },
     },
     extend: {
+      colors: {
+        // Healing Room Brand Colors
+        primary: {
+          DEFAULT: "#D4842A",
+          dark: "#B8702A",
+          light: "#E9A54D",
+        },
+        // Text colors
+        "text-primary": "#2D2D2D",
+        "text-light": "#666666",
+        "text-muted": "#888888",
+        // Background colors
+        "bg-primary": "#FFFFFF",
+        "bg-alt": "#F8F8F8",
+        "bg-warm": "#FDF9F5",
+        // Border colors
+        "border-primary": "#E5E5E5",
+        "border-dark": "#D0D0D0",
+        // Legacy color mappings (for compatibility)
+        "border-secondary": "#D0D0D0",
+        "background-secondary": "#F8F8F8",
+        "background-alert": "rgba(255, 255, 255, 0.95)",
+        "color-secondary": "#F0F0F0",
+        "color-tertiary": "#888888",
+        999: "#888888",
+      },
       keyframes: {
         "accordion-down": {
           from: { height: "0" },
@@ -36,15 +62,6 @@ module.exports = {
         "auto-fill-350": "repeat(auto-fill, minmax(350px, 1fr))",
         "auto-fill-110": "repeat(auto-fill, minmax(110px, 1fr))",
         "auto-fill-32": "repeat(auto-fill, minmax(32px, 1fr))",
-      },
-      colors: {
-        "border-primary": "#242424",
-        "border-secondary": "#7F7F7F",
-        "background-secondary": "#0a0a0a",
-        "background-alert": "rgba(0, 0, 0, 0.9)",
-        "color-secondary": "#1A1A1A",
-        "color-tertiary": "#888",
-        999: "#999",
       },
       height: {
         "60vh": "60vh",

@@ -57,8 +57,10 @@ export default function AddToCart({
           {product.sizes.map((size, index) => (
             <button
               key={index}
-              className={`flex items-center justify-center border border-solid border-border-primary px-1 py-1.5 bg-black rounded transition duration-150 ease hover:border-border-secondary text-13 ${
-                selectedSize === size ? "bg-white text-black" : ""
+              className={`flex items-center justify-center border border-solid px-1 py-1.5 rounded transition duration-150 ease text-13 ${
+                selectedSize === size 
+                  ? "bg-primary text-white border-primary" 
+                  : "bg-white text-text-primary border-border-primary hover:border-primary"
               }`}
               onClick={() => setSelectedSize(size)}
             >
@@ -70,10 +72,10 @@ export default function AddToCart({
           {product.variants.map((variant, index) => (
             <button
               key={index}
-              className={`border border-solid border-border-primary w-8 h-8 flex justify-center relative rounded transition duration-150 ease hover:border-border-secondary ${
+              className={`border-2 border-solid w-8 h-8 flex justify-center relative rounded transition duration-150 ease ${
                 selectedVariant?.color === variant.color
-                  ? "border-border-secondary"
-                  : ""
+                  ? "border-primary ring-2 ring-primary/30"
+                  : "border-border-primary hover:border-border-dark"
               }`}
               style={{ backgroundColor: colorMapping[variant.color] }}
               onClick={() => {
@@ -85,7 +87,7 @@ export default function AddToCart({
               <span
                 className={
                   selectedVariant?.color === variant.color
-                    ? "w-2.5 absolute bottom-selected h-px bg-white"
+                    ? "w-2.5 absolute bottom-selected h-px bg-primary"
                     : ""
                 }
               />
@@ -98,7 +100,7 @@ export default function AddToCart({
         <button
           type="submit"
           onClick={handleAddToCart}
-          className="w-full p-2 transition duration-150 text-13 ease hover:bg-color-secondary"
+          className="w-full p-3 transition duration-150 text-sm font-medium ease bg-primary text-white hover:bg-primary-dark"
         >
           {isPending ? <Loader height={20} width={20} /> : "Add To Cart"}
         </button>
