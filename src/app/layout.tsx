@@ -12,8 +12,57 @@ import { getTotalWishlist } from "./(carts)/wishlist/action";
 import "../styles/globals.css";
 
 export const metadata: Metadata = {
-  title: "Healing Room",
-  description: "Your premium cannabis dispensary",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
+  title: {
+    default: "Healing Room | Premium Cannabis & Tobacco",
+    template: "%s | Healing Room",
+  },
+  description: "Your premium cannabis and tobacco dispensary. Shop flower, pre-rolls, edibles, vapes, and more.",
+  keywords: ["cannabis", "dispensary", "marijuana", "weed", "flower", "edibles", "pre-rolls", "vapes", "tobacco"],
+  authors: [{ name: "Healing Room" }],
+  creator: "Healing Room",
+  publisher: "Healing Room",
+  
+  // Favicon
+  icons: {
+    icon: "/logo.png",
+    shortcut: "/logo.png",
+    apple: "/logo.png",
+  },
+  
+  // Open Graph (Facebook, LinkedIn, etc.)
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    siteName: "Healing Room",
+    title: "Healing Room | Premium Cannabis & Tobacco",
+    description: "Your premium cannabis and tobacco dispensary. Shop flower, pre-rolls, edibles, vapes, and more.",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Healing Room - Premium Cannabis & Tobacco",
+      },
+    ],
+  },
+  
+  // Twitter Card
+  twitter: {
+    card: "summary_large_image",
+    title: "Healing Room | Premium Cannabis & Tobacco",
+    description: "Your premium cannabis and tobacco dispensary. Shop flower, pre-rolls, edibles, vapes, and more.",
+    images: ["/og-image.png"],
+  },
+  
+  // Robots
+  robots: {
+    index: true,
+    follow: true,
+  },
+  
+  // Manifest
+  manifest: "/manifest.json",
 };
 
 export default async function RootLayout({
@@ -27,6 +76,10 @@ export default async function RootLayout({
 
   return (
     <html lang="en">
+      <head>
+        <link rel="icon" href="/logo.png" type="image/png" />
+        <link rel="apple-touch-icon" href="/logo.png" />
+      </head>
       <Providers>
         <body className={GeistSans.className}>
           <Navbar

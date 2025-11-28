@@ -96,38 +96,8 @@ export const Footer = () => {
             </li>
           </ul>
         </div>
-
-        {/* Legal Section */}
-        <div className="w-full max-w-xs">
-          <h2 className="my-3 text-sm font-semibold text-text-primary">Legal</h2>
-          <ul className="grid grid-cols-1">
-            <li className={liStyles}>
-              <Link href="#" className={linkStyles}>
-                Privacy Policy
-              </Link>
-            </li>
-            <li className={liStyles}>
-              <Link href="#" className={linkStyles}>
-                Terms of Service
-              </Link>
-            </li>
-            <li className={liStyles}>
-              <Link href="#" className={linkStyles}>
-                Age Verification
-              </Link>
-            </li>
-          </ul>
-        </div>
       </nav>
 
-      {/* Legal Disclaimer */}
-      <div className="mt-12 pt-6 border-t border-border-primary max-w-screen-xl mx-auto">
-        <p className="text-xs text-text-muted text-center leading-relaxed">
-          <strong>21+ ONLY.</strong> Cannabis products are for use only by adults 21 years of age or older. 
-          Keep out of reach of children. Do not drive or operate machinery while using cannabis products. 
-          Consult your physician before use if pregnant, nursing, or have a medical condition.
-        </p>
-      </div>
     </footer>
   );
 };

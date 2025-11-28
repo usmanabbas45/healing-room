@@ -1,19 +1,19 @@
-# Next.js E-commerce Template
+# Healing Room - Cannabis E-commerce
 
-A modern, fully-featured e-commerce template built with Next.js, featuring Google Authentication, MongoDB for data storage, and Cloudinary for product images management.
+A modern e-commerce platform for cannabis dispensaries, built with Next.js and integrated with Hikeup POS for real-time inventory management.
 
 ## 🚀 Features
-- Responsive Modern Design
-- User Authentication with Google
+- Clean, modern white design
+- User Authentication (Email/Password)
+- Real-time inventory from Hikeup POS
 - Product Catalog with Categories
 - Shopping Cart Functionality
-- Product Search and Filtering
+- Product Search
 - User Profile Management
-- Image Management with Cloudinary
-- Secure Payment Processing
+- Stripe Payment Processing
 - Order History
 - Admin Dashboard
-- Responsive Product Gallery
+- Responsive Design
 - SEO Optimized
 
 ## 🛠 Installation & Set Up
@@ -32,131 +32,89 @@ npm run dev
 
 ## ⚙️ Environment Variables
 
-Rename `.env.example` to `.env.local` in the root directory and configure the following variables:
+Create a `.env` file in the root directory with the following variables:
 
-### Required Environment Variables:
 ```env
-# Database Configuration
-MONGODB_URI=your_mongodb_uri
+# Database (Railway PostgreSQL)
+DATABASE_URL=your_postgresql_url
 
 # Authentication
-GOOGLE_CLIENT_ID=your_google_client_id
-GOOGLE_CLIENT_SECRET=your_google_client_secret
 NEXTAUTH_SECRET=your_nextauth_secret
 NEXTAUTH_URL=http://localhost:3000
 
+# App URL
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+
+# Stripe Payments
+STRIPE_SECRET_KEY=your_stripe_secret_key
+STRIPE_WEBHOOK_SECRET=your_stripe_webhook_secret
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=your_stripe_publishable_key
+
+# Hikeup POS Integration
+HIKEUP_CLIENT_ID=your_hikeup_app_id
+HIKEUP_CLIENT_SECRET=your_hikeup_app_secret
+HIKEUP_STORE_ID=
+
+# Email (Proton Mail SMTP)
+PROTON_EMAIL_ADDRESS=your_email
+PROTON_SMTP_TOKEN=your_smtp_token
+
 # Image Storage
 CLOUDINARY_CLOUD_NAME=your_cloudinary_name
-CLOUDINARY_API_KEY=your_cloudinary_key
-CLOUDINARY_API_SECRET=your_cloudinary_secret
 ```
 
-### Setting Up Services:
+## 🔗 Hikeup POS Integration
 
-#### MongoDB Database
-- Create a free MongoDB database [following this guide](https://www.mongodb.com/resources/products/fundamentals/create-database)
-- Perfect for storing:
-  - Product catalog
-  - User information
-  - Orders
-  - Shopping cart data
+This project integrates with Hikeup POS for real-time product and inventory management.
 
-#### Google Authentication
-- Set up Google OAuth for secure user authentication [following this guide](https://developers.google.com/identity/protocols/oauth2)
-- Enables:
-  - User registration
-  - Secure login
-  - Profile management
-
-#### NextAuth Secret
-Generate a random secret key by running:
-```bash
-npx auth secret
-```
-
-#### Cloudinary Configuration
-- Set up Cloudinary for product image management [following this guide](https://cloudinary.com/documentation/cloudinary_credentials_tutorial)
-- Used for:
-  - Product images storage
-  - Image optimization
-  - Responsive images
+### Setup:
+1. Create an app in the [Hikeup Developer Portal](https://developer.hikeup.com)
+2. Add your redirect URI: `http://localhost:3000/api/hikeup/callback`
+3. Add your credentials to `.env`
+4. Go to `/admin` and click "Connect Hikeup POS"
+5. Log in with your store's Hikeup credentials
+6. Products will sync automatically!
 
 ## 📁 Project Structure
 ```
 src/
 ├── app/              
 │   ├── api/           # API endpoints
-│   ├── products/      # Product pages
-│   ├── cart/          # Cart pages
-│   ├── checkout/      # Checkout process
 │   ├── admin/         # Admin dashboard
-│   ├── auth/          # Authentication pages
-│   └── layout.tsx     # Root layout
+│   ├── [category]/    # Category & product pages
+│   ├── cart/          # Shopping cart
+│   ├── login/         # Authentication
+│   └── orders/        # Order history
 ├── components/    
-│   ├── layout/        # Layout components
-│   ├── products/      # Product-related components
-│   ├── cart/          # Shopping cart components
-│   ├── auth/          # Authentication components
-│   └── ui/            # Reusable UI components
-├── styles/            # CSS and styling
-├── lib/              
-│   ├── mongodb.ts     # Database configuration
-│   ├── auth.ts        # Authentication utilities
-│   └── cart.ts        # Cart management
-├── models/            # MongoDB models
-└── utils/            # Helper functions
+│   ├── common/        # Layout components
+│   ├── products/      # Product components
+│   ├── cart/          # Cart components
+│   ├── account/       # Auth components
+│   └── ui/            # UI components
+├── libs/              
+│   ├── prisma.ts      # Database client
+│   ├── auth.ts        # Authentication
+│   └── hikeup.ts      # Hikeup POS integration
+└── styles/            # CSS
 ```
 
-## 🛍️ E-commerce Features
+## 🛍️ Product Categories
 
-### For Customers
-- Browse product catalog
-- Search and filter products
-- Add items to cart
-- Secure checkout process
-- Order tracking
-- User profile management
-- Order history
-
-### For Administrators
-- Product management
-- Order management
-- User management
-- Analytics dashboard
-- Inventory tracking
-- Image upload and management
-
-## 🔒 Security Features
-- Secure authentication
-- Protected API routes
-- Secure payment processing
-- Data encryption
-- Input validation
-- XSS protection
+- Flower
+- Pre-Rolls
+- Edibles
+- Vapes
+- Concentrates
+- Accessories
 
 ## 🚀 Deployment
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme).
-
-Deployment Checklist:
-1. Configure environment variables
-2. Set up production database
-3. Configure payment processing for production
-4. Update authentication callbacks
-5. Set up proper image optimization
-
-## 🤝 Contributing
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add: AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-## 📚 Learn More
-- [Next.js Documentation](https://nextjs.org/docs)
-- [MongoDB Documentation](https://docs.mongodb.com/)
-- [Cloudinary Documentation](https://cloudinary.com/documentation)
-- [NextAuth.js Documentation](https://next-auth.js.org/)
+Deploy on Railway:
+1. Push to GitHub
+2. Connect to Railway
+3. Add PostgreSQL database
+4. Configure environment variables
+5. Deploy!
 
 ## 📝 License
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License.

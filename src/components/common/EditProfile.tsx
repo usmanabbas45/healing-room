@@ -49,20 +49,7 @@ export default function EditProfile() {
           <Input
             id="email"
             defaultValue={session?.user.email}
-            disabled={session?.user.image ? true : false}
-            onChange={(e) => setUser({ ...user, email: e.target.value })}
-            className="col-span-3"
-          />
-        </div>
-        <div className="grid items-center grid-cols-4 gap-4">
-          <Label htmlFor="Phone" className="text-right">
-            Phone
-          </Label>
-          <Input
-            id="phone"
-            defaultValue={session?.user.phone || ""}
-            disabled={session?.user.image ? true : false}
-            onChange={(e) => setUser({ ...user, phone: e.target.value })}
+            disabled
             className="col-span-3"
           />
         </div>
@@ -72,7 +59,7 @@ export default function EditProfile() {
           onClick={() => {
             update({ ...user });
           }}
-          className="text-sm min-w-[160px] max-w-[160px] h-[40px] px-[10px] rounded-md border border-solid border-[#2E2E2E] transition-all hover:bg-[#1F1F1F] hover:border-[#454545]"
+          className="text-sm min-w-[160px] max-w-[160px] h-[40px] px-[10px] rounded-md bg-primary text-white transition-all hover:bg-primary-dark"
         >
           Save changes
         </button>

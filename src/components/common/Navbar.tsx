@@ -209,7 +209,7 @@ export const Navbar = ({ session, totalItemsCart, totalWishlists }: Navbar) => {
       </ul>
 
       {/* Logo - Center */}
-      <Link href="/" className="flex items-center gap-2">
+      <Link href="/" className="flex items-center">
         <Image
           src="/logo.png"
           alt="Healing Room"
@@ -217,9 +217,6 @@ export const Navbar = ({ session, totalItemsCart, totalWishlists }: Navbar) => {
           height={50}
           className="h-12 w-auto"
         />
-        <span className="hidden sm:block font-semibold text-text-primary text-lg">
-          Healing Room
-        </span>
       </Link>
 
       {/* Search */}

@@ -1,15 +1,10 @@
 import prisma from "@/libs/prisma";
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import GoogleProvider from "next-auth/providers/google";
 import bcrypt from "bcryptjs";
 
 export const authOptions: NextAuthOptions = {
   providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID as string,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
-    }),
     CredentialsProvider({
       name: "Credentials",
       id: "credentials",
@@ -24,7 +19,7 @@ export const authOptions: NextAuthOptions = {
 
         if (!userFound) throw new Error("Invalid Email");
 
-        if (!userFound.password) throw new Error("Please use Google sign-in");
+        if (!userFound.password) throw new Error("Invalid credentials");
 
         const passwordMatch = await bcrypt.compare(
           credentials!.password,
@@ -37,7 +32,7 @@ export const authOptions: NextAuthOptions = {
           id: userFound.id,
           email: userFound.email,
           name: userFound.name,
-          phone: userFound.phone,
+          role: userFound.role,
         };
       },
     }),
@@ -63,7 +58,7 @@ export const authOptions: NextAuthOptions = {
         return {
           ...token,
           id: u.id,
-          phone: u.phone,
+          role: u.role,
         };
       }
       return token;
@@ -75,28 +70,9 @@ export const authOptions: NextAuthOptions = {
           ...session.user,
           _id: token.id,
           name: token.name,
-          phone: token.phone,
+          role: token.role as string,
         },
       };
-    },
-    async signIn({ user, account }) {
-      // Handle Google OAuth - create user if doesn't exist
-      if (account?.provider === "google") {
-        const existingUser = await prisma.user.findUnique({
-          where: { email: user.email! },
-        });
-
-        if (!existingUser) {
-          await prisma.user.create({
-            data: {
-              email: user.email!,
-              name: user.name || "User",
-              image: user.image,
-            },
-          });
-        }
-      }
-      return true;
     },
   },
 };

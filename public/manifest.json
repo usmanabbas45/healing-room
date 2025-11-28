@@ -1,0 +1,22 @@
+{
+  "name": "Healing Room",
+  "short_name": "Healing Room",
+  "description": "Premium Cannabis & Tobacco Dispensary",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FFFFFF",
+  "theme_color": "#D4842A",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
+

@@ -1,6 +1,17 @@
 "use server";
 
 import prisma from "@/libs/prisma";
+import { 
+  isHikeupConnected, 
+  getAllHikeupProducts,
+  getHikeupProducts,
+  getHikeupProductsWithMeta,
+  getHikeupProduct,
+  getHikeupProductsByCategory,
+  searchHikeupProducts,
+  transformHikeupProduct,
+  getCachedTotalCount,
+} from "@/libs/hikeup";
 
 // Transform Prisma product to EnrichedProducts format
 function transformProduct(product: any) {
@@ -27,22 +38,81 @@ function transformProduct(product: any) {
   };
 }
 
-export const getAllProducts = async () => {
+export const getAllProducts = async (page: number = 1, pageSize: number = 24) => {
   try {
+    const skipCount = (page - 1) * pageSize;
+    console.log(`🔍 getAllProducts called (page ${page}, size ${pageSize}, skip ${skipCount})`);
+    
+    // Check if Hikeup is connected (async - checks database)
+    const connected = await isHikeupConnected();
+    console.log('🔗 Hikeup connected:', connected);
+    
+    // Try Hikeup first if connected
+    if (connected) {
+      console.log('📦 Fetching products from Hikeup POS...');
+      const hikeupProducts = await getHikeupProducts(pageSize, skipCount);
+      console.log('📦 Got', hikeupProducts.length, 'products from Hikeup');
+      
+      if (hikeupProducts.length > 0) {
+        const transformed = hikeupProducts.map(transformHikeupProduct);
+        return transformed;
+      }
+      console.log('⚠️ No products from Hikeup, falling back to database');
+    }
+
+    // Fall back to database
+    console.log('📦 Fetching products from database...');
     const products = await prisma.product.findMany({
+      skip: skipCount,
+      take: pageSize,
       include: {
         variants: true,
       },
     });
+    console.log('📦 Got', products.length, 'products from database');
     return products.map(transformProduct);
   } catch (error) {
-    console.error("Error getting products:", error);
-    throw new Error("Failed to fetch products");
+    console.error("❌ Error getting products:", error);
+    return [];
+  }
+};
+
+// Get total product count for pagination
+export const getProductCount = async () => {
+  try {
+    const connected = await isHikeupConnected();
+    
+    if (connected) {
+      // Try cache first
+      const cached = getCachedTotalCount();
+      if (cached !== null) {
+        console.log('📦 Using cached total count:', cached);
+        return cached;
+      }
+      
+      // Fetch just 1 product to get totalCount
+      const { totalCount } = await getHikeupProductsWithMeta(1, 0);
+      return totalCount;
+    }
+
+    return await prisma.product.count();
+  } catch (error) {
+    console.error("❌ Error getting product count:", error);
+    return 0;
   }
 };
 
 export const getCategoryProducts = async (category: string) => {
   try {
+    const connected = await isHikeupConnected();
+    
+    if (connected) {
+      console.log(`📦 Fetching ${category} from Hikeup POS...`);
+      const hikeupProducts = await getHikeupProductsByCategory(category);
+      return hikeupProducts.map(transformHikeupProduct);
+    }
+
+    // Fall back to database
     const products = await prisma.product.findMany({
       where: { category },
       include: {
@@ -52,12 +122,22 @@ export const getCategoryProducts = async (category: string) => {
     return products.map(transformProduct);
   } catch (error) {
     console.error("Error getting products:", error);
-    throw new Error("Failed to fetch category products");
+    return [];
   }
 };
 
 export const getRandomProducts = async (productId: string) => {
   try {
+    const connected = await isHikeupConnected();
+    
+    if (connected) {
+      const hikeupProducts = await getAllHikeupProducts();
+      const filtered = hikeupProducts.filter(p => String(p.id) !== productId);
+      const shuffled = filtered.sort(() => Math.random() - 0.5);
+      return shuffled.slice(0, 6).map(transformHikeupProduct);
+    }
+
+    // Fall back to database
     const allProducts = await prisma.product.findMany({
       where: {
         NOT: { id: productId },
@@ -67,17 +147,38 @@ export const getRandomProducts = async (productId: string) => {
       },
     });
 
-    // Shuffle and take 6
     const shuffled = allProducts.sort(() => Math.random() - 0.5);
     return shuffled.slice(0, 6).map(transformProduct);
   } catch (error) {
     console.error("Error getting products:", error);
-    throw new Error("Failed to fetch random products");
+    return [];
   }
 };
 
 export const getProduct = async (id: string) => {
   try {
+    const connected = await isHikeupConnected();
+    
+    if (connected) {
+      console.log(`📦 Fetching product ${id} from Hikeup POS...`);
+      const hikeupProduct = await getHikeupProduct(id);
+      if (hikeupProduct) {
+        return {
+          ...hikeupProduct,
+          _id: hikeupProduct.id,
+          sizes: hikeupProduct.variants?.map(v => v.name) || ['default'],
+          images: hikeupProduct.images || [],
+          variants: hikeupProduct.variants?.map(v => ({
+            _id: v.id,
+            priceId: v.id,
+            color: v.name,
+            images: hikeupProduct.images || [],
+          })) || [],
+        };
+      }
+    }
+
+    // Fall back to database
     const product = await prisma.product.findUnique({
       where: { id },
       include: {
@@ -93,6 +194,14 @@ export const getProduct = async (id: string) => {
 
 export const searchProducts = async (query: string) => {
   try {
+    const connected = await isHikeupConnected();
+    
+    if (connected) {
+      const hikeupProducts = await searchHikeupProducts(query);
+      return hikeupProducts.map(transformHikeupProduct);
+    }
+
+    // Fall back to database
     const products = await prisma.product.findMany({
       where: {
         OR: [
@@ -105,9 +214,14 @@ export const searchProducts = async (query: string) => {
         variants: true,
       },
     });
-    return products;
+    return products.map(transformProduct);
   } catch (error) {
     console.error("Error searching products:", error);
     return [];
   }
+};
+
+// Check if Hikeup is connected (for UI)
+export const checkHikeupConnection = async () => {
+  return await isHikeupConnected();
 };

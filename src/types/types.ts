@@ -4,7 +4,7 @@ export interface EnrichedOrders {
   id: string;
   name: string;
   email: string;
-  phone: string | null;
+  phone: string | null; // Shipping contact phone (kept for orders)
   address: AddressType;
   products: EnrichedProducts[];
   orderId: string;
@@ -64,8 +64,8 @@ export interface UserType {
   id: string;
   email: string;
   name: string;
-  phone?: string | null;
   image?: string | null;
+  role: string; // "user" or "staff"
   createdAt: Date;
   updatedAt: Date;
 }
@@ -116,8 +116,8 @@ export interface UserDocument {
   email: string;
   password?: string | null;
   name: string;
-  phone?: string | null;
   image?: string | null;
+  role?: string; // "user" or "staff"
   _id?: string;
   createdAt?: Date;
   updatedAt?: Date;

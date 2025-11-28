@@ -4,7 +4,7 @@ import bcrypt from "bcryptjs";
 
 export async function POST(request: Request) {
   try {
-    const { name, email, password, phone } = await request.json();
+    const { name, email, password } = await request.json();
 
     if (password.length < 6) {
       return NextResponse.json(
@@ -30,7 +30,6 @@ export async function POST(request: Request) {
       data: {
         name,
         email,
-        phone: phone || null,
         password: hashedPassword,
       },
     });
@@ -55,7 +54,7 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   try {
-    const { userId, name, email, password, phone } = await request.json();
+    const { userId, name, email, password } = await request.json();
 
     if (password && password.length < 6) {
       return NextResponse.json(
@@ -75,7 +74,6 @@ export async function PUT(request: Request) {
     const updateData: any = {};
     if (name) updateData.name = name;
     if (email) updateData.email = email;
-    if (phone) updateData.phone = phone;
     if (password) {
       updateData.password = await bcrypt.hash(password, 12);
     }

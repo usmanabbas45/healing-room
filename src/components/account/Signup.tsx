@@ -29,7 +29,6 @@ const Signup = () => {
             email: formData.get("email"),
             password: formData.get("password"),
             name: formData.get("name"),
-            phone: formData.get("phone"),
           }
         );
 
@@ -95,6 +94,7 @@ const Signup = () => {
           placeholder="Full Name"
           className="w-full h-10 border text-text-primary border-solid border-border-primary bg-bg-alt py-1 px-3 rounded-md text-sm focus:outline-none focus:border-primary transition-colors"
           name="name"
+          required
         />
 
         <label className={labelStyles}>Email:</label>
@@ -103,6 +103,7 @@ const Signup = () => {
           placeholder="Email"
           className="w-full h-10 text-text-primary border border-solid border-border-primary bg-bg-alt py-1 px-3 rounded-md text-sm focus:outline-none focus:border-primary transition-colors"
           name="email"
+          required
         />
 
         <label className={labelStyles}>Password:</label>
@@ -112,6 +113,8 @@ const Signup = () => {
             placeholder="Password"
             className="w-full h-10 text-text-primary border border-solid border-border-primary bg-bg-alt py-1 px-3 rounded-l-md text-sm focus:outline-none focus:border-primary transition-colors"
             name="password"
+            required
+            minLength={6}
           />
           <button
             className="flex items-center text-text-muted justify-center w-12 transition-all duration-150 border-border-primary bg-bg-alt border-r border-solid rounded-r-md border-y ease hover:bg-border-primary hover:text-text-primary"
@@ -154,14 +157,6 @@ const Signup = () => {
           </button>
         </div>
 
-        <label className={labelStyles}>Phone:</label>
-        <input
-          type="text"
-          placeholder="Phone (optional)"
-          className="w-full h-10 text-text-primary border border-solid border-border-primary py-1 px-3 rounded-md bg-bg-alt text-sm focus:outline-none focus:border-primary transition-colors"
-          name="phone"
-        />
-
         <button
           className="w-full bg-primary text-white border border-solid border-primary py-2.5 mt-2.5 rounded-md transition-all hover:bg-primary-dark text-sm font-medium"
           type="submit"
@@ -169,45 +164,6 @@ const Signup = () => {
           Create Account
         </button>
 
-        <div className="relative flex items-center justify-center w-full h-10">
-          <div className="absolute w-full h-px top-2/4 bg-border-primary"></div>
-          <p className="z-10 flex items-center justify-center w-8 h-6 bg-white text-text-muted text-sm">
-            or
-          </p>
-        </div>
-
-        <button
-          className="flex text-text-primary items-center gap-3 px-4 py-2.5 text-sm align-middle transition-all bg-white border border-solid rounded-md border-border-primary ease hover:bg-bg-alt hover:border-border-dark w-full justify-center"
-          onClick={() => signIn("google")}
-          type="button"
-        >
-          <svg
-            data-testid="geist-icon"
-            height="20"
-            strokeLinejoin="round"
-            viewBox="0 0 16 16"
-            width="20"
-            style={{ color: "currentColor" }}
-          >
-            <path
-              d="M8.15991 6.54543V9.64362H12.4654C12.2763 10.64 11.709 11.4837 10.8581 12.0509L13.4544 14.0655C14.9671 12.6692 15.8399 10.6182 15.8399 8.18188C15.8399 7.61461 15.789 7.06911 15.6944 6.54552L8.15991 6.54543Z"
-              fill="#4285F4"
-            ></path>
-            <path
-              d="M3.6764 9.52268L3.09083 9.97093L1.01807 11.5855C2.33443 14.1963 5.03241 16 8.15966 16C10.3196 16 12.1305 15.2873 13.4542 14.0655L10.8578 12.0509C10.1451 12.5309 9.23598 12.8219 8.15966 12.8219C6.07967 12.8219 4.31245 11.4182 3.67967 9.5273L3.6764 9.52268Z"
-              fill="#34A853"
-            ></path>
-            <path
-              d="M1.01803 4.41455C0.472607 5.49087 0.159912 6.70543 0.159912 7.99995C0.159912 9.29447 0.472607 10.509 1.01803 11.5854C1.01803 11.5926 3.6799 9.51991 3.6799 9.51991C3.5199 9.03991 3.42532 8.53085 3.42532 7.99987C3.42532 7.46889 3.5199 6.95983 3.6799 6.47983L1.01803 4.41455Z"
-              fill="#FBBC05"
-            ></path>
-            <path
-              d="M8.15982 3.18545C9.33802 3.18545 10.3853 3.59271 11.2216 4.37818L13.5125 2.0873C12.1234 0.792777 10.3199 0 8.15982 0C5.03257 0 2.33443 1.79636 1.01807 4.41455L3.67985 6.48001C4.31254 4.58908 6.07983 3.18545 8.15982 3.18545Z"
-              fill="#EA4335"
-            ></path>
-          </svg>
-          Sign in with Google
-        </button>
         <Link
           href="/login"
           className="text-sm transition-all duration-150 text-text-light ease hover:text-primary"

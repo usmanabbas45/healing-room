@@ -12,8 +12,8 @@ model User {
   email     String   @unique
   password  String?
   name      String
-  phone     String?
   image     String?
+  role      String   @default("user") // "user" or "staff"
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -130,4 +130,13 @@ model OrderItem {
   price     Float
   color     String?
   image     String?
+}
+
+// Settings for storing app configuration like API tokens
+model Settings {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
