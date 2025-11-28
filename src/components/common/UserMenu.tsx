@@ -23,7 +23,7 @@ export function UserMenu({ fastSession }: { fastSession: Session }) {
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button className="text-sm px-4 py-2 font-medium transition-all text-text-light hover:text-primary">
-            {fastSession.user.name.split(" ")[0]}
+            {(fastSession.user.name || "User").split(" ")[0]}
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="w-40 bg-white border-border-primary">

@@ -37,7 +37,7 @@ export default function EditProfile() {
           </Label>
           <Input
             id="name"
-            defaultValue={session?.user.name}
+            defaultValue={session?.user.name || ""}
             onChange={(e) => setUser({ ...user, name: e.target.value })}
             className="col-span-3"
           />
@@ -48,7 +48,7 @@ export default function EditProfile() {
           </Label>
           <Input
             id="email"
-            defaultValue={session?.user.email}
+            defaultValue={session?.user.email || ""}
             disabled
             className="col-span-3"
           />

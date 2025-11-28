@@ -71,24 +71,26 @@ function httpsRequest(
   return new Promise((resolve, reject) => {
     const urlObj = new URL(url);
     
+    const requestHeaders: Record<string, string> = {
+      'Accept': 'application/json',
+      ...headers,
+    };
+
+    if (body) {
+      requestHeaders['Content-Length'] = Buffer.byteLength(body).toString();
+    }
+    
     const options: https.RequestOptions = {
       hostname: urlObj.hostname,
       port: 443,
       path: urlObj.pathname + urlObj.search,
       method,
-      headers: {
-        'Accept': 'application/json',
-        ...headers,
-      },
+      headers: requestHeaders,
       // Allow weak DH keys (Hikeup uses outdated SSL)
       rejectUnauthorized: false,
       ciphers: 'DEFAULT:@SECLEVEL=0',
       minVersion: 'TLSv1' as tls.SecureVersion,
     };
-
-    if (body) {
-      options.headers!['Content-Length'] = Buffer.byteLength(body).toString();
-    }
 
     const req = https.request(options, (res) => {
       let responseBody = '';
@@ -626,12 +628,12 @@ export function transformHikeupProduct(product: any) {
   let imageUrls = extractHikeupImages(product);
   
   // Remove duplicates
-  imageUrls = [...new Set(imageUrls.filter(Boolean))];
+  imageUrls = Array.from(new Set(imageUrls.filter(Boolean)));
   
   // Fallback to logo if no valid images
   if (imageUrls.length === 0) imageUrls.push('/logo.png');
   
-  const variants = product.variants?.map(v => ({
+  const variants = product.variants?.map((v: any) => ({
     _id: String(v.id),
     priceId: String(v.id),
     color: v.name || 'Default',
@@ -663,7 +665,7 @@ export function transformHikeupProduct(product: any) {
     description: product.description || '',
     price: product.price || 0,
     category: category,
-    sizes: variants.map(v => v.color),
+    sizes: variants.map((v: any) => v.color),
     images: imageUrls,
     image: imageUrls,
     variants: variants,
