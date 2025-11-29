@@ -52,7 +52,7 @@ const CartPage = async () => {
         shopping cart.
       </p>
       <Link
-        className="flex font-medium	 items-center bg-[#0C0C0C] justify-center text-sm min-w-[160px] max-w-[160px] h-[40px] px-[10px] rounded-md border border-solid border-[#2E2E2E] transition-all hover:bg-[#1F1F1F] hover:border-[#454545]"
+        className="flex font-medium items-center bg-primary text-white justify-center text-sm min-w-[160px] max-w-[160px] h-[40px] px-[10px] rounded-md transition-all hover:bg-primary-dark"
         href="/login"
       >
         Login
@@ -89,15 +89,14 @@ const ProductsCart = async ({ session }: { session: Session }) => {
         </h2>
         <Products products={filteredCart} extraClassname={"cart-ord-mobile"} />
 
-        <div className="fixed left-[50%] translate-x-[-50%] bottom-4 w-[90%] z-10 sm:w-[360px] rounded-xl overflow-hidden flex bg-black border border-solid border-border-primary h-min">
-          <div className="flex flex-col p-2.5 justify-center w-1/2 gap-2 text-center">
-            <div className="flex gap-2.5 justify-center text-sm">
+        <div className="fixed left-[50%] translate-x-[-50%] bottom-4 w-[90%] z-10 sm:w-[360px] rounded-xl overflow-hidden flex bg-white border border-solid border-border-primary shadow-lg h-min">
+          <div className="flex flex-col p-2.5 justify-center w-1/2 gap-1 text-center">
+            <div className="flex gap-2 justify-center text-sm font-medium text-text-primary">
               <span>Total:</span>
-              <span>{totalPrice}€</span>
+              <span className="text-primary">${totalPrice}</span>
             </div>
-            <span className="text-xs">+ TAX INCL.</span>
           </div>
-          <div className="w-1/2 border-l border-solid bg-background-secondary border-border-primary">
+          <div className="w-1/2 border-l border-solid border-border-primary">
             <ButtonCheckout session={session} cartWithProducts={filteredCart} />
           </div>
         </div>
@@ -113,7 +112,7 @@ const ProductsCart = async ({ session }: { session: Session }) => {
         get started?
       </p>
       <Link
-        className="flex font-medium	 items-center bg-[#0C0C0C] justify-center text-sm min-w-[160px] max-w-[160px] h-[40px] px-[10px] rounded-md border border-solid border-[#2E2E2E] transition-all hover:bg-[#1F1F1F] hover:border-[#454545]"
+        className="flex font-medium items-center bg-primary text-white justify-center text-sm min-w-[160px] max-w-[160px] h-[40px] px-[10px] rounded-md transition-all hover:bg-primary-dark"
         href="/"
       >
         Start

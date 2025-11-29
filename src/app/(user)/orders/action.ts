@@ -27,17 +27,20 @@ export const getUserOrders = async () => {
     const orders = await prisma.order.findMany({
       where: { userId },
       include: {
-        items: {
-          include: {
-            product: true,
-            variant: true,
-          },
-        },
+        items: true,
       },
       orderBy: { purchaseDate: "desc" },
     });
 
-    return orders;
+    // Transform orders to include item count and total
+    return orders.map(order => ({
+      id: order.id,
+      orderNumber: order.orderNumber,
+      purchaseDate: order.purchaseDate,
+      totalPrice: order.totalPrice,
+      status: order.status,
+      items: order.items,
+    }));
   } catch (error) {
     console.error("Error getting orders:", error);
     return null;
@@ -57,14 +60,7 @@ export const getOrder = async (orderId: string) => {
         userId,
       },
       include: {
-        items: {
-          include: {
-            product: {
-              include: { variants: true },
-            },
-            variant: true,
-          },
-        },
+        items: true,
       },
     });
 
@@ -75,12 +71,12 @@ export const getOrder = async (orderId: string) => {
 
     const enrichedProducts = order.items.map((item) => ({
       productId: item.productId,
-      name: item.product.name,
-      category: item.product.category,
-      image: item.image ? [item.image] : item.variant?.images.slice(0, 1) || item.product.images.slice(0, 1),
+      name: item.productName || 'Product',
+      category: item.category || 'uncategorized',
+      image: item.image ? [item.image] : ['/logo.png'],
       price: item.price,
       purchased: true,
-      color: item.color || item.variant?.color || "",
+      color: item.color || "",
       size: item.size,
       quantity: item.quantity,
     }));
@@ -163,6 +159,8 @@ export const saveOrder = async (data: Stripe.Checkout.Session) => {
             price: item.price,
             color: item.color,
             image: item.image[0] || null,
+            productName: item.name || '',
+            category: item.category || '',
           })),
         },
       },

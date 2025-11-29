@@ -34,7 +34,7 @@ const UserOrders = async () => {
       <h2 className="mb-6 text-4xl font-bold">NO ORDERS YET</h2>
       <p className="mb-4 text-lg">To view your orders you must be logged in.</p>
       <Link
-        className="flex font-medium	 items-center bg-[#0C0C0C] justify-center text-sm min-w-[160px] max-w-[160px] h-[40px] px-[10px] rounded-md border border-solid border-[#2E2E2E] transition-all hover:bg-[#1F1F1F] hover:border-[#454545]"
+        className="flex font-medium items-center bg-primary text-white justify-center text-sm min-w-[160px] max-w-[160px] h-[40px] px-[10px] rounded-md transition-all hover:bg-primary-dark"
         href="/login"
       >
         Login
@@ -54,7 +54,7 @@ const Orders = async () => {
           To create an order add a product to the cart and buy it!
         </p>
         <Link
-          className="flex font-medium	 items-center bg-[#0C0C0C] justify-center text-sm min-w-[160px] max-w-[160px] h-[40px] px-[10px] rounded-md border border-solid border-[#2E2E2E] transition-all hover:bg-[#1F1F1F] hover:border-[#454545]"
+          className="flex font-medium items-center bg-primary text-white justify-center text-sm min-w-[160px] max-w-[160px] h-[40px] px-[10px] rounded-md transition-all hover:bg-primary-dark"
           href="/"
         >
           Start
@@ -77,9 +77,9 @@ const Orders = async () => {
             <h4 className="font-semibold">{`${format(
               order.purchaseDate,
               "dd LLL yyyy"
-            )} | ${order.totalPrice.toFixed(
+            )} | $${order.totalPrice.toFixed(
               2
-            )}€ | Items: ${order.items.reduce(
+            )} | Items: ${order.items.reduce(
               (total, item) => total + item.quantity,
               0
             )} `}</h4>

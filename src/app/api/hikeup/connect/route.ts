@@ -25,12 +25,13 @@ export async function GET(request: NextRequest) {
   }
 
   // Build Hikeup OAuth authorization URL
-  // Note: Check Hikeup docs for exact URL and scopes
+  // Request 'all' scope and 'offline_access' for refresh tokens
   const hikeupAuthUrl = new URL('https://api.hikeup.com/oauth/authorize');
   hikeupAuthUrl.searchParams.set('client_id', clientId);
   hikeupAuthUrl.searchParams.set('redirect_uri', redirectUri);
   hikeupAuthUrl.searchParams.set('response_type', 'code');
-  hikeupAuthUrl.searchParams.set('scope', 'all');
+  hikeupAuthUrl.searchParams.set('scope', 'all offline_access');
+  hikeupAuthUrl.searchParams.set('access_type', 'offline'); // Request refresh token
   
   // Add state parameter for security (prevents CSRF)
   const state = Buffer.from(JSON.stringify({ 

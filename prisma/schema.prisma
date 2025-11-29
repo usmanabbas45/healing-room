@@ -22,6 +22,7 @@ model User {
   orders   Order[]
 }
 
+// Local products (optional - mainly for fallback when Hikeup is unavailable)
 model Product {
   id          String   @id @default(cuid())
   name        String
@@ -33,10 +34,7 @@ model Product {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  variants      ProductVariant[]
-  cartItems     CartItem[]
-  wishlistItems WishlistItem[]
-  orderItems    OrderItem[]
+  variants ProductVariant[]
 }
 
 model ProductVariant {
@@ -46,9 +44,6 @@ model ProductVariant {
   images    String[]
   productId String
   product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-
-  cartItems  CartItem[]
-  orderItems OrderItem[]
 }
 
 model Cart {
@@ -60,17 +55,21 @@ model Cart {
   updatedAt DateTime   @updatedAt
 }
 
+// CartItem stores product info directly (no foreign key to Product)
+// This allows adding Hikeup products that aren't in our local DB
 model CartItem {
-  id        String          @id @default(cuid())
-  cartId    String
-  cart      Cart            @relation(fields: [cartId], references: [id], onDelete: Cascade)
-  productId String
-  product   Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
-  variantId String?
-  variant   ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
-  size      String
-  quantity  Int
-  price     Float
+  id          String  @id @default(cuid())
+  cartId      String
+  cart        Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  productId   String  // Hikeup product ID (stored as string, not a foreign key)
+  variantId   String?
+  size        String
+  quantity    Int
+  price       Float
+  // Store product info for display
+  productName String  @default("")
+  category    String  @default("")
+  image       String? // Product image URL
 }
 
 model Wishlist {
@@ -82,12 +81,16 @@ model Wishlist {
   updatedAt DateTime       @updatedAt
 }
 
+// WishlistItem stores product info directly (no foreign key to Product)
 model WishlistItem {
-  id         String   @id @default(cuid())
-  wishlistId String
-  wishlist   Wishlist @relation(fields: [wishlistId], references: [id], onDelete: Cascade)
-  productId  String
-  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  id          String  @id @default(cuid())
+  wishlistId  String
+  wishlist    Wishlist @relation(fields: [wishlistId], references: [id], onDelete: Cascade)
+  productId   String  // Hikeup product ID (stored as string, not a foreign key)
+  productName String  @default("")
+  category    String  @default("")
+  image       String?
+  price       Float   @default(0)
 }
 
 model Order {
@@ -117,19 +120,20 @@ model Order {
   updatedAt            DateTime    @updatedAt
 }
 
+// OrderItem stores product info directly (no foreign key to Product)
 model OrderItem {
-  id        String          @id @default(cuid())
-  orderId   String
-  order     Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  productId String
-  product   Product         @relation(fields: [productId], references: [id])
-  variantId String?
-  variant   ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
-  size      String
-  quantity  Int
-  price     Float
-  color     String?
-  image     String?
+  id          String  @id @default(cuid())
+  orderId     String
+  order       Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId   String  // Hikeup product ID
+  variantId   String?
+  size        String
+  quantity    Int
+  price       Float
+  color       String?
+  image       String?
+  productName String  @default("")
+  category    String  @default("")
 }
 
 // Settings for storing app configuration like API tokens

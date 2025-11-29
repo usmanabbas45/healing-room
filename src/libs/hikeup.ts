@@ -180,7 +180,11 @@ export async function setHikeupToken(accessToken: string, refreshToken: string, 
   };
   
   await saveTokenToDb(accessToken, refreshToken, expiresAt);
+  
+  const expiryDate = new Date(expiresAt);
   console.log('✅ Hikeup token stored successfully');
+  console.log(`📅 Token expires: ${expiryDate.toISOString()}`);
+  console.log(`🔑 Has refresh token: ${refreshToken ? 'YES' : 'NO'}`);
 }
 
 /**
@@ -217,6 +221,54 @@ export async function isHikeupConnected(): Promise<boolean> {
   return token !== null && token.accessToken !== '';
 }
 
+/**
+ * Get token status for diagnostics
+ */
+export async function getTokenStatus(): Promise<{
+  connected: boolean;
+  hasRefreshToken: boolean;
+  expiresAt: Date | null;
+  isExpired: boolean;
+  expiresIn: string;
+}> {
+  const token = await getStoredToken();
+  
+  if (!token || !token.accessToken) {
+    return {
+      connected: false,
+      hasRefreshToken: false,
+      expiresAt: null,
+      isExpired: true,
+      expiresIn: 'N/A',
+    };
+  }
+  
+  const now = Date.now();
+  const isExpired = now >= token.expiresAt;
+  const msRemaining = token.expiresAt - now;
+  
+  let expiresIn = 'Expired';
+  if (!isExpired) {
+    const hours = Math.floor(msRemaining / 3600000);
+    const days = Math.floor(hours / 24);
+    if (days > 0) {
+      expiresIn = `${days} days`;
+    } else if (hours > 0) {
+      expiresIn = `${hours} hours`;
+    } else {
+      expiresIn = `${Math.floor(msRemaining / 60000)} minutes`;
+    }
+  }
+  
+  return {
+    connected: true,
+    hasRefreshToken: !!token.refreshToken,
+    expiresAt: new Date(token.expiresAt),
+    isExpired,
+    expiresIn,
+  };
+}
+
 async function getAccessToken(): Promise<string> {
   let token = tokenCache;
   
@@ -232,29 +284,60 @@ async function getAccessToken(): Promise<string> {
   if (Date.now() >= token.expiresAt - 300000) {
     console.log('🔄 Refreshing Hikeup token...');
     
-    const body = new URLSearchParams({
-      grant_type: 'refresh_token',
-      client_id: process.env.HIKEUP_CLIENT_ID!,
-      client_secret: process.env.HIKEUP_CLIENT_SECRET!,
-      refresh_token: token.refreshToken,
-    }).toString();
+    // Retry token refresh up to 3 times
+    let lastError: Error | null = null;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        const body = new URLSearchParams({
+          grant_type: 'refresh_token',
+          client_id: process.env.HIKEUP_CLIENT_ID!,
+          client_secret: process.env.HIKEUP_CLIENT_SECRET!,
+          refresh_token: token.refreshToken,
+        }).toString();
 
-    const response = await httpsRequest(
-      'https://api.hikeup.com/oauth/token',
-      'POST',
-      { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body
-    );
+        const response = await httpsRequest(
+          'https://api.hikeup.com/oauth/token',
+          'POST',
+          { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body
+        );
 
-    if (response.status !== 200) {
-      await clearHikeupToken();
-      throw new Error('Token refresh failed. Please reconnect Hikeup.');
+        if (response.status === 200) {
+          const data = JSON.parse(response.body);
+          // Use new refresh token if provided, otherwise keep the old one (some OAuth providers don't rotate refresh tokens)
+          const newRefreshToken = data.refresh_token || token.refreshToken;
+          // Set long expiry - default to 30 days if not provided
+          const expiresIn = data.expires_in || 2592000;
+          await setHikeupToken(data.access_token, newRefreshToken, expiresIn);
+          console.log('✅ Token refreshed successfully');
+          return data.access_token;
+        }
+        
+        console.error(`❌ Token refresh attempt ${attempt} failed (status ${response.status}):`, response.body);
+        lastError = new Error(`Token refresh failed: ${response.status} - ${response.body}`);
+        
+        // If it's an auth error (invalid refresh token), don't retry
+        if (response.status === 400 || response.status === 401) {
+          console.error('🔴 Refresh token is invalid or expired. User must reconnect.');
+          break;
+        }
+        
+        // Wait before retry (exponential backoff)
+        if (attempt < 3) {
+          await new Promise(resolve => setTimeout(resolve, attempt * 1000));
+        }
+      } catch (error) {
+        console.error(`❌ Token refresh attempt ${attempt} error:`, error);
+        lastError = error as Error;
+        if (attempt < 3) {
+          await new Promise(resolve => setTimeout(resolve, attempt * 1000));
+        }
+      }
     }
-
-    const data = JSON.parse(response.body);
-    await setHikeupToken(data.access_token, data.refresh_token || token.refreshToken, data.expires_in || 604800);
     
-    return data.access_token;
+    // All retries failed - clear token and throw
+    await clearHikeupToken();
+    throw lastError || new Error('Token refresh failed after 3 attempts. Please reconnect Hikeup.');
   }
 
   return token.accessToken;
@@ -271,9 +354,6 @@ async function hikeupFetch<T>(endpoint: string): Promise<T> {
     'Authorization': `Bearer ${token}`,
     'Content-Type': 'application/json',
   });
-
-  console.log('📥 Hikeup API Response Status:', response.status);
-  console.log('📥 Hikeup API Response Body (first 500 chars):', response.body.substring(0, 500));
 
   if (response.status !== 200) {
     console.error(`❌ Hikeup API Error (${response.status}):`, response.body);
@@ -633,49 +713,67 @@ export function transformHikeupProduct(product: any) {
   // Fallback to logo if no valid images
   if (imageUrls.length === 0) imageUrls.push('/logo.png');
   
-  const variants = product.variants?.map((v: any) => ({
-    _id: String(v.id),
-    priceId: String(v.id),
-    color: v.name || 'Default',
-    images: imageUrls,
-    inventory: v.inventory || 0,
-    price: v.price || product.price,
-  })) || [];
+  // ===== EXTRACT PRICE & INVENTORY FROM product_outlets =====
+  // Hikeup stores pricing/inventory per outlet, we use the first outlet
+  const outlet = product.product_outlets?.[0];
+  const price = outlet?.price_inc_tax || outlet?.price_ex_tax || 0;
+  const inventory = outlet?.available_inventory || outlet?.on_hand_inventory || 0;
+  const costPrice = outlet?.cost_price || 0;
+  
+  // ===== EXTRACT CATEGORY FROM product_type =====
+  const categoryName = product.product_type?.[0]?.type_name || 'uncategorized';
+  const category = categoryName
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9-]/g, '');
+  
+  // ===== EXTRACT BRAND (note: Hikeup uses "bran_name" typo) =====
+  const brand = product.bran_name || product.brand_name || '';
+  
+  // ===== EXTRACT VARIANTS FROM product_variants =====
+  const variants = product.product_variants?.map((v: any) => {
+    const variantOutlet = v.variant_outlets?.[0];
+    return {
+      _id: String(v.id),
+      priceId: String(v.id),
+      color: v.name || 'Default',
+      images: imageUrls,
+      inventory: variantOutlet?.available_inventory || 0,
+      price: variantOutlet?.price_inc_tax || price,
+    };
+  }) || [];
 
+  // If no variants, create a default one
   if (variants.length === 0) {
     variants.push({
       _id: String(product.id),
       priceId: String(product.id),
       color: 'Default',
       images: imageUrls,
-      inventory: product.inventory || 0,
-      price: product.price,
+      inventory: inventory,
+      price: price,
     });
   }
-
-  const category = (product.product_type_name || 'uncategorized')
-    .toLowerCase()
-    .replace(/\s+/g, '-')
-    .replace(/[^a-z0-9-]/g, '');
 
   return {
     _id: String(product.id),
     id: String(product.id),
     name: product.name || 'Unnamed Product',
     description: product.description || '',
-    price: product.price || 0,
+    price: price,
     category: category,
     sizes: variants.map((v: any) => v.color),
     images: imageUrls,
     image: imageUrls,
     variants: variants,
-    inventory: product.inventory || 0,
+    inventory: inventory,
     sku: product.sku || '',
     barcode: product.barcode || '',
-    brand: product.brand_name || '',
-    isActive: product.is_active !== false,
+    brand: brand,
+    costPrice: costPrice,
+    isActive: product.isActive !== false,
     purchased: false,
-    quantity: 0,
+    quantity: 0, // Not in cart - 0 indicates not a cart item
     productId: String(product.id),
     variantId: variants[0]?.priceId || String(product.id),
     color: variants[0]?.color || 'Default',

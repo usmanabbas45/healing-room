@@ -33,10 +33,7 @@ export const Navbar = ({ session, totalItemsCart, totalWishlists }: Navbar) => {
   };
 
   const linksData = [
-    { path: "/flower", name: "FLOWER" },
-    { path: "/pre-rolls", name: "PRE-ROLLS" },
-    { path: "/edibles", name: "EDIBLES" },
-    { path: "/vapes", name: "VAPES" },
+    { path: "/shop", name: "SHOP ALL" },
   ];
 
   const authLinks = () => {
@@ -203,7 +200,7 @@ export const Navbar = ({ session, totalItemsCart, totalWishlists }: Navbar) => {
       {/* Desktop navigation */}
       <ul className="justify-between hidden gap-2 text-sm lg:flex">
         {authLinks()}
-        <li>
+        <li className="flex items-center">
           <LinksDesktop />
         </li>
       </ul>

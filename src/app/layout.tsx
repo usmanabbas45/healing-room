@@ -8,6 +8,7 @@ import { Session, getServerSession } from "next-auth";
 import { authOptions } from "@/libs/auth";
 import { getTotalItems } from "./(carts)/cart/action";
 import { getTotalWishlist } from "./(carts)/wishlist/action";
+import ChatWidget from "@/components/chat/ChatWidget";
 
 import "../styles/globals.css";
 
@@ -92,6 +93,7 @@ export default async function RootLayout({
             <Toaster position="top-right" />
           </main>
           <Footer />
+          <ChatWidget />
         </body>
       </Providers>
     </html>

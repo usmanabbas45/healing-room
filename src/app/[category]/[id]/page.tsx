@@ -72,7 +72,7 @@ const AllProducts = async ({ id }: { id: string }) => {
     ...product,
     _id: product.id,
     image: product.images,
-    variants: product.variants.map((v) => ({
+    variants: product.variants.map((v: { priceId: string; color: string; images: string[] }) => ({
       priceId: v.priceId,
       color: v.color,
       images: v.images,
@@ -89,7 +89,7 @@ const AllProducts = async ({ id }: { id: string }) => {
         YOU MIGHT ALSO LIKE...
       </h2>
 
-      <Products products={randomProducts} extraClassname={"colums-mobile"} />
+      <Products products={randomProducts || []} extraClassname={"colums-mobile"} />
     </>
   );
 };

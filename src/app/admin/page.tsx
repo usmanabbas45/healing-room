@@ -2,7 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/libs/auth";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
-import { isHikeupConnected } from "@/libs/hikeup";
+import { isHikeupConnected, getTokenStatus } from "@/libs/hikeup";
 import { getAllProducts } from "@/app/actions";
 
 export default async function AdminPage({
@@ -24,12 +24,13 @@ export default async function AdminPage({
   const success = searchParams.success;
   const error = searchParams.error;
   const connected = await isHikeupConnected();
+  const tokenStatus = await getTokenStatus();
   
   // Get product count
   let productCount = 0;
   try {
-    const products = await getAllProducts();
-    productCount = products.length;
+    const { totalCount } = await getAllProducts(1, 1);
+    productCount = totalCount;
   } catch (e) {
     console.error('Error fetching products:', e);
   }
@@ -98,7 +99,7 @@ export default async function AdminPage({
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <div className="bg-white border border-border-primary rounded-lg p-6">
           <h3 className="text-sm text-text-light mb-1">Products</h3>
           <p className="text-2xl font-bold text-text-primary">{productCount}</p>
@@ -113,9 +114,18 @@ export default async function AdminPage({
           </p>
         </div>
         <div className="bg-white border border-border-primary rounded-lg p-6">
-          <h3 className="text-sm text-text-light mb-1">Token Storage</h3>
-          <p className="text-lg font-bold text-primary">
-            {connected ? '💾 Persistent' : 'N/A'}
+          <h3 className="text-sm text-text-light mb-1">Token Expires</h3>
+          <p className={`text-lg font-bold ${tokenStatus.isExpired ? 'text-red-500' : 'text-green-600'}`}>
+            {tokenStatus.connected ? tokenStatus.expiresIn : 'N/A'}
+          </p>
+          <p className="text-xs text-text-muted mt-1">
+            {tokenStatus.hasRefreshToken ? '✅ Auto-refresh enabled' : '⚠️ Manual reconnect needed'}
+          </p>
+        </div>
+        <div className="bg-white border border-border-primary rounded-lg p-6">
+          <h3 className="text-sm text-text-light mb-1">Refresh Token</h3>
+          <p className={`text-lg font-bold ${tokenStatus.hasRefreshToken ? 'text-green-600' : 'text-yellow-500'}`}>
+            {tokenStatus.hasRefreshToken ? '✅ Yes' : '❌ No'}
           </p>
         </div>
       </div>

@@ -5,6 +5,7 @@ import { authOptions } from "@/libs/auth";
 import { Session } from "next-auth";
 import { revalidatePath } from "next/cache";
 import prisma from "@/libs/prisma";
+import { getHikeupProduct, transformHikeupProduct, isHikeupConnected } from "@/libs/hikeup";
 
 export type Wishlists = {
   userId: string;
@@ -13,7 +14,13 @@ export type Wishlists = {
   }>;
 };
 
-export async function addItem(productId: string) {
+export async function addItem(
+  productId: string,
+  productName?: string,
+  category?: string,
+  image?: string,
+  price?: number
+) {
   const session: Session | null = await getServerSession(authOptions);
 
   if (!session?.user._id) {
@@ -34,7 +41,13 @@ export async function addItem(productId: string) {
       data: {
         userId,
         items: {
-          create: { productId },
+          create: { 
+            productId,
+            productName: productName || '',
+            category: category || '',
+            image: image || null,
+            price: price || 0,
+          },
         },
       },
     });
@@ -47,6 +60,10 @@ export async function addItem(productId: string) {
         data: {
           wishlistId: wishlist.id,
           productId,
+          productName: productName || '',
+          category: category || '',
+          image: image || null,
+          price: price || 0,
         },
       });
     }
@@ -64,15 +81,7 @@ export async function getItems(userId: string) {
   const wishlist = await prisma.wishlist.findUnique({
     where: { userId },
     include: {
-      items: {
-        include: {
-          product: {
-            include: {
-              variants: true,
-            },
-          },
-        },
-      },
+      items: true,
     },
   });
 
@@ -80,29 +89,63 @@ export async function getItems(userId: string) {
     return null;
   }
 
-  // Transform to match EnrichedProducts interface
-  return wishlist.items.map((item) => ({
-    _id: item.product.id,
-    id: item.product.id,
-    productId: item.product.id,
-    name: item.product.name,
-    description: item.product.description,
-    price: item.product.price,
-    category: item.product.category,
-    sizes: item.product.sizes,
-    image: item.product.images,
-    variants: item.product.variants.map((v) => ({
-      priceId: v.priceId,
-      color: v.color,
-      images: v.images,
-    })),
-    // These are required by EnrichedProducts but not applicable for wishlist
-    purchased: false,
-    color: item.product.variants[0]?.color || "",
-    size: item.product.sizes[0] || "",
-    quantity: 0,
-    variantId: item.product.variants[0]?.priceId || "",
-  }));
+  // Check if Hikeup is connected to fetch fresh product data
+  const connected = await isHikeupConnected();
+
+  // Transform wishlist items to match EnrichedProducts interface
+  const enrichedItems = await Promise.all(
+    wishlist.items.map(async (item) => {
+      // Try to get fresh product data from Hikeup
+      if (connected) {
+        const hikeupProduct = await getHikeupProduct(item.productId);
+        if (hikeupProduct) {
+          const transformed = transformHikeupProduct(hikeupProduct);
+          return {
+            _id: transformed.id,
+            id: transformed.id,
+            productId: transformed.id,
+            name: transformed.name,
+            description: transformed.description || '',
+            price: transformed.price,
+            category: transformed.category,
+            sizes: transformed.sizes || ['Default'],
+            image: transformed.images,
+            variants: transformed.variants,
+            purchased: false,
+            color: transformed.variants[0]?.color || 'Default',
+            size: transformed.sizes[0] || 'Default',
+            quantity: 0,
+            variantId: transformed.variants[0]?.priceId || item.productId,
+          };
+        }
+      }
+
+      // Fallback to stored info if Hikeup unavailable
+      return {
+        _id: item.productId,
+        id: item.productId,
+        productId: item.productId,
+        name: item.productName || 'Product',
+        description: '',
+        price: item.price || 0,
+        category: item.category || 'uncategorized',
+        sizes: ['Default'],
+        image: item.image ? [item.image] : ['/logo.png'],
+        variants: [{
+          priceId: item.productId,
+          color: 'Default',
+          images: item.image ? [item.image] : ['/logo.png'],
+        }],
+        purchased: false,
+        color: 'Default',
+        size: 'Default',
+        quantity: 0,
+        variantId: item.productId,
+      };
+    })
+  );
+
+  return enrichedItems;
 }
 
 export async function getTotalWishlist() {

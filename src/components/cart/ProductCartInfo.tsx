@@ -14,11 +14,13 @@ const ProductCartInfo = ({ product }: { product: EnrichedProducts }) => {
     quantity,
     purchased,
     color,
+    name,
+    image,
   } = product;
 
   const handleAddItem = useCallback(() => {
-    addItem(category, productId, size, variantId, price);
-  }, [category, productId, size, variantId, price]);
+    addItem(category, productId, size, variantId, price, name, image?.[0]);
+  }, [category, productId, size, variantId, price, name, image]);
 
   const handleDelItem = useCallback(() => {
     delOneItem(productId, size, variantId);
@@ -27,15 +29,15 @@ const ProductCartInfo = ({ product }: { product: EnrichedProducts }) => {
   const quantityButtons = useCallback(() => {
     if (purchased) {
       return (
-        <div className="text-sm">
-          {quantity ? (price * quantity).toFixed(2) : price}€
+        <div className="text-sm text-primary font-medium">
+          ${quantity ? (price * quantity).toFixed(2) : price}
         </div>
       );
     } else {
       return (
-        <div className="flex bg-black w-min">
+        <div className="flex bg-white w-min rounded-md overflow-hidden border border-border-primary">
           <button
-            className="flex items-center justify-center w-8 h-8 p-2 border border-solid rounded-l text-[#A1A1A1] transition-all hover:text-white border-border-primary"
+            className="flex items-center justify-center w-8 h-8 p-2 text-text-muted transition-all hover:text-primary hover:bg-bg-alt"
             onClick={handleDelItem}
           >
             <svg
@@ -54,11 +56,11 @@ const ProductCartInfo = ({ product }: { product: EnrichedProducts }) => {
               ></path>
             </svg>
           </button>
-          <span className="flex items-center justify-center w-8 h-8 p-2 text-sm border-solid border-y border-border-primary">
+          <span className="flex items-center justify-center w-8 h-8 p-2 text-sm text-text-primary font-medium border-x border-border-primary bg-bg-alt">
             {quantity}
           </span>
           <button
-            className="flex items-center justify-center w-8 h-8 p-2 border border-solid rounded-r text-[#A1A1A1] transition-all hover:text-white border-border-primary"
+            className="flex items-center justify-center w-8 h-8 p-2 text-text-muted transition-all hover:text-primary hover:bg-bg-alt"
             onClick={handleAddItem}
           >
             <svg
@@ -82,21 +84,28 @@ const ProductCartInfo = ({ product }: { product: EnrichedProducts }) => {
     }
   }, [purchased, quantity, price, handleAddItem, handleDelItem]);
 
+  // Hide size/color display when both are "Default" (Hikeup products without variants)
+  const showVariantInfo = size !== 'Default' || color !== 'Default';
+
   return (
     <>
-      <div className="flex sm:hidden">
-        <div className="text-sm pr-2.5 border-r">{size}</div>
-        <div className="text-sm pl-2.5">{color}</div>
-      </div>
+      {showVariantInfo && (
+        <div className="flex sm:hidden">
+          <div className="text-sm pr-2.5 border-r">{size}</div>
+          <div className="text-sm pl-2.5">{color}</div>
+        </div>
+      )}
       <div className="flex items-center justify-between sm:hidden">
         {quantityButtons()}
       </div>
       <div className="items-center justify-between hidden sm:flex">
         {quantityButtons()}
-        <div className="flex">
-          <div className="text-sm pr-2.5 border-r">{size}</div>
-          <div className="text-sm pl-2.5">{color}</div>
-        </div>
+        {showVariantInfo && (
+          <div className="flex">
+            <div className="text-sm pr-2.5 border-r">{size}</div>
+            <div className="text-sm pl-2.5">{color}</div>
+          </div>
+        )}
       </div>
     </>
   );

@@ -37,7 +37,7 @@ const Wishlists = async () => {
         Not registered? You must be in order to save your favorite products.
       </p>
       <Link
-        className="flex font-medium	 items-center bg-[#0C0C0C] justify-center text-sm min-w-[160px] max-w-[160px] h-[40px] px-[10px] rounded-md border border-solid border-[#2E2E2E] transition-all hover:bg-[#1F1F1F] hover:border-[#454545]"
+        className="flex font-medium items-center bg-primary text-white justify-center text-sm min-w-[160px] max-w-[160px] h-[40px] px-[10px] rounded-md transition-all hover:bg-primary-dark"
         href="/login"
       >
         Login
@@ -69,7 +69,7 @@ const ProductsWishlists = async ({ session }: { session: Session }) => {
         to get started?
       </p>
       <Link
-        className="flex font-medium	 items-center bg-[#0C0C0C] justify-center text-sm min-w-[160px] max-w-[160px] h-[40px] px-[10px] rounded-md border border-solid border-[#2E2E2E] transition-all hover:bg-[#1F1F1F] hover:border-[#454545]"
+        className="flex font-medium items-center bg-primary text-white justify-center text-sm min-w-[160px] max-w-[160px] h-[40px] px-[10px] rounded-md transition-all hover:bg-primary-dark"
         href="/"
       >
         Start

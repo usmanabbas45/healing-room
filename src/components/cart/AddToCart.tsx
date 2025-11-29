@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useCallback } from "react";
+import { useState, useTransition, useCallback, useEffect } from "react";
 import { ProductDocument, VariantsDocument } from "@/types/types";
 import { colorMapping } from "@/helpers/colorMapping";
 import { addItem } from "@/app/(carts)/cart/action";
@@ -21,8 +21,18 @@ export default function AddToCart({
   selectedVariant,
   setSelectedVariant,
 }: AddToCartProps) {
-  const [selectedSize, setSelectedSize] = useState<string>("");
+  // Auto-select first size if only one option (e.g., "Default")
+  const [selectedSize, setSelectedSize] = useState<string>(() => 
+    product.sizes?.length === 1 ? product.sizes[0] : ""
+  );
   const [isPending, startTransition] = useTransition();
+  
+  // Auto-select first variant if only one option
+  useEffect(() => {
+    if (!selectedVariant && product.variants?.length === 1) {
+      setSelectedVariant(product.variants[0]);
+    }
+  }, [product.variants, selectedVariant, setSelectedVariant]);
 
   const handleAddToCart = useCallback(() => {
     if (!session) {
@@ -45,8 +55,11 @@ export default function AddToCart({
         product._id || product.id,
         selectedSize,
         selectedVariant.priceId,
-        product.price
+        product.price,
+        product.name,
+        product.images?.[0] || product.image?.[0] || '/logo.png'
       );
+      toast.success("Added to cart!");
     });
   }, [session, selectedVariant, selectedSize, product, startTransition]);
 

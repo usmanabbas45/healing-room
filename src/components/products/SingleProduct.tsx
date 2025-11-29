@@ -77,20 +77,6 @@ export const SingleProduct = ({ product, session }: SingleProduct) => {
               </p>
             </AccordionContent>
           </AccordionItem>
-          <AccordionItem value="item-3" className="border-b-0 border-border-primary">
-            <AccordionTrigger className="text-sm text-text-primary hover:text-primary px-5">
-              LEGAL
-            </AccordionTrigger>
-            <AccordionContent className="flex flex-col gap-2 text-text-light px-5">
-              <p>
-                Must be 21 years or older to purchase. Keep out of reach of 
-                children and pets.
-              </p>
-              <p>
-                Do not operate vehicles or machinery while using cannabis products.
-              </p>
-            </AccordionContent>
-          </AccordionItem>
         </Accordion>
       </div>
     </div>

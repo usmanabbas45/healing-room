@@ -1,23 +1,12 @@
 import Link from "next/link";
 import { Images } from "./Images";
 import { EnrichedProducts } from "@/types/types";
-import dynamic from "next/dynamic";
-import { Skeleton } from "../ui/skeleton";
 import { Wishlists, getTotalWishlist } from "@/app/(carts)/wishlist/action";
 import { Session, getServerSession } from "next-auth";
 import { authOptions } from "@/libs/auth";
-
-const WishlistButton = dynamic(() => import("../cart/WishlistButton"), {
-  loading: () => <Skeleton className="w-5 h-5" />,
-});
-
-const DeleteButton = dynamic(() => import("../cart/DeleteButton"), {
-  loading: () => <Skeleton className="w-5 h-5" />,
-});
-
-const ProductCartInfo = dynamic(() => import("../cart/ProductCartInfo"), {
-  loading: () => <Skeleton className="w-24 h-8" />,
-});
+import WishlistButton from "../cart/WishlistButton";
+import DeleteButton from "../cart/DeleteButton";
+import ProductCartInfo from "../cart/ProductCartInfo";
 
 export const Products = async ({
   products,
@@ -87,8 +76,12 @@ export const Products = async ({
             </Link>
             <div className={infoClassname}>
               <div className="flex justify-between w-full">
-                <Link href={productLink} className="w-10/12">
+                <Link href={productLink} className="w-10/12 group/tooltip relative">
                   <h2 className="text-sm font-semibold truncate text-text-primary">{name}</h2>
+                  <span className="absolute left-0 -top-10 z-50 hidden group-hover/tooltip:block bg-text-primary text-white text-xs px-3 py-2 rounded-md shadow-lg whitespace-normal max-w-[250px] pointer-events-none">
+                    {name}
+                    <span className="absolute left-4 top-full border-4 border-transparent border-t-text-primary"></span>
+                  </span>
                 </Link>
                 {quantity ? (
                   purchased ? (
@@ -109,7 +102,7 @@ export const Products = async ({
                   ${quantity ? (price * quantity).toFixed(2) : price}
                 </div>
               )}
-              {quantity !== undefined && <ProductCartInfo product={product} />}
+              {quantity > 0 && <ProductCartInfo product={product} />}
             </div>
           </div>
         );

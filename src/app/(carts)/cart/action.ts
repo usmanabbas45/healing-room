@@ -5,6 +5,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/libs/auth";
 import { Session } from "next-auth";
 import prisma from "@/libs/prisma";
+import { getHikeupProduct, transformHikeupProduct, isHikeupConnected } from "@/libs/hikeup";
 
 export type CartType = {
   userId: string;
@@ -41,12 +42,7 @@ export async function getItems(userId: string): Promise<EnrichedCartItem[] | und
   const cart = await prisma.cart.findUnique({
     where: { userId },
     include: {
-      items: {
-        include: {
-          product: true,
-          variant: true,
-        },
-      },
+      items: true,
     },
   });
 
@@ -54,15 +50,16 @@ export async function getItems(userId: string): Promise<EnrichedCartItem[] | und
     return undefined;
   }
 
+  // Cart items now store product info directly
   const enrichedItems: EnrichedCartItem[] = cart.items.map((item) => ({
     id: item.id,
     _id: item.id,
     productId: item.productId,
-    name: item.product.name,
-    category: item.product.category,
-    image: item.variant?.images.slice(0, 1) || item.product.images.slice(0, 1),
+    name: item.productName || 'Product',
+    category: item.category || 'uncategorized',
+    image: item.image ? [item.image] : ['/logo.png'],
     price: item.price,
-    color: item.variant?.color || "",
+    color: item.size, // Using size as color for Hikeup products
     size: item.size,
     quantity: item.quantity,
     variantId: item.variantId || "",
@@ -89,6 +86,8 @@ export async function addItem(
   size: string,
   variantId: string,
   price: number,
+  productName?: string,
+  image?: string,
 ) {
   const session: Session | null = await getServerSession(authOptions);
 
@@ -116,6 +115,9 @@ export async function addItem(
             size,
             quantity: 1,
             price,
+            productName: productName || '',
+            category: category || '',
+            image: image || null,
           },
         },
       },
@@ -144,6 +146,9 @@ export async function addItem(
           size,
           quantity: 1,
           price,
+          productName: productName || '',
+          category: category || '',
+          image: image || null,
         },
       });
     }

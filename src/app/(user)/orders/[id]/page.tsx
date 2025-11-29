@@ -91,19 +91,18 @@ const OrderProducts = async ({ id }: { id: string }) => {
               <span>
                 {totalProducts} {productsText}
               </span>{" "}
-              <span>{(order.total_price / 100).toFixed(2)} €</span>
+              <span>${(order.total_price / 100).toFixed(2)}</span>
             </div>
             <div className={bxInfoStyles}>
               <span>Delivery</span> <span>FREE</span>
             </div>
             <div className={bxInfoStyles}>
-              <span>Total Discount</span> <span>0 €</span>
+              <span>Total Discount</span> <span>$0</span>
             </div>
             <div className={bxInfoStyles}>
               <span>Total</span>{" "}
-              <span>{(order.total_price / 100).toFixed(2)} €</span>
+              <span className="text-primary font-medium">${(order.total_price / 100).toFixed(2)}</span>
             </div>
-            <div className={bxInfoStyles}>(VAT included)</div>
           </div>
         </div>
       </div>
@@ -183,7 +182,7 @@ const AllOrderSkeleton = ({ items }: { items: number }) => {
             <span>Delivery</span> <span>FREE</span>
           </div>
           <div className={bxInfoStyles}>
-            <span>Total Discount</span> <span>0 €</span>
+            <span>Total Discount</span> <span>$0</span>
           </div>
           <div className={bxInfoStyles}>
             <span>Total</span>{" "}
@@ -191,7 +190,6 @@ const AllOrderSkeleton = ({ items }: { items: number }) => {
               <Skeleton className="h-5 w-[80px]" />
             </span>
           </div>
-          <div className={bxInfoStyles}>(VAT included)</div>
         </div>
       </div>
     </div>

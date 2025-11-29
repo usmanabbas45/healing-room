@@ -91,17 +91,27 @@ export async function GET(request: NextRequest) {
     console.log('✅ Token data received:', {
       has_access_token: !!tokenData.access_token,
       has_refresh_token: !!tokenData.refresh_token,
+      refresh_token_preview: tokenData.refresh_token ? tokenData.refresh_token.substring(0, 20) + '...' : 'NONE',
       expires_in: tokenData.expires_in,
+      token_type: tokenData.token_type,
     });
+    
+    // If no refresh token, use a very long expiry (365 days) and warn
+    const expiresIn = tokenData.expires_in || (tokenData.refresh_token ? 3600 : 31536000);
+    
+    if (!tokenData.refresh_token) {
+      console.warn('⚠️ No refresh token received from Hikeup! Token will expire and require manual reconnection.');
+    }
     
     // Store the tokens in database for persistence
     await setHikeupToken(
       tokenData.access_token,
       tokenData.refresh_token || '',
-      tokenData.expires_in || 604800
+      expiresIn
     );
 
     console.log('✅ Hikeup connected and token saved to database!');
+    console.log(`📅 Token expires in: ${Math.round(expiresIn / 3600)} hours (${Math.round(expiresIn / 86400)} days)`);
 
     return NextResponse.redirect(
       new URL('/admin?success=hikeup_connected', request.url)

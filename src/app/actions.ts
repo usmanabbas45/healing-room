@@ -50,30 +50,33 @@ export const getAllProducts = async (page: number = 1, pageSize: number = 24) =>
     // Try Hikeup first if connected
     if (connected) {
       console.log('📦 Fetching products from Hikeup POS...');
-      const hikeupProducts = await getHikeupProducts(pageSize, skipCount);
-      console.log('📦 Got', hikeupProducts.length, 'products from Hikeup');
+      const { products: hikeupProducts, totalCount } = await getHikeupProductsWithMeta(pageSize, skipCount);
+      console.log('📦 Got', hikeupProducts.length, 'products from Hikeup (total:', totalCount, ')');
       
       if (hikeupProducts.length > 0) {
         const transformed = hikeupProducts.map(transformHikeupProduct);
-        return transformed;
+        return { products: transformed, totalCount };
       }
       console.log('⚠️ No products from Hikeup, falling back to database');
     }
 
     // Fall back to database
     console.log('📦 Fetching products from database...');
-    const products = await prisma.product.findMany({
-      skip: skipCount,
-      take: pageSize,
-      include: {
-        variants: true,
-      },
-    });
+    const [products, totalCount] = await Promise.all([
+      prisma.product.findMany({
+        skip: skipCount,
+        take: pageSize,
+        include: {
+          variants: true,
+        },
+      }),
+      prisma.product.count(),
+    ]);
     console.log('📦 Got', products.length, 'products from database');
-    return products.map(transformProduct);
+    return { products: products.map(transformProduct), totalCount };
   } catch (error) {
     console.error("❌ Error getting products:", error);
-    return [];
+    return { products: [], totalCount: 0 };
   }
 };
 
@@ -131,27 +134,39 @@ export const getRandomProducts = async (productId: string) => {
     const connected = await isHikeupConnected();
     
     if (connected) {
-      const hikeupProducts = await getAllHikeupProducts();
+      // Only fetch a small batch (24 products) with a random offset instead of ALL products
+      // This is much more efficient than fetching 500+ products
+      const { totalCount } = await getHikeupProductsWithMeta(1, 0); // Get total count first (cached)
+      const maxOffset = Math.max(0, totalCount - 24);
+      const randomOffset = Math.floor(Math.random() * maxOffset);
+      
+      console.log(`📦 Fetching random products (offset: ${randomOffset}, total: ${totalCount})`);
+      const { products: hikeupProducts } = await getHikeupProductsWithMeta(24, randomOffset);
+      
       const filtered = hikeupProducts.filter(p => String(p.id) !== productId);
       const shuffled = filtered.sort(() => Math.random() - 0.5);
       return shuffled.slice(0, 6).map(transformHikeupProduct);
     }
 
-    // Fall back to database
-    const allProducts = await prisma.product.findMany({
+    // Fall back to database - also optimized
+    const totalCount = await prisma.product.count();
+    const randomOffset = Math.floor(Math.random() * Math.max(0, totalCount - 24));
+    
+    const products = await prisma.product.findMany({
       where: {
         NOT: { id: productId },
       },
       include: {
         variants: true,
       },
+      skip: randomOffset,
+      take: 24,
     });
 
-    const shuffled = allProducts.sort(() => Math.random() - 0.5);
+    const shuffled = products.sort(() => Math.random() - 0.5);
     return shuffled.slice(0, 6).map(transformProduct);
   } catch (error) {
     console.error("Error getting products:", error);
-    return [];
   }
 };
 
@@ -163,19 +178,10 @@ export const getProduct = async (id: string) => {
       console.log(`📦 Fetching product ${id} from Hikeup POS...`);
       const hikeupProduct = await getHikeupProduct(id);
       if (hikeupProduct) {
-        return {
-          ...hikeupProduct,
-          _id: hikeupProduct.id,
-          sizes: hikeupProduct.variants?.map(v => v.name) || ['default'],
-          images: hikeupProduct.images || [],
-          variants: hikeupProduct.variants?.map(v => ({
-            _id: v.id,
-            priceId: v.id,
-            color: v.name,
-            images: hikeupProduct.images || [],
-          })) || [],
-        };
+        // Transform raw Hikeup product to website format
+        return transformHikeupProduct(hikeupProduct);
       }
+      console.log(`❌ Product ${id} not found in Hikeup`);
     }
 
     // Fall back to database
