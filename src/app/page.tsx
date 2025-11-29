@@ -59,6 +59,66 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Awards / As Featured In Section */}
+      <section className="py-12 md:py-16 bg-white border-y border-border-primary/30">
+        <div className="container mx-auto px-6">
+          <p className="text-center text-sm text-text-muted mb-8 tracking-wide">
+            Voted Best Online Dispensary in Canada
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-8 md:gap-12 opacity-60 grayscale hover:grayscale-0 hover:opacity-100 transition-all duration-500">
+            <Image
+              src="/awards/logo-leafly.png.webp"
+              alt="Leafly"
+              width={100}
+              height={40}
+              className="h-8 w-auto object-contain"
+            />
+            <Image
+              src="/awards/logo-weed-maps.png.webp"
+              alt="Weedmaps"
+              width={100}
+              height={40}
+              className="h-8 w-auto object-contain"
+            />
+            <Image
+              src="/awards/logo-daily-hive.png"
+              alt="Daily Hive"
+              width={100}
+              height={40}
+              className="h-8 w-auto object-contain"
+            />
+            <Image
+              src="/awards/logo-cannaibs-net.png.avif"
+              alt="Cannabis.net"
+              width={100}
+              height={40}
+              className="h-8 w-auto object-contain"
+            />
+            <Image
+              src="/awards/logo-cculture.png.avif"
+              alt="Cannabis Culture"
+              width={100}
+              height={40}
+              className="h-8 w-auto object-contain"
+            />
+            <Image
+              src="/awards/logo-weed-blog.png.avif"
+              alt="Weed Blog"
+              width={100}
+              height={40}
+              className="h-8 w-auto object-contain"
+            />
+            <Image
+              src="/awards/logo-kmapper.png.avif"
+              alt="KMapper"
+              width={100}
+              height={40}
+              className="h-8 w-auto object-contain"
+            />
+          </div>
+        </div>
+      </section>
+
       {/* About Section */}
       <section id="about" className="relative py-24 md:py-32 bg-gradient-to-b from-white to-[#faf8f5]">
         <div className="container mx-auto px-6">

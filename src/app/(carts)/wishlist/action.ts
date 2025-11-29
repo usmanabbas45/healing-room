@@ -47,7 +47,7 @@ export async function addItem(
             category: category || '',
             image: image || null,
             price: price || 0,
-          },
+        },
         },
       },
     });
@@ -117,7 +117,7 @@ export async function getItems(userId: string) {
             quantity: 0,
             variantId: transformed.variants[0]?.priceId || item.productId,
           };
-        }
+      }
       }
 
       // Fallback to stored info if Hikeup unavailable
@@ -196,5 +196,5 @@ export async function delItem(productId: string) {
     }
   }
 
-  revalidatePath("/wishlist");
+    revalidatePath("/wishlist");
 }
