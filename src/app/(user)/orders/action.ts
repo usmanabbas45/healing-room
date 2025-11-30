@@ -4,18 +4,6 @@ import prisma from "@/libs/prisma";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/libs/auth";
 import { Session } from "next-auth";
-import Stripe from "stripe";
-import { emptyCart, getItems } from "@/app/(carts)/cart/action";
-
-// Generate random order number
-function generateOrderNumber(): string {
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-  let result = "";
-  for (let i = 0; i < 8; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return `ORD-${result}`;
-}
 
 export const getUserOrders = async () => {
   try {
@@ -96,7 +84,6 @@ export const getOrder = async (orderId: string) => {
         country: order.shippingCountry,
       },
       products: enrichedProducts,
-      orderId: order.stripeSessionId,
       purchaseDate: order.purchaseDate,
       expectedDeliveryDate: order.expectedDeliveryDate,
       total_price: order.totalPrice,
@@ -108,70 +95,22 @@ export const getOrder = async (orderId: string) => {
   }
 };
 
-export const saveOrder = async (data: Stripe.Checkout.Session) => {
+// Update order status (for admin use)
+export const updateOrderStatus = async (orderId: string, status: string) => {
   try {
-    const userId = data.metadata?.userId;
-    if (!userId || !data) {
-      console.error("Missing information.");
-      return null;
+    const session: Session | null = await getServerSession(authOptions);
+    if (!session?.user || session.user.role !== 'staff') {
+      return { success: false, error: "Unauthorized" };
     }
 
-    const cart = await getItems(userId);
-    if (!cart || cart.length === 0) {
-      console.error("Products or cart not found.");
-      return null;
-    }
-
-    // Check if order already exists
-    const existingOrder = await prisma.order.findFirst({
-      where: { stripeSessionId: data.id },
+    await prisma.order.update({
+      where: { id: orderId },
+      data: { status },
     });
 
-    if (existingOrder) {
-      console.info("This order has already been saved.");
-      return existingOrder;
-    }
-
-    // Create new order
-    const order = await prisma.order.create({
-      data: {
-        orderNumber: generateOrderNumber(),
-        userId,
-        stripeSessionId: data.id,
-        totalPrice: (data.amount_total || 0) / 100,
-        status: "confirmed",
-        shippingName: data.customer_details?.name || "",
-        shippingEmail: data.customer_details?.email || "",
-        shippingPhone: data.customer_details?.phone || null,
-        shippingAddressLine1: data.customer_details?.address?.line1 || "",
-        shippingAddressLine2: data.customer_details?.address?.line2 || null,
-        shippingCity: data.customer_details?.address?.city || "",
-        shippingState: data.customer_details?.address?.state || null,
-        shippingPostalCode: data.customer_details?.address?.postal_code || "",
-        shippingCountry: data.customer_details?.address?.country || "",
-        expectedDeliveryDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
-        items: {
-          create: cart.map((item) => ({
-            productId: item.productId,
-            variantId: item.variantId || null,
-            size: item.size,
-            quantity: item.quantity,
-            price: item.price,
-            color: item.color,
-            image: item.image[0] || null,
-            productName: item.name || '',
-            category: item.category || '',
-          })),
-        },
-      },
-    });
-
-    console.info("Order saved successfully:", order.orderNumber);
-    await emptyCart(userId);
-
-    return order;
+    return { success: true };
   } catch (error) {
-    console.error("Error saving the order:", error);
-    return null;
+    console.error("Error updating order status:", error);
+    return { success: false, error: "Failed to update order" };
   }
 };

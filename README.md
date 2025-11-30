@@ -8,10 +8,10 @@ A modern e-commerce platform for cannabis dispensaries, built with Next.js and i
 - Real-time inventory from Hikeup POS
 - Product Catalog with Categories
 - Shopping Cart Functionality
-- Product Search
+- Product Search & Filtering
 - User Profile Management
-- Stripe Payment Processing
-- Order History
+- Order Management
+- AI Cannabis Consultant (ChatGPT-powered)
 - Admin Dashboard
 - Responsive Design
 - SEO Optimized
@@ -44,11 +44,6 @@ NEXTAUTH_URL=http://localhost:3000
 
 # App URL
 NEXT_PUBLIC_APP_URL=http://localhost:3000
-
-# Stripe Payments
-STRIPE_SECRET_KEY=your_stripe_secret_key
-STRIPE_WEBHOOK_SECRET=your_stripe_webhook_secret
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=your_stripe_publishable_key
 
 # Hikeup POS Integration
 HIKEUP_CLIENT_ID=your_hikeup_app_id

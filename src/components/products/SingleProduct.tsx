@@ -41,8 +41,20 @@ export const SingleProduct = ({ product, session }: SingleProduct) => {
             <h1 className="text-lg font-semibold text-text-primary">
               {productPlainObject.name}
             </h1>
-            <span className="text-xl font-bold text-primary">${productPlainObject.price}</span>
-            <p className="text-sm text-text-light leading-relaxed">{productPlainObject.description}</p>
+            <span className="text-xl font-bold text-primary">
+              ${(selectedVariant?.price || productPlainObject.price).toFixed(2)}
+              {productPlainObject.variants.length > 1 && (
+                <span className="text-sm font-normal text-text-muted ml-2">
+                  ({selectedVariant?.color || selectedVariant?.name || 'Select option'})
+                </span>
+              )}
+            </span>
+            {productPlainObject.description && (
+              <div 
+                className="text-sm text-text-light leading-relaxed [&_h1]:text-base [&_h1]:font-medium [&_h1]:text-text-primary [&_h1]:mt-3 [&_h1]:mb-1 [&_h2]:text-sm [&_h2]:font-normal [&_h2]:text-text-light [&_h2]:mt-2 [&_h2]:mb-1 [&_strong]:text-text-primary [&_strong]:font-medium [&_p]:mb-2"
+                dangerouslySetInnerHTML={{ __html: productPlainObject.description }}
+              />
+            )}
           </div>
 
           <AddToCart

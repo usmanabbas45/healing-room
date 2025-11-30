@@ -1,11 +1,12 @@
 "use client";
 
-import axios from "axios";
 import { ItemDocument } from "@/types/types";
-import { useTransition, useCallback, useMemo } from "react";
+import { useTransition, useCallback } from "react";
 import { Loader } from "../common/Loader";
 import { toast } from "sonner";
 import { Session } from "next-auth";
+import { useRouter } from "next/navigation";
+import { placeOrder } from "@/app/(carts)/cart/action";
 
 interface ButtonCheckoutProps {
   cartWithProducts: ItemDocument[];
@@ -13,53 +14,52 @@ interface ButtonCheckoutProps {
 }
 
 const ButtonCheckout = ({ cartWithProducts, session }: ButtonCheckoutProps) => {
-  let [isPending, startTransition] = useTransition();
+  const [isPending, startTransition] = useTransition();
+  const router = useRouter();
 
-  const lineItems = useMemo(
-    () =>
-      cartWithProducts.map((cartItem: ItemDocument) => ({
-        productId: cartItem.productId,
-        quantity: cartItem.quantity,
-        variantId: cartItem.variantId,
-        size: cartItem.size,
-        color: cartItem.color,
-      })),
-    [cartWithProducts]
-  );
-
-  const buyProducts = useCallback(async () => {
+  const handleCheckout = useCallback(async () => {
     if (!session) {
-      toast.error("User information not found");
+      toast.error("Please sign in to checkout");
       return;
     }
 
-    try {
-      const { data } = await axios.post("/api/stripe/payment", {
-        lineItems,
-        userId: session.user._id,
-      });
-
-      if (data.statusCode === 500) {
-        toast.error(data.message);
-        console.error(data.statusCode, data.message);
-        return;
-      }
-
-      window.location.href = data.session.url;
-    } catch (error) {
-      console.error(error);
-      toast.error(
-        "An error occurred while processing your request. Please try again."
-      );
+    if (cartWithProducts.length === 0) {
+      toast.error("Your cart is empty");
+      return;
     }
-  }, [session, lineItems]);
+
+    startTransition(async () => {
+      try {
+        const result = await placeOrder(cartWithProducts);
+
+        if (!result.success) {
+          if (result.errors && result.errors.length > 0) {
+            toast.error("Some items are unavailable", {
+              description: result.errors.join("\n"),
+              duration: 8000,
+            });
+          } else {
+            toast.error(result.error || "Failed to place order");
+          }
+          return;
+        }
+
+        toast.success("Order placed successfully!");
+        router.push(`/orders/${result.orderId}`);
+      } catch (error) {
+        console.error("Checkout error:", error);
+        toast.error("An error occurred. Please try again.");
+      }
+    });
+  }, [session, cartWithProducts, router]);
 
   return (
     <button
-      onClick={() => startTransition(buyProducts)}
-      className="w-full text-sm p-2.5 h-full transition-all hover:bg-color-secondary"
+      onClick={handleCheckout}
+      disabled={isPending}
+      className="w-full text-sm font-medium p-3 h-full bg-primary text-white rounded-lg transition-all hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
     >
-      {isPending ? <Loader height={20} width={20} /> : "Continue"}
+      {isPending ? <Loader height={20} width={20} /> : "Place Order"}
     </button>
   );
 };

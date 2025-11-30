@@ -56,8 +56,14 @@ export interface VariantType {
   id: string;
   priceId: string;
   color: string;
+  name?: string;
+  fullName?: string;
+  sku?: string;
+  barcode?: string;
   images: string[];
   productId: string;
+  inventory?: number;
+  price?: number;
 }
 
 export interface UserType {
@@ -97,9 +103,16 @@ export interface ProductDocument extends ProductType {
 }
 
 export interface VariantsDocument {
+  _id?: string;
   priceId: string;
   color: string;
+  name?: string;
+  fullName?: string;
+  sku?: string;
+  barcode?: string;
   images: string[];
+  inventory?: number;
+  price?: number;
 }
 
 export interface ItemDocument {

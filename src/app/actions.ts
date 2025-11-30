@@ -8,6 +8,8 @@ import {
   getHikeupProductsWithMeta,
   getHikeupProduct,
   getHikeupProductsByCategory,
+  getHikeupProductsByType,
+  getProductTypesForFilter,
   searchHikeupProducts,
   transformHikeupProduct,
   getCachedTotalCount,
@@ -38,10 +40,14 @@ function transformProduct(product: any) {
   };
 }
 
-export const getAllProducts = async (page: number = 1, pageSize: number = 24) => {
+export const getAllProducts = async (
+  page: number = 1, 
+  pageSize: number = 24,
+  typeFilter: string = 'all'
+) => {
   try {
     const skipCount = (page - 1) * pageSize;
-    console.log(`🔍 getAllProducts called (page ${page}, size ${pageSize}, skip ${skipCount})`);
+    console.log(`🔍 getAllProducts called (page ${page}, size ${pageSize}, skip ${skipCount}, type ${typeFilter})`);
     
     // Check if Hikeup is connected (async - checks database)
     const connected = await isHikeupConnected();
@@ -50,10 +56,15 @@ export const getAllProducts = async (page: number = 1, pageSize: number = 24) =>
     // Try Hikeup first if connected
     if (connected) {
       console.log('📦 Fetching products from Hikeup POS...');
-      const { products: hikeupProducts, totalCount } = await getHikeupProductsWithMeta(pageSize, skipCount);
+      
+      // Use type filter if specified
+      const { products: hikeupProducts, totalCount } = typeFilter === 'all'
+        ? await getHikeupProductsWithMeta(pageSize, skipCount)
+        : await getHikeupProductsByType(typeFilter, pageSize, skipCount);
+      
       console.log('📦 Got', hikeupProducts.length, 'products from Hikeup (total:', totalCount, ')');
       
-      if (hikeupProducts.length > 0) {
+      if (hikeupProducts.length > 0 || typeFilter !== 'all') {
         const transformed = hikeupProducts.map(transformHikeupProduct);
         return { products: transformed, totalCount };
       }
@@ -62,15 +73,20 @@ export const getAllProducts = async (page: number = 1, pageSize: number = 24) =>
 
     // Fall back to database
     console.log('📦 Fetching products from database...');
+    const whereClause = typeFilter !== 'all' 
+      ? { category: { contains: typeFilter.replace(/-/g, ' '), mode: 'insensitive' as const } }
+      : {};
+    
     const [products, totalCount] = await Promise.all([
       prisma.product.findMany({
+        where: whereClause,
         skip: skipCount,
         take: pageSize,
         include: {
           variants: true,
         },
       }),
-      prisma.product.count(),
+      prisma.product.count({ where: whereClause }),
     ]);
     console.log('📦 Got', products.length, 'products from database');
     return { products: products.map(transformProduct), totalCount };
@@ -79,6 +95,7 @@ export const getAllProducts = async (page: number = 1, pageSize: number = 24) =>
     return { products: [], totalCount: 0 };
   }
 };
+
 
 // Get total product count for pagination
 export const getProductCount = async () => {
@@ -230,4 +247,21 @@ export const searchProducts = async (query: string) => {
 // Check if Hikeup is connected (for UI)
 export const checkHikeupConnection = async () => {
   return await isHikeupConnected();
+};
+
+// Get product types for filter dropdown
+export const getProductTypes = async () => {
+  try {
+    const connected = await isHikeupConnected();
+    if (connected) {
+      return await getProductTypesForFilter();
+    }
+    // Fallback types if not connected
+    return [
+      { id: 'all', name: 'All Products', count: 0 },
+    ];
+  } catch (error) {
+    console.error("Error getting product types:", error);
+    return [{ id: 'all', name: 'All Products', count: 0 }];
+  }
 };

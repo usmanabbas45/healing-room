@@ -79,7 +79,7 @@ export default async function AdminPage({
             : 'Connect your Hikeup POS to display products and inventory from your store.'}
         </p>
         
-        <div className="flex gap-4">
+        <div className="flex flex-wrap gap-4">
           {!connected ? (
             <Link
               href="/api/hikeup/connect"
@@ -88,14 +88,47 @@ export default async function AdminPage({
               Connect Hikeup POS
             </Link>
           ) : (
-            <Link
-              href="/"
-              className="bg-primary text-white px-4 py-2 rounded-md hover:bg-primary-dark transition-colors"
-            >
-              View Store →
-            </Link>
+            <>
+              <Link
+                href="/shop"
+                className="bg-primary text-white px-4 py-2 rounded-md hover:bg-primary-dark transition-colors"
+              >
+                View Store →
+              </Link>
+              <Link
+                href="/api/hikeup/connect"
+                className="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300 transition-colors"
+              >
+                🔄 Reconnect (Get Fresh Token)
+              </Link>
+            </>
           )}
         </div>
+        
+        {/* Detailed Token Info */}
+        {tokenStatus.connected && (
+          <div className="mt-4 p-3 bg-gray-50 rounded text-sm">
+            <p className="text-text-muted">
+              <strong>Token Expires:</strong> {tokenStatus.expiresAt?.toLocaleString() || 'Unknown'}
+            </p>
+            <p className="text-text-muted">
+              <strong>Status:</strong>{' '}
+              {tokenStatus.isExpired ? (
+                <span className="text-red-500">⚠️ Expired - Will attempt refresh on next request</span>
+              ) : (
+                <span className="text-green-600">✅ Valid</span>
+              )}
+            </p>
+            <p className="text-text-muted">
+              <strong>Auto-Refresh:</strong>{' '}
+              {tokenStatus.hasRefreshToken ? (
+                <span className="text-green-600">✅ Enabled (has refresh token)</span>
+              ) : (
+                <span className="text-yellow-600">⚠️ Disabled (no refresh token - reconnect for persistent access)</span>
+              )}
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Quick Stats */}

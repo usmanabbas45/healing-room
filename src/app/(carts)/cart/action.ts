@@ -80,6 +80,11 @@ export async function getTotalItems(session: Session | null): Promise<number> {
   return cart?.items.reduce((sum, item) => sum + item.quantity, 0) || 0;
 }
 
+export type AddItemResult = {
+  success: boolean;
+  error?: string;
+};
+
 export async function addItem(
   category: string,
   productId: string,
@@ -88,15 +93,61 @@ export async function addItem(
   price: number,
   productName?: string,
   image?: string,
-) {
+): Promise<AddItemResult> {
   const session: Session | null = await getServerSession(authOptions);
 
   if (!session?.user._id) {
     console.error(`User Id not found.`);
-    return;
+    return { success: false, error: "You must be logged in to add items to cart." };
   }
 
   const userId = session.user._id;
+
+  // ===== SERVER-SIDE INVENTORY CHECK =====
+  if (await isHikeupConnected()) {
+    try {
+      const hikeupProduct = await getHikeupProduct(productId);
+      if (hikeupProduct) {
+        const transformed = transformHikeupProduct(hikeupProduct);
+        // Find the specific variant
+        const variant = transformed.variants.find(
+          (v: any) => String(v.priceId) === String(variantId)
+        );
+        
+        if (variant) {
+          // Check current cart quantity for this item
+          const existingCart = await prisma.cart.findUnique({
+            where: { userId },
+            include: { items: true },
+          });
+          
+          const existingItem = existingCart?.items.find(
+            (item) =>
+              item.productId === productId &&
+              item.variantId === variantId &&
+              item.size === size
+          );
+          
+          const currentCartQty = existingItem?.quantity || 0;
+          const requestedQty = currentCartQty + 1;
+          
+          if (variant.inventory <= 0) {
+            return { success: false, error: "This item is out of stock." };
+          }
+          
+          if (requestedQty > variant.inventory) {
+            return { 
+              success: false, 
+              error: `Only ${variant.inventory} available. You have ${currentCartQty} in your cart.` 
+            };
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error checking inventory:", error);
+      // Continue anyway if inventory check fails - don't block the purchase
+    }
+  }
 
   // Get or create cart
   let cart = await prisma.cart.findUnique({
@@ -155,6 +206,7 @@ export async function addItem(
   }
 
   revalidatePath(`/${category}/${productId}`);
+  return { success: true };
 }
 
 export async function delItem(
@@ -252,3 +304,132 @@ export const emptyCart = async (userId: string) => {
     console.error("Error emptying cart:", error);
   }
 };
+
+// ===== PLACE ORDER =====
+export type PlaceOrderResult = {
+  success: boolean;
+  orderId?: string;
+  error?: string;
+  errors?: string[];
+};
+
+// Generate order number like "HR-ABC123"
+function generateOrderNumber(): string {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  let result = "";
+  for (let i = 0; i < 6; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return `HR-${result}`;
+}
+
+export async function placeOrder(
+  cartItems: { productId: string; variantId: string; size: string; quantity: number; price: number; }[]
+): Promise<PlaceOrderResult> {
+  const session: Session | null = await getServerSession(authOptions);
+
+  if (!session?.user._id) {
+    return { success: false, error: "You must be logged in to place an order." };
+  }
+
+  const userId = session.user._id;
+
+  // ===== VALIDATE INVENTORY FOR ALL ITEMS =====
+  const inventoryErrors: string[] = [];
+  
+  if (await isHikeupConnected()) {
+    for (const item of cartItems) {
+      try {
+        const hikeupProduct = await getHikeupProduct(item.productId);
+        if (!hikeupProduct) {
+          inventoryErrors.push(`Product "${item.productId}" is no longer available.`);
+          continue;
+        }
+
+        const transformed = transformHikeupProduct(hikeupProduct);
+        const variant = transformed.variants.find(
+          (v: any) => String(v.priceId) === String(item.variantId)
+        );
+
+        if (variant) {
+          if (variant.inventory <= 0) {
+            inventoryErrors.push(`"${transformed.name}" (${variant.color || variant.name}) is out of stock.`);
+          } else if (item.quantity > variant.inventory) {
+            inventoryErrors.push(
+              `Only ${variant.inventory} of "${transformed.name}" (${variant.color || variant.name}) available.`
+            );
+          }
+        } else if (transformed.inventory <= 0) {
+          inventoryErrors.push(`"${transformed.name}" is out of stock.`);
+        } else if (item.quantity > transformed.inventory) {
+          inventoryErrors.push(`Only ${transformed.inventory} of "${transformed.name}" available.`);
+        }
+      } catch (error) {
+        console.error(`Error validating inventory for ${item.productId}:`, error);
+      }
+    }
+  }
+
+  if (inventoryErrors.length > 0) {
+    return { success: false, errors: inventoryErrors };
+  }
+
+  // ===== CREATE ORDER =====
+  try {
+    // Get cart items with full details
+    const cart = await prisma.cart.findUnique({
+      where: { userId },
+      include: { items: true },
+    });
+
+    if (!cart || cart.items.length === 0) {
+      return { success: false, error: "Your cart is empty." };
+    }
+
+    // Calculate total
+    const total = cart.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
+    // Get user info for the order
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { name: true, email: true },
+    });
+
+    // Create order
+    const order = await prisma.order.create({
+      data: {
+        orderNumber: generateOrderNumber(),
+        userId,
+        totalPrice: total,
+        status: "pending", // Awaiting payment
+        customerName: user?.name || null,
+        customerEmail: user?.email || null,
+        items: {
+          create: cart.items.map((item) => ({
+            productId: item.productId,
+            variantId: item.variantId || "",
+            size: item.size,
+            quantity: item.quantity,
+            price: item.price,
+            productName: item.productName || "",
+            category: item.category || "",
+            image: item.image || null,
+          })),
+        },
+      },
+    });
+
+    // Clear cart
+    await prisma.cartItem.deleteMany({
+      where: { cartId: cart.id },
+    });
+
+    revalidatePath("/cart");
+    revalidatePath("/orders");
+
+    return { success: true, orderId: order.id };
+  } catch (error) {
+    console.error("Error creating order:", error);
+    return { success: false, error: "Failed to create order. Please try again." };
+  }
+}

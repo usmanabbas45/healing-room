@@ -95,25 +95,32 @@ model WishlistItem {
 
 model Order {
   id                   String      @id @default(cuid())
-  orderNumber          String      @unique
+  orderNumber          String      @unique @default(cuid())
   userId               String
   user                 User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   items                OrderItem[]
   totalPrice           Float
-  status               String      @default("pending")
+  status               String      @default("pending") // pending, confirmed, processing, ready, completed, cancelled
   
-  // Shipping info
-  shippingName         String
-  shippingEmail        String
+  // Customer info (optional - for pickup orders)
+  customerName         String?
+  customerEmail        String?
+  customerPhone        String?
+  
+  // Shipping/pickup info (optional)
+  shippingName         String?
+  shippingEmail        String?
   shippingPhone        String?
-  shippingAddressLine1 String
+  shippingAddressLine1 String?
   shippingAddressLine2 String?
-  shippingCity         String
+  shippingCity         String?
   shippingState        String?
-  shippingPostalCode   String
-  shippingCountry      String
+  shippingPostalCode   String?
+  shippingCountry      String?
+  
+  // Order notes
+  notes                String?
 
-  stripeSessionId      String?
   purchaseDate         DateTime    @default(now())
   expectedDeliveryDate DateTime?
   createdAt            DateTime    @default(now())

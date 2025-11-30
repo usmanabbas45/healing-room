@@ -111,6 +111,44 @@ main {
   }
 }
 
+/* Infinite Carousel */
+@keyframes infiniteCarousel {
+  0% { 
+    transform: translateX(0); 
+  }
+  100% { 
+    transform: translateX(calc(-50%)); 
+  }
+}
+
+.carousel-fade-container {
+  mask: linear-gradient(
+    to right,
+    transparent 0%,
+    black 5%,
+    black 95%,
+    transparent 100%
+  );
+  -webkit-mask: linear-gradient(
+    to right,
+    transparent 0%,
+    black 5%,
+    black 95%,
+    transparent 100%
+  );
+}
+
+.infinite-carousel-track {
+  display: flex;
+  gap: 1.5rem;
+  animation: infiniteCarousel 40s linear infinite;
+  width: fit-content;
+}
+
+.infinite-carousel-track:hover {
+  animation-play-state: paused;
+}
+
 /* Responsive adjustments */
 @media (max-width: 1080px) {
   .transition-card:hover {
