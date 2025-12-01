@@ -258,8 +258,8 @@ export default function Home() {
           
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 md:gap-6">
             {/* Indica */}
-            <Link href="/shop?type=indica" className="group flex flex-col rounded-2xl overflow-hidden border border-border-primary/20 hover:shadow-xl hover:border-primary/30 transition-all duration-300">
-              <div className="relative aspect-square overflow-hidden">
+            <Link href="/shop?type=indica" className="group flex flex-col h-full rounded-2xl overflow-hidden border border-border-primary/20 hover:shadow-xl hover:border-primary/30 transition-all duration-300">
+              <div className="relative aspect-square overflow-hidden flex-shrink-0">
                 <Image
                   src="/categories/indica.png"
                   alt="Indica"
@@ -267,15 +267,15 @@ export default function Home() {
                   className="object-cover group-hover:scale-105 transition-transform duration-500"
                 />
               </div>
-              <div className="p-4 text-center bg-gradient-to-br from-[#f0ece6] via-[#e8e4dd] to-[#ddd8cf]">
+              <div className="p-4 text-center bg-gradient-to-br from-[#f0ece6] via-[#e8e4dd] to-[#ddd8cf] flex-1 flex flex-col justify-center">
                 <h3 className="font-semibold text-text-primary text-sm md:text-base">Indica</h3>
                 <p className="text-xs text-text-muted mt-1">Relax & Unwind</p>
               </div>
             </Link>
             
             {/* Sativa */}
-            <Link href="/shop?type=sativa" className="group flex flex-col rounded-2xl overflow-hidden border border-border-primary/20 hover:shadow-xl hover:border-primary/30 transition-all duration-300">
-              <div className="relative aspect-square overflow-hidden">
+            <Link href="/shop?type=sativa" className="group flex flex-col h-full rounded-2xl overflow-hidden border border-border-primary/20 hover:shadow-xl hover:border-primary/30 transition-all duration-300">
+              <div className="relative aspect-square overflow-hidden flex-shrink-0">
                 <Image
                   src="/categories/sativa.png"
                   alt="Sativa"
@@ -283,15 +283,15 @@ export default function Home() {
                   className="object-cover group-hover:scale-105 transition-transform duration-500"
                 />
               </div>
-              <div className="p-4 text-center bg-gradient-to-br from-[#f0ece6] via-[#e8e4dd] to-[#ddd8cf]">
+              <div className="p-4 text-center bg-gradient-to-br from-[#f0ece6] via-[#e8e4dd] to-[#ddd8cf] flex-1 flex flex-col justify-center">
                 <h3 className="font-semibold text-text-primary text-sm md:text-base">Sativa</h3>
                 <p className="text-xs text-text-muted mt-1">Energize & Create</p>
               </div>
             </Link>
             
             {/* Hybrid */}
-            <Link href="/shop?type=hybrid-indica-dominant" className="group flex flex-col rounded-2xl overflow-hidden border border-border-primary/20 hover:shadow-xl hover:border-primary/30 transition-all duration-300">
-              <div className="relative aspect-square overflow-hidden">
+            <Link href="/shop?type=hybrid-indica-dominant" className="group flex flex-col h-full rounded-2xl overflow-hidden border border-border-primary/20 hover:shadow-xl hover:border-primary/30 transition-all duration-300">
+              <div className="relative aspect-square overflow-hidden flex-shrink-0">
                 <Image
                   src="/categories/hybrid.png"
                   alt="Hybrid"
@@ -299,15 +299,15 @@ export default function Home() {
                   className="object-cover group-hover:scale-105 transition-transform duration-500"
                 />
               </div>
-              <div className="p-4 text-center bg-gradient-to-br from-[#f0ece6] via-[#e8e4dd] to-[#ddd8cf]">
+              <div className="p-4 text-center bg-gradient-to-br from-[#f0ece6] via-[#e8e4dd] to-[#ddd8cf] flex-1 flex flex-col justify-center">
                 <h3 className="font-semibold text-text-primary text-sm md:text-base">Hybrid</h3>
                 <p className="text-xs text-text-muted mt-1">Best of Both</p>
               </div>
             </Link>
             
             {/* Cannabis */}
-            <Link href="/shop?type=cannabis" className="group flex flex-col rounded-2xl overflow-hidden border border-border-primary/20 hover:shadow-xl hover:border-primary/30 transition-all duration-300">
-              <div className="relative aspect-square overflow-hidden">
+            <Link href="/shop?type=cannabis" className="group flex flex-col h-full rounded-2xl overflow-hidden border border-border-primary/20 hover:shadow-xl hover:border-primary/30 transition-all duration-300">
+              <div className="relative aspect-square overflow-hidden flex-shrink-0">
                 <Image
                   src="/categories/cannabis.png"
                   alt="Cannabis"
@@ -315,15 +315,15 @@ export default function Home() {
                   className="object-cover group-hover:scale-105 transition-transform duration-500"
                 />
               </div>
-              <div className="p-4 text-center bg-gradient-to-br from-[#f0ece6] via-[#e8e4dd] to-[#ddd8cf]">
+              <div className="p-4 text-center bg-gradient-to-br from-[#f0ece6] via-[#e8e4dd] to-[#ddd8cf] flex-1 flex flex-col justify-center">
                 <h3 className="font-semibold text-text-primary text-sm md:text-base">Cannabis</h3>
                 <p className="text-xs text-text-muted mt-1">All Products</p>
               </div>
             </Link>
             
             {/* Nicotine */}
-            <Link href="/shop?type=nicotine" className="group flex flex-col rounded-2xl overflow-hidden border border-border-primary/20 hover:shadow-xl hover:border-primary/30 transition-all duration-300">
-              <div className="relative aspect-square overflow-hidden">
+            <Link href="/shop?type=nicotine" className="group flex flex-col h-full rounded-2xl overflow-hidden border border-border-primary/20 hover:shadow-xl hover:border-primary/30 transition-all duration-300">
+              <div className="relative aspect-square overflow-hidden flex-shrink-0">
                 <Image
                   src="/categories/nicotine.png"
                   alt="Nicotine"
@@ -331,15 +331,15 @@ export default function Home() {
                   className="object-cover group-hover:scale-105 transition-transform duration-500"
                 />
               </div>
-              <div className="p-4 text-center bg-gradient-to-br from-[#f0ece6] via-[#e8e4dd] to-[#ddd8cf]">
+              <div className="p-4 text-center bg-gradient-to-br from-[#f0ece6] via-[#e8e4dd] to-[#ddd8cf] flex-1 flex flex-col justify-center">
                 <h3 className="font-semibold text-text-primary text-sm md:text-base">Nicotine</h3>
                 <p className="text-xs text-text-muted mt-1">Tobacco & More</p>
               </div>
             </Link>
             
             {/* Accessories */}
-            <Link href="/shop?type=accessories" className="group flex flex-col rounded-2xl overflow-hidden border border-border-primary/20 hover:shadow-xl hover:border-primary/30 transition-all duration-300">
-              <div className="relative aspect-square overflow-hidden">
+            <Link href="/shop?type=accessories" className="group flex flex-col h-full rounded-2xl overflow-hidden border border-border-primary/20 hover:shadow-xl hover:border-primary/30 transition-all duration-300">
+              <div className="relative aspect-square overflow-hidden flex-shrink-0">
                 <Image
                   src="/categories/accessories.png"
                   alt="Accessories"
@@ -347,7 +347,7 @@ export default function Home() {
                   className="object-cover group-hover:scale-105 transition-transform duration-500"
                 />
               </div>
-              <div className="p-4 text-center bg-gradient-to-br from-[#f0ece6] via-[#e8e4dd] to-[#ddd8cf]">
+              <div className="p-4 text-center bg-gradient-to-br from-[#f0ece6] via-[#e8e4dd] to-[#ddd8cf] flex-1 flex flex-col justify-center">
                 <h3 className="font-semibold text-text-primary text-sm md:text-base">Accessories</h3>
                 <p className="text-xs text-text-muted mt-1">Gear & Tools</p>
               </div>
