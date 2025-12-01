@@ -77,7 +77,7 @@ export const Navbar = ({ session, totalItemsCart, totalWishlists }: Navbar) => {
   };
 
   return (
-    <header className="pointer-events-auto w-full px-3.5 gap-4 xs:px-6 sm:px-12 py-4 flex items-center justify-between bg-white border-b border-solid border-border-primary shadow-sm">
+    <header className="pointer-events-auto w-full px-3.5 gap-4 xs:px-6 sm:px-12 py-4 flex items-center justify-between bg-white border-b border-solid border-border-primary shadow-sm sticky top-0 z-50">
       {/* Left side - Logo and Navigation */}
       <div className="flex items-center gap-2 md:gap-6">
         {/* Mobile menu button */}

@@ -42,11 +42,11 @@ export function UserMenu({ fastSession }: { fastSession: Session }) {
             </svg>
           </button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent className="w-40 bg-white border-border-primary">
+        <DropdownMenuContent className="w-40">
           <DropdownMenuLabel className="text-text-primary">My Account</DropdownMenuLabel>
-          <DropdownMenuSeparator className="bg-border-primary" />
+          <DropdownMenuSeparator />
           <DropdownMenuGroup>
-            <DropdownMenuItem className="text-text-primary hover:bg-bg-alt hover:text-primary cursor-pointer">
+            <DropdownMenuItem className="text-text-primary cursor-pointer">
               <DialogTrigger asChild>
                 <button className="flex items-center w-full h-full">
                   <svg
@@ -69,7 +69,7 @@ export function UserMenu({ fastSession }: { fastSession: Session }) {
                 </button>
               </DialogTrigger>
             </DropdownMenuItem>
-            <DropdownMenuItem className="text-text-primary hover:bg-bg-alt hover:text-primary cursor-pointer">
+            <DropdownMenuItem className="text-text-primary cursor-pointer">
               <Link className="flex items-center w-full h-full" href="/orders">
                 <svg
                   data-testid="geist-icon"
@@ -91,8 +91,8 @@ export function UserMenu({ fastSession }: { fastSession: Session }) {
               </Link>
             </DropdownMenuItem>
           </DropdownMenuGroup>
-          <DropdownMenuSeparator className="bg-border-primary" />
-          <DropdownMenuItem className="text-text-primary hover:bg-bg-alt cursor-pointer">
+          <DropdownMenuSeparator />
+          <DropdownMenuItem className="text-text-primary cursor-pointer">
             <SignOutButton />
           </DropdownMenuItem>
         </DropdownMenuContent>
