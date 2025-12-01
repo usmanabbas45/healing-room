@@ -215,24 +215,44 @@ export const getProduct = async (id: string) => {
   }
 };
 
-export const searchProducts = async (query: string) => {
+export const searchProducts = async (query: string, typeFilter: string = 'all') => {
   try {
     const connected = await isHikeupConnected();
     
     if (connected) {
       const hikeupProducts = await searchHikeupProducts(query);
-      return hikeupProducts.map(transformHikeupProduct);
+      let transformedProducts = hikeupProducts.map(transformHikeupProduct);
+      
+      // Apply type filter if specified
+      if (typeFilter !== 'all') {
+        transformedProducts = transformedProducts.filter(p => {
+          const productType = (p.category || '').toLowerCase();
+          const filterType = typeFilter.toLowerCase().replace(/-/g, ' ');
+          return productType.includes(filterType) || filterType.includes(productType);
+        });
+      }
+      
+      return transformedProducts;
     }
 
     // Fall back to database
+    const whereClause: any = {
+      OR: [
+        { name: { contains: query, mode: "insensitive" } },
+        { description: { contains: query, mode: "insensitive" } },
+        { category: { contains: query, mode: "insensitive" } },
+      ],
+    };
+    
+    // Add type filter if specified
+    if (typeFilter !== 'all') {
+      whereClause.AND = {
+        category: { contains: typeFilter.replace(/-/g, ' '), mode: 'insensitive' },
+      };
+    }
+    
     const products = await prisma.product.findMany({
-      where: {
-        OR: [
-          { name: { contains: query, mode: "insensitive" } },
-          { description: { contains: query, mode: "insensitive" } },
-          { category: { contains: query, mode: "insensitive" } },
-        ],
-      },
+      where: whereClause,
       include: {
         variants: true,
       },
