@@ -86,7 +86,7 @@ const Signup = () => {
             <div className="text-sm">{error}</div>
           </div>
         )}
-        <h1 className="w-full mb-3 text-2xl font-bold text-text-primary">Create Account</h1>
+        <h1 className="w-full mb-3 text-2xl font-bold text-text-primary text-center">Create Account</h1>
 
         <label className={labelStyles}>Full Name:</label>
         <input

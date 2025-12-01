@@ -48,7 +48,7 @@ const CartPage = async () => {
 
   return (
     <div className="flex flex-col items-center justify-center w-full h-[calc(100vh-91px)] gap-2 px-4">
-      <h1 className="mb-6 text-3xl font-bold text-text-primary">Your Cart is Empty</h1>
+      <h1 className="mb-6 text-4xl font-bold text-text-primary">Your Cart is Empty</h1>
       <p className="mb-4 text-text-muted text-center max-w-md">
         Sign in to save products to your cart and checkout.
       </p>
@@ -136,7 +136,7 @@ const ProductsCart = async ({ session }: { session: Session }) => {
 
   return (
     <div className="flex flex-col items-center justify-center w-full h-[calc(100vh-91px)] gap-2 px-4">
-      <h1 className="mb-6 text-3xl font-bold text-text-primary">Your Cart is Empty</h1>
+      <h1 className="mb-6 text-4xl font-bold text-text-primary">Your Cart is Empty</h1>
       <p className="mb-4 text-text-muted text-center max-w-md">
         When you add products to your cart, they will appear here.
       </p>

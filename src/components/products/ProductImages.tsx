@@ -17,7 +17,7 @@ interface ProductImages {
 export const ProductImages = ({ name, selectedVariant }: ProductImages) => {
   if (!selectedVariant || !selectedVariant.images) {
     return (
-      <Skeleton className="w-full rounded-b-none aspect-[2/3] min-w-[250px] lg:aspect-[4/6] lg:min-w-[560px]" />
+      <Skeleton className="w-full rounded-lg aspect-square min-w-[250px] lg:min-w-[400px]" />
     );
   }
 

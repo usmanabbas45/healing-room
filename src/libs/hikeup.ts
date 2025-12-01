@@ -886,8 +886,8 @@ export async function getHikeupProductsByType(
 }
 
 /**
- * Search products - uses Hikeup's Filter API (fast, server-side search)
- * Searches by: SKU, Barcode, and Name
+ * Search products from server cache (has correct category info)
+ * This is better than Hikeup's Filter API because cached products have proper product_type data
  * Results are cached for 2 minutes
  */
 export async function searchHikeupProducts(query: string): Promise<HikeupProduct[]> {
@@ -897,17 +897,31 @@ export async function searchHikeupProducts(query: string): Promise<HikeupProduct
   
   const searchKey = query.trim().toLowerCase();
   
-  // Check cache first
+  // Check search cache first
   const cached = cache.search.get(searchKey);
   if (cached && Date.now() - cached.timestamp < SEARCH_CACHE_TTL) {
     console.log(`🔍 Search cache hit for "${searchKey}": ${cached.results.length} results`);
     return cached.results;
   }
   
-  console.log(`🔍 Searching Hikeup for: "${query}"`);
+  console.log(`🔍 Searching products for: "${query}"`);
   
-  // Use Hikeup's Filter API - searches SKU, Barcode, Name server-side
-  const results = await getHikeupProductByFilter(query.trim(), 100);
+  // Get all products from cache (loads if needed)
+  const allProducts = await getCachedProducts();
+  
+  const results = allProducts.filter((product: any) => {
+    const name = (product.product_name || product.name || '').toLowerCase();
+    const sku = (product.sku || '').toLowerCase();
+    const barcode = (product.barcode || '').toLowerCase();
+    const description = (product.description || '').toLowerCase();
+    const brand = (product.bran_name || product.brand_name || '').toLowerCase();
+    
+    return name.includes(searchKey) || 
+           sku.includes(searchKey) || 
+           barcode.includes(searchKey) ||
+           description.includes(searchKey) ||
+           brand.includes(searchKey);
+  });
   
   // Cache results
   cache.search.set(searchKey, { results, timestamp: Date.now() });
@@ -918,7 +932,7 @@ export async function searchHikeupProducts(query: string): Promise<HikeupProduct
     if (oldestKey) cache.search.delete(oldestKey);
   }
   
-  console.log(`🔍 Search complete: ${results.length} results`);
+  console.log(`🔍 Search complete: ${results.length} results (from ${allProducts.length} cached products)`);
   return results;
 }
 
@@ -967,8 +981,17 @@ export function transformHikeupProduct(product: any) {
   const inventory = outlet?.available_inventory || outlet?.on_hand_inventory || 0;
   const costPrice = outlet?.cost_price || 0;
   
-  // ===== EXTRACT CATEGORY FROM product_type =====
-  const categoryName = product.product_type?.[0]?.type_name || 'uncategorized';
+  // ===== EXTRACT CATEGORIES FROM product_type (can have multiple) =====
+  const productTypes = product.product_type || [];
+  const categories = productTypes.map((pt: any) => {
+    const typeName = pt.type_name || pt.name || '';
+    // Clean up display name (remove parenthetical content)
+    const displayName = typeName.replace(/\s*\([^)]*\)\s*/g, '').trim();
+    return displayName;
+  }).filter(Boolean);
+  
+  // Primary category (first one, for backwards compatibility)
+  const categoryName = categories[0] || 'uncategorized';
   const category = categoryName
     .toLowerCase()
     .replace(/\s+/g, '-')
@@ -978,12 +1001,41 @@ export function transformHikeupProduct(product: any) {
   const brand = product.bran_name || product.brand_name || '';
   
   // ===== EXTRACT VARIANTS FROM product_variants =====
-  const variants = product.product_variants?.map((v: any) => {
+  // Debug: Log full variant structure for products with multiple variants
+  if (product.product_variants?.length > 1) {
+    console.log(`\n📦 PRODUCT: "${product.name}" has ${product.product_variants.length} variants`);
+    console.log('🔍 FULL VARIANT DATA STRUCTURE:');
+    console.log(JSON.stringify(product.product_variants[0], null, 2));
+  }
+  
+  const variants = product.product_variants?.map((v: any, idx: number) => {
     const variantOutlet = v.variant_outlets?.[0];
     // Get the option name from variant_sub_values (e.g., "Pack", "Carton", "1g", "3.5g")
     const optionName = v.variant_sub_values?.[0]?.variant_sub_value_name || 
                        v.variant_name?.split('/').pop()?.trim() || 
                        'Default';
+    
+    // Get variant price - try multiple sources
+    const variantPrice = variantOutlet?.price_inc_tax || 
+                         variantOutlet?.price_ex_tax || 
+                         v.price_inc_tax ||
+                         v.price_ex_tax ||
+                         v.price ||
+                         v.retail_price ||
+                         price;
+    
+    // Debug log for each variant
+    if (product.product_variants?.length > 1) {
+      console.log(`\n🏷️ VARIANT #${idx + 1}: "${optionName}"`);
+      console.log(`   - variantOutlet exists: ${!!variantOutlet}`);
+      console.log(`   - variantOutlet?.price_inc_tax: ${variantOutlet?.price_inc_tax}`);
+      console.log(`   - variantOutlet?.price_ex_tax: ${variantOutlet?.price_ex_tax}`);
+      console.log(`   - v.price_inc_tax: ${v.price_inc_tax}`);
+      console.log(`   - v.price_ex_tax: ${v.price_ex_tax}`);
+      console.log(`   - v.price: ${v.price}`);
+      console.log(`   - v.retail_price: ${v.retail_price}`);
+      console.log(`   - FINAL PRICE: ${variantPrice}`);
+    }
     
     return {
       _id: String(v.prod_variant_id || v.id),
@@ -995,7 +1047,7 @@ export function transformHikeupProduct(product: any) {
       barcode: v.barcode || '',
       images: v.variant_images?.length > 0 ? v.variant_images : imageUrls,
       inventory: variantOutlet?.available_inventory || 0,
-      price: variantOutlet?.price_inc_tax || variantOutlet?.price_ex_tax || price,
+      price: variantPrice,
     };
   }) || [];
 
@@ -1022,6 +1074,7 @@ export function transformHikeupProduct(product: any) {
     description: product.description || '',
     price: price,
     category: category,
+    categories: categories, // All product types
     sizes: variants.map((v: any) => v.color),
     images: imageUrls,
     image: imageUrls,

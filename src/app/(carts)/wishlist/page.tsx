@@ -32,7 +32,7 @@ const Wishlists = async () => {
 
   return (
     <div className="flex flex-col items-center justify-center w-full h-[calc(100vh-91px)] gap-2 px-4">
-      <h1 className="mb-6 text-4xl font-bold">YOUR WISHLIST IS EMPTY</h1>
+      <h1 className="mb-6 text-4xl font-bold text-text-primary">YOUR WISHLIST IS EMPTY</h1>
       <p className="mb-4 text-lg">
         Not registered? You must be in order to save your favorite products.
       </p>
@@ -63,7 +63,7 @@ const ProductsWishlists = async ({ session }: { session: Session }) => {
 
   return (
     <div className="flex flex-col items-center justify-center w-full h-[calc(100vh-91px)] gap-2 px-4">
-      <h1 className="mb-6 text-4xl font-bold">YOUR WISHLIST IS EMPTY</h1>
+      <h1 className="mb-6 text-4xl font-bold text-text-primary">YOUR WISHLIST IS EMPTY</h1>
       <p className="mb-4 text-lg">
         When you have added something to the wishlist, it will appear here. Want
         to get started?

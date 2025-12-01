@@ -1,4 +1,4 @@
-export default function Loading() {
+export default function ShopLoading() {
   return (
     <section className="pt-14">
       <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
@@ -10,7 +10,7 @@ export default function Loading() {
         
         {/* Text */}
         <p className="text-text-muted text-sm animate-pulse">
-          Loading...
+          Loading products...
         </p>
       </div>
     </section>

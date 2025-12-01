@@ -79,7 +79,7 @@ const Signin = () => {
             <div className="text-sm">{error}</div>
           </div>
         )}
-        <h1 className="w-full mb-3 text-2xl font-bold text-text-primary">Sign In</h1>
+        <h1 className="w-full mb-3 text-2xl font-bold text-text-primary text-center">Sign In</h1>
 
         <label className={labelStyles}>Email:</label>
         <input

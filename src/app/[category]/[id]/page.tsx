@@ -117,10 +117,18 @@ const AllProducts = async ({ id, category }: { id: string; category: string }) =
     ...product,
     _id: product.id,
     image: product.images,
-    variants: product.variants.map((v: { priceId: string; color: string; images: string[] }) => ({
+    categories: (product as any).categories || [product.category], // All product types
+    variants: product.variants.map((v: any) => ({
+      _id: v._id,
       priceId: v.priceId,
       color: v.color,
+      name: v.name,
+      fullName: v.fullName,
       images: v.images,
+      price: v.price,
+      inventory: v.inventory,
+      sku: v.sku,
+      barcode: v.barcode,
     })),
   };
   

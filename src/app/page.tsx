@@ -124,25 +124,26 @@ export default function Home() {
                   style={{ boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255,255,255,0.1) inset' }}>
                   
                   {/* Inner container with inset shadow for depth */}
-                  <div className="relative w-full h-full bg-gradient-to-br from-[#f0ece6] via-[#e8e4dd] to-[#ddd8cf] rounded-[21px] overflow-hidden"
+                  <div className="relative w-full h-full rounded-[21px] overflow-hidden"
                     style={{ boxShadow: 'inset 0 2px 20px rgba(0,0,0,0.1), inset 0 -2px 10px rgba(255,255,255,0.5)' }}>
                     
-                    {/* Top highlight for 3D effect */}
-                    <div className="absolute top-0 left-0 right-0 h-1/3 bg-gradient-to-b from-white/30 to-transparent rounded-t-[21px]" />
-                    
-                    {/* Subtle texture overlay */}
-                    <div className="absolute inset-0 opacity-[0.03]" style={{
-                      backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%' height='100%' filter='url(%23noise)'/%3E%3C/svg%3E")`
-                    }} />
+                    {/* Background Image */}
+                    <Image
+                      src="/hero-background.png"
+                      alt=""
+                      fill
+                      className="object-cover"
+                      priority
+                    />
                     
                     {/* Logo container with glow */}
                     <div className="absolute inset-0 flex items-center justify-center">
                       <div className="text-center p-8 relative">
                         {/* Glow behind logo */}
-                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-primary/10 rounded-full blur-3xl" />
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-white/20 rounded-full blur-3xl" />
                         
                         {/* Logo with drop shadow */}
-                        <div className="relative" style={{ filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.15))' }}>
+                        <div className="relative" style={{ filter: 'drop-shadow(0 8px 20px rgba(0,0,0,0.4))' }}>
                           <Image
                             src="/logo.png"
                             alt="Healing Room"
@@ -152,18 +153,12 @@ export default function Home() {
                             priority
                           />
                         </div>
-                        <p className="text-text-primary/50 text-sm tracking-[0.2em] uppercase font-medium">Premium Quality</p>
+                        <p className="text-sm tracking-[0.2em] uppercase font-medium drop-shadow-lg">
+                          <span className="text-primary">Premium</span> <span className="text-text-primary">Quality</span>
+                        </p>
                       </div>
                     </div>
                     
-                    {/* Bottom shadow for depth */}
-                    <div className="absolute bottom-0 left-0 right-0 h-1/4 bg-gradient-to-t from-black/[0.08] to-transparent" />
-                    
-                    {/* Corner accents */}
-                    <div className="absolute top-4 left-4 w-8 h-8 border-l-2 border-t-2 border-white/20 rounded-tl-lg" />
-                    <div className="absolute top-4 right-4 w-8 h-8 border-r-2 border-t-2 border-white/20 rounded-tr-lg" />
-                    <div className="absolute bottom-4 left-4 w-8 h-8 border-l-2 border-b-2 border-black/[0.08] rounded-bl-lg" />
-                    <div className="absolute bottom-4 right-4 w-8 h-8 border-r-2 border-b-2 border-black/[0.08] rounded-br-lg" />
                   </div>
                 </div>
                 
@@ -588,8 +583,7 @@ export default function Home() {
                   {/* Header with avatar and name */}
                   <div className="flex items-start gap-3 mb-3">
                     <div 
-                      className="w-10 h-10 rounded-full flex items-center justify-center text-white font-medium text-sm flex-shrink-0"
-                      style={{ backgroundColor: review.color }}
+                      className="w-10 h-10 rounded-full flex items-center justify-center text-white font-medium text-sm flex-shrink-0 bg-primary"
                     >
                       {review.initial}
                     </div>
@@ -648,8 +642,7 @@ export default function Home() {
                   {/* Header with avatar and name */}
                   <div className="flex items-start gap-3 mb-3">
                     <div 
-                      className="w-10 h-10 rounded-full flex items-center justify-center text-white font-medium text-sm flex-shrink-0"
-                      style={{ backgroundColor: review.color }}
+                      className="w-10 h-10 rounded-full flex items-center justify-center text-white font-medium text-sm flex-shrink-0 bg-primary"
                     >
                       {review.initial}
                     </div>

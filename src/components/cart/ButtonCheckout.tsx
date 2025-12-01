@@ -41,15 +41,15 @@ const ButtonCheckout = ({ cartWithProducts, session }: ButtonCheckoutProps) => {
           } else {
             toast.error(result.error || "Failed to place order");
           }
-          return;
-        }
+        return;
+      }
 
         toast.success("Order placed successfully!");
         router.push(`/orders/${result.orderId}`);
-      } catch (error) {
+    } catch (error) {
         console.error("Checkout error:", error);
         toast.error("An error occurred. Please try again.");
-      }
+    }
     });
   }, [session, cartWithProducts, router]);
 

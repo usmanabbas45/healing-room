@@ -38,6 +38,19 @@ export const SingleProduct = ({ product, session }: SingleProduct) => {
       <div className="sticky flex flex-col items-center justify-center w-full h-full gap-5 grow basis-600 top-8">
         <div className="w-full border border-solid rounded-lg border-border-primary bg-white shadow-sm overflow-hidden">
           <div className="flex flex-col justify-between gap-3 p-5 border-b border-solid border-border-primary">
+            {/* Product Types/Categories */}
+            {((productPlainObject as any).categories?.length > 0 || productPlainObject.category) && (
+              <div className="flex flex-wrap gap-2">
+                {((productPlainObject as any).categories || [productPlainObject.category?.replace(/-/g, ' ')]).map((cat: string, idx: number) => (
+                  <span 
+                    key={idx}
+                    className="inline-flex items-center px-3 py-1 text-xs font-medium tracking-wide uppercase rounded-full bg-primary/10 text-primary"
+                  >
+                    {cat}
+                  </span>
+                ))}
+              </div>
+            )}
             <h1 className="text-lg font-semibold text-text-primary">
               {productPlainObject.name}
             </h1>

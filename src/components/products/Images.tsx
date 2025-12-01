@@ -64,7 +64,7 @@ export const Images = ({
   // If image failed or is fallback, show placeholder
   if (imageError || imageSrc === '/logo.png') {
     return (
-      <div className="w-full aspect-[2/3] bg-bg-alt flex items-center justify-center">
+      <div className="w-full aspect-square bg-white rounded-lg flex items-center justify-center">
         <Image
           src="/logo.png"
           alt={name}
@@ -86,14 +86,14 @@ export const Images = ({
         src={imageSrc}
         alt={name}
         priority={priority}
-        className="w-full max-w-img aspect-[2/3] brightness-90 object-cover"
+        className="w-full max-w-img aspect-square brightness-95 object-contain bg-white rounded-lg"
         onLoad={handleImageLoadComplete}
         onError={handleImageError}
         sizes={sizes}
       />
       {!imageLoaded && (
-        <div className="absolute top-0 right-0 w-full aspect-[2/3] bg-bg-alt">
-          <Skeleton className="w-full aspect-[2/3] rounded-b-none" />
+        <div className="absolute top-0 right-0 w-full aspect-square bg-white rounded-lg">
+          <Skeleton className="w-full aspect-square rounded-lg" />
         </div>
       )}
     </div>

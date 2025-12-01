@@ -30,39 +30,39 @@ const ProductCartInfo = ({ product }: { product: EnrichedProducts }) => {
   }, [productId, size, variantId]);
 
   // For purchased items (order history), just show quantity
-  if (purchased) {
-    return (
+    if (purchased) {
+      return (
       <div className="text-sm text-text-muted">
         Qty: {quantity}
-      </div>
-    );
+        </div>
+      );
   }
 
   // Quantity controls for cart
-  return (
+      return (
     <div className="flex bg-white rounded-lg overflow-hidden border border-border-primary">
-      <button
+          <button
         className="flex items-center justify-center w-8 h-8 text-text-muted transition-all hover:text-primary hover:bg-bg-alt"
-        onClick={handleDelItem}
+            onClick={handleDelItem}
         aria-label="Decrease quantity"
-      >
+          >
         <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
           <path d="M2 7.25H14V8.75H2V7.25Z" />
-        </svg>
-      </button>
+            </svg>
+          </button>
       <span className="flex items-center justify-center w-10 h-8 text-sm text-text-primary font-medium border-x border-border-primary bg-bg-alt">
-        {quantity}
-      </span>
-      <button
+            {quantity}
+          </span>
+          <button
         className="flex items-center justify-center w-8 h-8 text-text-muted transition-all hover:text-primary hover:bg-bg-alt"
-        onClick={handleAddItem}
+            onClick={handleAddItem}
         aria-label="Increase quantity"
       >
         <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
           <path d="M8.75 1.75V6.75H13.75V8.25H8.75V13.25H7.25V8.25H2.25V6.75H7.25V1.75H8.75Z" />
-        </svg>
-      </button>
-    </div>
+            </svg>
+          </button>
+        </div>
   );
 };
 
