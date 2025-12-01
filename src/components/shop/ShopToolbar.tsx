@@ -65,13 +65,6 @@ export function ShopToolbar({
     updateParams({ q: '', clearPage: true });
   };
 
-  const clearAll = () => {
-    setSearchValue('');
-    router.push('/shop');
-  };
-
-  const hasFilters = currentType !== 'all' || currentSearch;
-
   return (
     <div className="bg-gradient-to-b from-bg-alt/50 to-transparent">
       <div className="px-4 py-6">
@@ -153,18 +146,6 @@ export function ShopToolbar({
               </div>
             </div>
 
-            {/* Clear All Button */}
-            {hasFilters && (
-              <button
-                onClick={clearAll}
-                className="flex items-center gap-1.5 px-3 py-2 text-sm text-text-muted hover:text-primary hover:bg-primary/5 rounded-lg transition-colors"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-                Clear
-              </button>
-            )}
           </div>
         </div>
 
