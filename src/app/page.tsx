@@ -91,7 +91,7 @@ export default function Home() {
               </div>
               
               {/* Trust indicators */}
-              <div className="flex items-center justify-center lg:justify-start gap-8 text-sm text-text-muted">
+              <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4 md:gap-8 text-sm text-text-muted">
                 <div className="flex items-center gap-2">
                   <svg className="w-5 h-5 text-primary" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
@@ -114,8 +114,8 @@ export default function Home() {
             </div>
             
             {/* Right - Hero Image/Visual */}
-            <div className="order-1 lg:order-2 relative pt-8 md:pt-0">
-              <div className="relative aspect-square max-w-lg mx-auto">
+            <div className="order-1 lg:order-2 relative pt-8 md:pt-0 w-full">
+              <div className="relative aspect-square max-w-[280px] sm:max-w-sm md:max-w-lg mx-auto">
                 {/* Background shadow layer for depth */}
                 <div className="absolute inset-4 bg-black/20 rounded-3xl blur-2xl transform translate-y-4" />
                 
