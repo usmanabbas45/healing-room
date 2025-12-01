@@ -1,7 +1,14 @@
 import { NextResponse, NextRequest } from "next/server";
+import { rateLimit, rateLimitedResponse } from "@/libs/rate-limit";
 const nodemailer = require("nodemailer");
 
 export async function POST(request: NextRequest) {
+  // Rate limit: 5 emails per hour per IP (prevent spam)
+  const { limited, resetIn, headers } = rateLimit(request, "email");
+  if (limited) {
+    return rateLimitedResponse(resetIn, headers);
+  }
+
   const { name, email, phone, message, subject, type } = await request.json();
 
   // Validate required fields

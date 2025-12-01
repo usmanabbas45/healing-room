@@ -1,9 +1,16 @@
 import prisma from "@/libs/prisma";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { getHikeupCustomerByEmail, createHikeupCustomer, isHikeupConnected } from "@/libs/hikeup";
+import { rateLimit, rateLimitedResponse } from "@/libs/rate-limit";
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  // Rate limit: 3 signups per hour per IP
+  const { limited, resetIn, headers } = rateLimit(request, "signup");
+  if (limited) {
+    return rateLimitedResponse(resetIn, headers);
+  }
+
   try {
     const { name, email, password } = await request.json();
 

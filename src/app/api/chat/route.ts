@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { searchHikeupProducts, transformHikeupProduct, isHikeupConnected, getProductTypesForFilter, getHikeupProductsByType } from "@/libs/hikeup";
+import { rateLimit, rateLimitedResponse } from "@/libs/rate-limit";
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
@@ -243,6 +244,12 @@ async function searchProducts(query: string) {
 }
 
 export async function POST(request: NextRequest) {
+  // Rate limit: 30 messages per minute per IP
+  const { limited, resetIn, headers } = rateLimit(request, "chat");
+  if (limited) {
+    return rateLimitedResponse(resetIn, headers);
+  }
+
   try {
     if (!OPENAI_API_KEY) {
       return NextResponse.json({ error: "OpenAI API key not configured" }, { status: 500 });

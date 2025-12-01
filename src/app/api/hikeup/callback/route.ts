@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { setHikeupToken } from "@/libs/hikeup";
+import { rateLimit, rateLimitedResponse } from "@/libs/rate-limit";
 import https from "https";
 import tls from "tls";
 
@@ -45,6 +46,12 @@ function httpsPost(url: string, data: string): Promise<{ status: number; body: s
  * Exchanges authorization code for access token
  */
 export async function GET(request: NextRequest) {
+  // Rate limit: 10 OAuth attempts per 15 minutes per IP
+  const { limited, resetIn, headers } = rateLimit(request, "oauth");
+  if (limited) {
+    return rateLimitedResponse(resetIn, headers);
+  }
+
   const searchParams = request.nextUrl.searchParams;
   const code = searchParams.get('code');
   const error = searchParams.get('error');

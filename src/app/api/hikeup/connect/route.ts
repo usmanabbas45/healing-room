@@ -1,12 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/libs/auth";
+import { rateLimit, rateLimitedResponse } from "@/libs/rate-limit";
 
 /**
  * Initiates Hikeup OAuth flow
  * Redirects admin user to Hikeup to authorize the app
  */
 export async function GET(request: NextRequest) {
+  // Rate limit: 10 OAuth attempts per 15 minutes per IP
+  const { limited, resetIn, headers } = rateLimit(request, "oauth");
+  if (limited) {
+    return rateLimitedResponse(resetIn, headers);
+  }
+
   // Only allow authenticated admin users
   const session = await getServerSession(authOptions);
   
