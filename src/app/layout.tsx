@@ -72,18 +72,18 @@ export const metadata: Metadata = {
   // Category for better classification
   category: "Cannabis Dispensary",
   
-  // Favicon and icons
+  // Favicon and icons (properly sized for browsers)
   icons: {
     icon: [
-      { url: "/logo.png", sizes: "32x32", type: "image/png" },
-      { url: "/logo.png", sizes: "192x192", type: "image/png" },
+      { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon-192.png", sizes: "192x192", type: "image/png" },
     ],
-    shortcut: "/logo.png",
+    shortcut: "/favicon-32.png",
     apple: [
-      { url: "/logo.png", sizes: "180x180", type: "image/png" },
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
     ],
     other: [
-      { rel: "mask-icon", url: "/logo.png", color: "#D4842A" },
+      { rel: "mask-icon", url: "/favicon-32.png", color: "#D4842A" },
     ],
   },
   

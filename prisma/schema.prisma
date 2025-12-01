@@ -8,14 +8,15 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String?
-  name      String
-  image     String?
-  role      String   @default("user") // "user" or "staff"
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id               String   @id @default(cuid())
+  email            String   @unique
+  password         String?
+  name             String
+  image            String?
+  role             String   @default("user") // "user" or "staff"
+  hikeupCustomerId String?  // Hikeup POS customer ID for syncing
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   cart     Cart?
   wishlist Wishlist?

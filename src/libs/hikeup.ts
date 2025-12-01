@@ -1093,3 +1093,179 @@ export function transformHikeupProduct(product: any) {
     size: variants[0]?.color || 'Default',
   };
 }
+
+
+// ============ CUSTOMER MANAGEMENT ============
+
+export interface HikeupCustomer {
+  id: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone?: string;
+  company_name?: string;
+  customer_code?: string;
+  notes?: string;
+  billing_address?: any;
+  shipping_address?: any;
+  created_date?: string;
+  last_modified?: string;
+  isActive?: boolean;
+}
+
+/**
+ * POST request to Hikeup API
+ */
+async function hikeupPost<T>(endpoint: string, body: any): Promise<T> {
+  const token = await getAccessToken();
+  
+  const url = endpoint.startsWith('http') ? endpoint : `${HIKEUP_API_BASE}${endpoint}`;
+  const bodyString = JSON.stringify(body);
+  
+  console.log('🌐 Hikeup POST Request:', url);
+  
+  const response = await httpsRequest(url, 'POST', {
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json',
+  }, bodyString);
+
+  // Handle 401 Unauthorized - token is definitely invalid
+  if (response.status === 401) {
+    console.error('🔴 Hikeup API returned 401 - Token is invalid');
+    await clearHikeupToken();
+    throw new Error('Hikeup token is invalid. Please reconnect via /admin.');
+  }
+
+  if (response.status !== 200) {
+    console.error(`❌ Hikeup API Error (${response.status}):`, response.body);
+    throw new Error(`Hikeup API Error: ${response.status} - ${response.body}`);
+  }
+
+  try {
+    return JSON.parse(response.body);
+  } catch (e) {
+    console.error('❌ Failed to parse JSON:', e);
+    throw new Error('Invalid JSON response from Hikeup');
+  }
+}
+
+/**
+ * Check if a customer exists on Hikeup by email
+ * Returns the customer if found, null otherwise
+ */
+export async function getHikeupCustomerByEmail(email: string): Promise<HikeupCustomer | null> {
+  try {
+    const connected = await isHikeupConnected();
+    if (!connected) {
+      console.log('⚠️ Hikeup not connected, skipping customer lookup');
+      return null;
+    }
+
+    const params = new URLSearchParams({
+      page_size: '10',
+      Skip_count: '0',
+      Filter: email, // Filter by email
+    });
+    
+    console.log(`🔍 Searching for Hikeup customer by email: ${email}`);
+    
+    const response = await hikeupFetch<any>(`/customers/get_all?${params.toString()}`);
+    
+    let customers: HikeupCustomer[] = [];
+    if (Array.isArray(response)) {
+      customers = response;
+    } else if (response?.items) {
+      customers = response.items;
+    } else if (response?.data) {
+      customers = response.data;
+    }
+    
+    // Find exact email match (filter might return partial matches)
+    const exactMatch = customers.find(c => 
+      c.email?.toLowerCase() === email.toLowerCase()
+    );
+    
+    if (exactMatch) {
+      console.log(`✅ Found existing Hikeup customer: ${exactMatch.first_name} ${exactMatch.last_name} (ID: ${exactMatch.id})`);
+      return exactMatch;
+    }
+    
+    console.log(`📭 No Hikeup customer found with email: ${email}`);
+    return null;
+    
+  } catch (error) {
+    console.error('❌ Error checking Hikeup customer:', error);
+    // Don't throw - we don't want customer lookup failures to block signup
+    return null;
+  }
+}
+
+/**
+ * Create a new customer on Hikeup
+ * Returns the created customer or null on failure
+ */
+export async function createHikeupCustomer(
+  email: string, 
+  firstName: string, 
+  lastName?: string
+): Promise<HikeupCustomer | null> {
+  try {
+    const connected = await isHikeupConnected();
+    if (!connected) {
+      console.log('⚠️ Hikeup not connected, skipping customer creation');
+      return null;
+    }
+
+    console.log(`👤 Creating Hikeup customer: ${firstName} ${lastName || ''} (${email})`);
+    
+    const customerData: any = {
+      first_name: firstName,
+      email: email,
+      isActive: true,
+    };
+    
+    if (lastName) {
+      customerData.last_name = lastName;
+    }
+    
+    const response = await hikeupPost<HikeupCustomer>('/customers/createOrUpdate', customerData);
+    
+    console.log(`✅ Created Hikeup customer: ID ${response.id}`);
+    return response;
+    
+  } catch (error) {
+    console.error('❌ Error creating Hikeup customer:', error);
+    // Don't throw - we don't want Hikeup failures to block signup
+    return null;
+  }
+}
+
+/**
+ * Ensure customer exists on Hikeup (check first, create if needed)
+ * Returns: { exists: boolean, customer: HikeupCustomer | null, created: boolean }
+ */
+export async function ensureHikeupCustomer(
+  email: string, 
+  name: string
+): Promise<{ exists: boolean; customer: HikeupCustomer | null; created: boolean }> {
+  // Check if customer already exists
+  const existingCustomer = await getHikeupCustomerByEmail(email);
+  
+  if (existingCustomer) {
+    return { exists: true, customer: existingCustomer, created: false };
+  }
+  
+  // Parse name into first/last
+  const nameParts = name.trim().split(/\s+/);
+  const firstName = nameParts[0] || 'Customer';
+  const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : undefined;
+  
+  // Create new customer
+  const newCustomer = await createHikeupCustomer(email, firstName, lastName);
+  
+  return { 
+    exists: !!newCustomer, 
+    customer: newCustomer, 
+    created: !!newCustomer 
+  };
+}
