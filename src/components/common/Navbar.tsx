@@ -4,7 +4,6 @@ import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
 import { Session } from "next-auth";
-import { LinksDesktop } from "./LinksDesktop";
 import { UserMenu } from "./UserMenu";
 import SearchDialog from "./SearchDialog";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
@@ -31,10 +30,6 @@ export const Navbar = ({ session, totalItemsCart, totalWishlists }: Navbar) => {
     document.body.style.overflow = "auto";
     setIsHeaderOpen(!isHeaderOpen);
   };
-
-  const linksData = [
-    { path: "/shop", name: "SHOP ALL" },
-  ];
 
   const mobileAuthLinks = () => {
     if (session?.user) {
@@ -83,29 +78,59 @@ export const Navbar = ({ session, totalItemsCart, totalWishlists }: Navbar) => {
 
   return (
     <header className="pointer-events-auto w-full px-3.5 gap-4 xs:px-6 sm:px-12 py-4 flex items-center justify-between bg-white border-b border-solid border-border-primary shadow-sm">
-      {/* Mobile menu button */}
-      <button
-        onClick={() => {
-          toggleHeader();
-          document.body.style.overflow = "hidden";
-        }}
-        className="flex px-4 py-2 lg:hidden text-text-primary hover:text-primary transition-colors"
-      >
-        <svg
-          width="24"
-          height="24"
-          viewBox="0 0 15 15"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
+      {/* Left side - Logo and Navigation */}
+      <div className="flex items-center gap-2 md:gap-6">
+        {/* Mobile menu button */}
+        <button
+          onClick={() => {
+            toggleHeader();
+            document.body.style.overflow = "hidden";
+          }}
+          className="flex p-2 lg:hidden text-text-primary hover:text-primary transition-colors"
         >
-          <path
-            d="M1.5 3C1.22386 3 1 3.22386 1 3.5C1 3.77614 1.22386 4 1.5 4H13.5C13.7761 4 14 3.77614 14 3.5C14 3.22386 13.7761 3 13.5 3H1.5ZM1 7.5C1 7.22386 1.22386 7 1.5 7H13.5C13.7761 7 14 7.22386 14 7.5C14 7.77614 13.7761 8 13.5 8H1.5C1.22386 8 1 7.77614 1 7.5ZM1 11.5C1 11.2239 1.22386 11 1.5 11H13.5C13.7761 11 14 11.2239 14 11.5C14 11.7761 13.7761 12 13.5 12H1.5C1.22386 12 1 11.7761 1 11.5Z"
-            fill="currentColor"
-            fillRule="evenodd"
-            clipRule="evenodd"
-          ></path>
-        </svg>
-      </button>
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 15 15"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M1.5 3C1.22386 3 1 3.22386 1 3.5C1 3.77614 1.22386 4 1.5 4H13.5C13.7761 4 14 3.77614 14 3.5C14 3.22386 13.7761 3 13.5 3H1.5ZM1 7.5C1 7.22386 1.22386 7 1.5 7H13.5C13.7761 7 14 7.22386 14 7.5C14 7.77614 13.7761 8 13.5 8H1.5C1.22386 8 1 7.77614 1 7.5ZM1 11.5C1 11.2239 1.22386 11 1.5 11H13.5C13.7761 11 14 11.2239 14 11.5C14 11.7761 13.7761 12 13.5 12H1.5C1.22386 12 1 11.7761 1 11.5Z"
+              fill="currentColor"
+              fillRule="evenodd"
+              clipRule="evenodd"
+            ></path>
+          </svg>
+        </button>
+
+        {/* Logo */}
+        <Link href="/" className="flex items-center">
+          <Image
+            src="/logo.png"
+            alt="Healing Room"
+            width={50}
+            height={50}
+            className="h-10 md:h-12 w-auto"
+          />
+        </Link>
+
+        {/* Desktop Navigation Links */}
+        <nav className="hidden lg:flex items-center gap-1">
+          <Link
+            href="/"
+            className="text-sm px-4 py-2 font-medium text-text-primary hover:text-primary transition-colors"
+          >
+            Home
+          </Link>
+          <Link
+            href="/shop"
+            className="text-sm px-4 py-2 font-medium text-text-primary hover:text-primary transition-colors"
+          >
+            Store
+          </Link>
+        </nav>
+      </div>
 
       {/* Mobile menu overlay */}
       <div
@@ -142,22 +167,29 @@ export const Navbar = ({ session, totalItemsCart, totalWishlists }: Navbar) => {
 
         <div className="flex items-center justify-center h-full max-h-[90%]">
           <ul className="flex flex-col justify-between text-sm gap-9">
-            {linksData.map((link, index) => (
-              <li key={index} className="flex items-center justify-center">
-                <Link 
-                  href={link.path} 
-                  onClick={toggleHeader}
-                  className="text-text-primary hover:text-primary transition-colors font-medium"
-                >
-                  {link.name}
-                </Link>
-              </li>
-            ))}
+            <li className="flex items-center justify-center">
+              <Link 
+                href="/" 
+                onClick={toggleHeader}
+                className="text-text-primary hover:text-primary transition-colors font-medium"
+              >
+                HOME
+              </Link>
+            </li>
+            <li className="flex items-center justify-center">
+              <Link 
+                href="/shop" 
+                onClick={toggleHeader}
+                className="text-text-primary hover:text-primary transition-colors font-medium"
+              >
+                STORE
+              </Link>
+            </li>
             {session?.user ? (
               <>
-                <li className="flex items-center">
+                <li className="flex items-center justify-center">
                   <Link
-                    className="flex items-center w-full h-full px-4 py-2 text-text-primary hover:text-primary transition-colors"
+                    className="flex items-center px-4 py-2 text-text-primary hover:text-primary transition-colors"
                     onClick={toggleHeader}
                     href="/orders"
                   >
@@ -190,24 +222,6 @@ export const Navbar = ({ session, totalItemsCart, totalWishlists }: Navbar) => {
           </ul>
         </div>
       </div>
-
-      {/* Desktop navigation */}
-      <ul className="justify-between hidden gap-2 text-sm lg:flex">
-        <li className="flex items-center">
-          <LinksDesktop />
-        </li>
-      </ul>
-
-      {/* Logo - Center */}
-      <Link href="/" className="flex items-center">
-        <Image
-          src="/logo.png"
-          alt="Healing Room"
-          width={50}
-          height={50}
-          className="h-12 w-auto"
-        />
-      </Link>
 
       {/* Search, Cart, Wishlist & User */}
       <ul className="flex gap-1">
