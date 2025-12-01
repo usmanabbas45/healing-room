@@ -1320,13 +1320,21 @@ export async function updateHikeupCustomer(
     
     // Add billing/shipping address if provided
     if (data.address && (data.address.line1 || data.address.city)) {
+      const fullName = data.lastName 
+        ? `${data.firstName} ${data.lastName}` 
+        : data.firstName;
+      
       const addressData = {
-        street: data.address.line1 || '',
-        street2: data.address.line2 || '',
+        id: 0, // 0 to create new address, will be auto-assigned
+        address1: data.address.line1 || '',
+        address2: data.address.line2 || '',
         city: data.address.city || '',
         state: data.address.province || '',
-        post_code: data.address.postalCode || '',
-        country: data.address.country || 'Canada',
+        postcode: data.address.postalCode || '',
+        country_code: 'CA',
+        country_name: data.address.country || 'Canada',
+        receiverName: fullName,
+        receiverPhone: data.phone || '',
       };
       
       customerData.billing_address = addressData;
