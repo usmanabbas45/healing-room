@@ -175,7 +175,7 @@ export default function Home() {
         
         {/* Scroll indicator - hidden on mobile */}
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 hidden md:flex flex-col items-center gap-2 animate-bounce">
-          <span className="text-xs text-text-muted tracking-widest uppercase">Scroll</span>
+          <span className="text-xs text-text-muted tracking-widest uppercase">Explore</span>
           <svg className="w-5 h-5 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
           </svg>
