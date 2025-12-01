@@ -40,6 +40,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     'hybrid-indica-dominant',
     'hybrid-sativa-dominant',
     'accessories',
+    'edibles',
+    'vape',
   ];
 
   const categoryPages: MetadataRoute.Sitemap = categories.map((category) => ({

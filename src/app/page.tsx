@@ -256,7 +256,7 @@ export default function Home() {
             </p>
           </div>
           
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 md:gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
             {/* Indica */}
             <Link href="/shop?type=indica" className="group flex flex-col h-full rounded-2xl overflow-hidden border border-border-primary/20 hover:shadow-xl hover:border-primary/30 transition-all duration-300">
               <div className="relative aspect-square overflow-hidden flex-shrink-0">
@@ -350,6 +350,38 @@ export default function Home() {
               <div className="p-4 text-center bg-gradient-to-br from-[#f0ece6] via-[#e8e4dd] to-[#ddd8cf] flex-1 flex flex-col justify-center">
                 <h3 className="font-semibold text-text-primary text-sm md:text-base">Accessories</h3>
                 <p className="text-xs text-text-muted mt-1">Gear & Tools</p>
+              </div>
+            </Link>
+            
+            {/* Edibles */}
+            <Link href="/shop?type=edibles" className="group flex flex-col h-full rounded-2xl overflow-hidden border border-border-primary/20 hover:shadow-xl hover:border-primary/30 transition-all duration-300">
+              <div className="relative aspect-square overflow-hidden flex-shrink-0">
+                <Image
+                  src="/categories/edibles.png"
+                  alt="Edibles"
+                  fill
+                  className="object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+              </div>
+              <div className="p-4 text-center bg-gradient-to-br from-[#f0ece6] via-[#e8e4dd] to-[#ddd8cf] flex-1 flex flex-col justify-center">
+                <h3 className="font-semibold text-text-primary text-sm md:text-base">Edibles</h3>
+                <p className="text-xs text-text-muted mt-1">Tasty Treats</p>
+              </div>
+            </Link>
+            
+            {/* Vape */}
+            <Link href="/shop?type=vape" className="group flex flex-col h-full rounded-2xl overflow-hidden border border-border-primary/20 hover:shadow-xl hover:border-primary/30 transition-all duration-300">
+              <div className="relative aspect-square overflow-hidden flex-shrink-0">
+                <Image
+                  src="/categories/vape.png"
+                  alt="Vape"
+                  fill
+                  className="object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+              </div>
+              <div className="p-4 text-center bg-gradient-to-br from-[#f0ece6] via-[#e8e4dd] to-[#ddd8cf] flex-1 flex flex-col justify-center">
+                <h3 className="font-semibold text-text-primary text-sm md:text-base">Vape</h3>
+                <p className="text-xs text-text-muted mt-1">Smooth & Easy</p>
               </div>
             </Link>
           </div>
