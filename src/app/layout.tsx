@@ -97,7 +97,8 @@ export const metadata: Metadata = {
     description: "Your premium cannabis and tobacco dispensary in Six Nations, Ontario. Shop flower, pre-rolls, edibles, vapes, and more. Open daily 9AM-10PM.",
     images: [
       {
-        url: `${BASE_URL}/og-image.png`,
+        url: "https://healingroomsixnations.ca/og-image.png",
+        secureUrl: "https://healingroomsixnations.ca/og-image.png",
         width: 1200,
         height: 630,
         alt: "Healing Room Six Nations - Premium Cannabis & Tobacco Dispensary",
@@ -114,10 +115,14 @@ export const metadata: Metadata = {
     creator: "@healingroomsn",
     title: "Healing Room Six Nations | Premium Cannabis & Tobacco",
     description: "Premium cannabis dispensary in Six Nations, ON. Lab-tested flower, edibles, vapes & more. Open 9AM-10PM daily.",
-    images: {
-      url: `${BASE_URL}/og-image.png`,
-      alt: "Healing Room Six Nations - Premium Cannabis Dispensary",
-    },
+    images: [
+      {
+        url: "https://healingroomsixnations.ca/og-image.png",
+        alt: "Healing Room Six Nations - Premium Cannabis Dispensary",
+        width: 1200,
+        height: 630,
+      },
+    ],
   },
   
   // Robots and indexing
