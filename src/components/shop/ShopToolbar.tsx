@@ -53,8 +53,7 @@ export function ShopToolbar({
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    // Clear category filter when searching to search across all products
-    updateParams({ q: searchValue.trim(), type: 'all', clearPage: true });
+    updateParams({ q: searchValue.trim(), clearPage: true });
   };
 
   const handleTypeChange = (typeId: string) => {

@@ -223,13 +223,27 @@ export const searchProducts = async (query: string, typeFilter: string = 'all') 
       const hikeupProducts = await searchHikeupProducts(query);
       let transformedProducts = hikeupProducts.map(transformHikeupProduct);
       
+      console.log(`🔍 Search results for "${query}": ${transformedProducts.length} products`);
+      
       // Apply type filter if specified
       if (typeFilter !== 'all') {
+        // Log some sample categories to debug
+        if (transformedProducts.length > 0) {
+          console.log(`🔍 Sample categories from search results:`, 
+            transformedProducts.slice(0, 5).map(p => p.category)
+          );
+        }
+        
+        const filterType = typeFilter.toLowerCase().replace(/-/g, ' ');
+        console.log(`🔍 Filtering search results by type: "${filterType}"`);
+        
         transformedProducts = transformedProducts.filter(p => {
           const productType = (p.category || '').toLowerCase();
-          const filterType = typeFilter.toLowerCase().replace(/-/g, ' ');
-          return productType.includes(filterType) || filterType.includes(productType);
+          const matches = productType.includes(filterType) || filterType.includes(productType);
+          return matches;
         });
+        
+        console.log(`🔍 After type filter: ${transformedProducts.length} products`);
       }
       
       return transformedProducts;
