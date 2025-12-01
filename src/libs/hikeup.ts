@@ -1269,3 +1269,77 @@ export async function ensureHikeupCustomer(
     created: !!newCustomer 
   };
 }
+
+/**
+ * Update an existing customer on Hikeup
+ * Uses the hikeupCustomerId to identify the customer
+ */
+export interface UpdateCustomerData {
+  firstName: string;
+  lastName?: string;
+  phone?: string;
+  address?: {
+    line1?: string;
+    line2?: string;
+    city?: string;
+    province?: string;
+    postalCode?: string;
+    country?: string;
+  };
+}
+
+export async function updateHikeupCustomer(
+  hikeupCustomerId: string,
+  email: string,
+  data: UpdateCustomerData
+): Promise<HikeupCustomer | null> {
+  try {
+    const connected = await isHikeupConnected();
+    if (!connected) {
+      console.log('⚠️ Hikeup not connected, skipping customer update');
+      return null;
+    }
+
+    console.log(`📝 Updating Hikeup customer ID: ${hikeupCustomerId}`);
+    
+    // Build customer data for Hikeup API
+    const customerData: any = {
+      id: parseInt(hikeupCustomerId, 10),
+      first_name: data.firstName,
+      email: email,
+      isActive: true,
+    };
+    
+    if (data.lastName) {
+      customerData.last_name = data.lastName;
+    }
+    
+    if (data.phone) {
+      customerData.phone = data.phone;
+    }
+    
+    // Add billing/shipping address if provided
+    if (data.address && (data.address.line1 || data.address.city)) {
+      const addressData = {
+        street: data.address.line1 || '',
+        street2: data.address.line2 || '',
+        city: data.address.city || '',
+        state: data.address.province || '',
+        post_code: data.address.postalCode || '',
+        country: data.address.country || 'Canada',
+      };
+      
+      customerData.billing_address = addressData;
+      customerData.shipping_address = addressData;
+    }
+    
+    const response = await hikeupPost<HikeupCustomer>('/customers/createOrUpdate', customerData);
+    
+    console.log(`✅ Updated Hikeup customer: ID ${response.id}`);
+    return response;
+    
+  } catch (error) {
+    console.error('❌ Error updating Hikeup customer:', error);
+    throw error; // Re-throw so the transaction can be rolled back
+  }
+}
