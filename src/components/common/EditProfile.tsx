@@ -12,7 +12,7 @@ import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Loader } from "./Loader";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, Eye, EyeOff } from "lucide-react";
 
 interface ProfileData {
   name: string;
@@ -29,8 +29,16 @@ interface ProfileData {
 export default function EditProfile() {
   const { data: session, update } = useSession();
   const [isLoading, setIsLoading] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
   const [showAddress, setShowAddress] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showPasswordFields, setShowPasswordFields] = useState(false);
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
   const [profile, setProfile] = useState<ProfileData>({
     name: "",
     email: "",
@@ -102,7 +110,7 @@ export default function EditProfile() {
         await update({ name: profile.name });
         
         if (data.hikeupSynced) {
-          toast.success("Profile updated & synced to POS!");
+          toast.success("Profile updated");
         } else if (data.hikeupError) {
           toast.success("Profile saved!", {
             description: "Note: POS sync failed, but your changes are saved locally.",
@@ -122,6 +130,55 @@ export default function EditProfile() {
 
   const handleChange = (field: keyof ProfileData, value: string) => {
     setProfile((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleChangePassword = async () => {
+    const { currentPassword, newPassword, confirmPassword } = passwordData;
+
+    if (!currentPassword) {
+      toast.error("Please enter your current password");
+      return;
+    }
+    if (!newPassword) {
+      toast.error("Please enter a new password");
+      return;
+    }
+    if (newPassword.length < 6) {
+      toast.error("New password must be at least 6 characters");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error("New passwords do not match");
+      return;
+    }
+    if (currentPassword === newPassword) {
+      toast.error("New password must be different from current password");
+      return;
+    }
+
+    setIsChangingPassword(true);
+
+    try {
+      const response = await fetch("/api/auth/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success("Password changed successfully!");
+        setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" });
+        setShowPasswordFields(false);
+      } else {
+        toast.error(data.message || "Failed to change password");
+      }
+    } catch (error) {
+      toast.error("An error occurred. Please try again.");
+    } finally {
+      setIsChangingPassword(false);
+    }
   };
 
   if (isFetching) {
@@ -280,6 +337,92 @@ export default function EditProfile() {
                     className="bg-gray-50 text-text-muted"
                   />
                 </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Change Password Section - Collapsible */}
+        <div className="border-t pt-4">
+          <button
+            type="button"
+            onClick={() => setShowPasswordFields(!showPasswordFields)}
+            className="flex items-center justify-between w-full text-left text-sm font-medium text-text-primary hover:text-primary transition-colors"
+          >
+            <span>Change Password</span>
+            {showPasswordFields ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+          </button>
+          <p className="text-xs text-text-muted mt-1">
+            Update your account password
+          </p>
+
+          {showPasswordFields && (
+            <div className="space-y-3 mt-4">
+              <div className="space-y-2">
+                <Label htmlFor="currentPassword">Current Password</Label>
+                <div className="relative">
+                  <Input
+                    id="currentPassword"
+                    type={showPassword ? "text" : "password"}
+                    value={passwordData.currentPassword}
+                    onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+                    placeholder="Enter current password"
+                    disabled={isChangingPassword}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="newPassword">New Password</Label>
+                <div className="relative">
+                  <Input
+                    id="newPassword"
+                    type={showPassword ? "text" : "password"}
+                    value={passwordData.newPassword}
+                    onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                    placeholder="Enter new password (min 6 characters)"
+                    disabled={isChangingPassword}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                <Input
+                  id="confirmPassword"
+                  type={showPassword ? "text" : "password"}
+                  value={passwordData.confirmPassword}
+                  onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                  placeholder="Confirm new password"
+                  disabled={isChangingPassword}
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="flex items-center gap-2 text-xs text-text-muted hover:text-text-primary transition-colors"
+                >
+                  {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                  {showPassword ? "Hide" : "Show"} passwords
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleChangePassword}
+                  disabled={isChangingPassword}
+                  className="bg-text-primary text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {isChangingPassword ? (
+                    <>
+                      <Loader height={14} width={14} />
+                      Changing...
+                    </>
+                  ) : (
+                    "Change Password"
+                  )}
+                </button>
               </div>
             </div>
           )}

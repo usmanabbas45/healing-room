@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,19 +14,13 @@ import Link from "next/link";
 import { Session } from "next-auth";
 import dynamic from "next/dynamic";
 import SignOutButton from "../account/SignOutButton";
-import { Lock, User, Package } from "lucide-react";
+import { User, Package } from "lucide-react";
 
 const EditProfile = dynamic(() => import("./EditProfile"), {
   ssr: false,
 });
 
-const ChangePassword = dynamic(() => import("../account/ChangePassword"), {
-  ssr: false,
-});
-
 export function UserMenu({ fastSession }: { fastSession: Session }) {
-  const [dialogContent, setDialogContent] = useState<"profile" | "password">("profile");
-
   return (
     <Dialog>
       <DropdownMenu>
@@ -57,18 +50,10 @@ export function UserMenu({ fastSession }: { fastSession: Session }) {
           <DropdownMenuSeparator />
           <DropdownMenuGroup>
             <DropdownMenuItem className="text-text-primary cursor-pointer">
-              <DialogTrigger asChild onClick={() => setDialogContent("profile")}>
+              <DialogTrigger asChild>
                 <button className="flex items-center w-full h-full">
                   <User size={16} className="mr-2" />
                   <span>Edit profile</span>
-                </button>
-              </DialogTrigger>
-            </DropdownMenuItem>
-            <DropdownMenuItem className="text-text-primary cursor-pointer">
-              <DialogTrigger asChild onClick={() => setDialogContent("password")}>
-                <button className="flex items-center w-full h-full">
-                  <Lock size={16} className="mr-2" />
-                  <span>Change password</span>
                 </button>
               </DialogTrigger>
             </DropdownMenuItem>
@@ -85,7 +70,7 @@ export function UserMenu({ fastSession }: { fastSession: Session }) {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      {dialogContent === "profile" ? <EditProfile /> : <ChangePassword />}
+      <EditProfile />
     </Dialog>
   );
 }
