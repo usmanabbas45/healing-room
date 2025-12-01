@@ -140,6 +140,15 @@ const Signin = () => {
             )}
           </button>
         </div>
+        <div className="w-full flex justify-end">
+          <Link
+            href="/forgot-password"
+            className="text-sm text-primary hover:underline"
+          >
+            Forgot password?
+          </Link>
+        </div>
+
         <button
           className="w-full bg-primary text-white border border-solid border-primary py-2.5 mt-2.5 rounded-md transition-all hover:bg-primary-dark text-sm font-medium"
           type="submit"
