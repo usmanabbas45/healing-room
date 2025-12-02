@@ -1,0 +1,338 @@
+import { STORE_LOCATION, ETRANSFER_CONFIG, DELIVERY_TIME_SLOTS } from "./delivery-config";
+
+interface OrderItem {
+  productName: string;
+  size: string;
+  quantity: number;
+  price: number;
+}
+
+interface OrderEmailData {
+  orderNumber: string;
+  customerName: string;
+  customerEmail: string;
+  fulfillmentMethod: "pickup" | "delivery" | "shipping";
+  deliveryAddress?: {
+    line1: string;
+    line2?: string;
+    city: string;
+    province: string;
+    postalCode: string;
+  };
+  deliveryDate?: Date;
+  deliveryTimeSlot?: string;
+  items: OrderItem[];
+  subtotal: number;
+  deliveryFee: number;
+  totalPrice: number;
+}
+
+export function generateOrderConfirmationEmail(data: OrderEmailData): { subject: string; html: string; text: string } {
+  const timeSlotLabel = data.deliveryTimeSlot 
+    ? DELIVERY_TIME_SLOTS.find(s => s.id === data.deliveryTimeSlot)?.label 
+    : null;
+
+  const subject = `Order Confirmed - ${data.orderNumber} | Healing Room`;
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Order Confirmation</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #2D2D2D; margin: 0; padding: 0; background-color: #f5f5f5;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 40px 20px;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+          
+          <!-- Header -->
+          <tr>
+            <td style="background: linear-gradient(135deg, #D4842A 0%, #c47a25 100%); padding: 30px; text-align: center;">
+              <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 600;">Order Confirmed!</h1>
+              <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0; font-size: 14px;">Thank you for your order, ${data.customerName}!</p>
+            </td>
+          </tr>
+          
+          <!-- Order Number -->
+          <tr>
+            <td style="padding: 30px 30px 20px;">
+              <table width="100%" style="background-color: #f8f5f0; border-radius: 8px; padding: 20px;">
+                <tr>
+                  <td>
+                    <p style="margin: 0; color: #666; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">Order Number</p>
+                    <p style="margin: 5px 0 0; font-size: 24px; font-weight: 700; color: #D4842A; font-family: monospace;">${data.orderNumber}</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          
+          <!-- Payment Instructions -->
+          <tr>
+            <td style="padding: 0 30px 20px;">
+              <table width="100%" style="background-color: #fff8e6; border: 1px solid #ffeeba; border-radius: 8px; padding: 20px;">
+                <tr>
+                  <td>
+                    <h3 style="margin: 0 0 15px; color: #856404; font-size: 16px;">📧 Complete Your Payment</h3>
+                    <p style="margin: 0 0 15px; color: #856404; font-size: 14px;">
+                      Please send an Interac e-Transfer to complete your order:
+                    </p>
+                    <table style="background: #ffffff; border-radius: 6px; padding: 15px; width: 100%;">
+                      <tr>
+                        <td style="padding: 8px 0; border-bottom: 1px solid #eee;">
+                          <span style="color: #666; font-size: 13px;">Send to:</span><br>
+                          <strong style="color: #2D2D2D;">${ETRANSFER_CONFIG.recipientEmail}</strong>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 8px 0; border-bottom: 1px solid #eee;">
+                          <span style="color: #666; font-size: 13px;">Amount:</span><br>
+                          <strong style="color: #D4842A; font-size: 20px;">$${data.totalPrice.toFixed(2)}</strong>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 8px 0;">
+                          <span style="color: #666; font-size: 13px;">Message:</span><br>
+                          <strong style="color: #2D2D2D; font-family: monospace;">${data.orderNumber}</strong>
+                        </td>
+                      </tr>
+                    </table>
+                    <p style="margin: 15px 0 0; color: #856404; font-size: 12px;">
+                      ⏰ Please complete payment within 24 hours to avoid order cancellation.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          
+          <!-- Fulfillment Info -->
+          <tr>
+            <td style="padding: 0 30px 20px;">
+              <h3 style="margin: 0 0 15px; color: #2D2D2D; font-size: 16px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
+                ${data.fulfillmentMethod === 'pickup' ? '🏪 Store Pickup' : data.fulfillmentMethod === 'delivery' ? '🚗 Local Delivery' : '📦 Shipping'}
+              </h3>
+              ${data.fulfillmentMethod === 'pickup' ? `
+                <p style="margin: 0; color: #666; font-size: 14px;">
+                  <strong>Pickup Location:</strong><br>
+                  ${STORE_LOCATION.address}<br>
+                  <span style="color: #D4842A;">Ready for pickup after payment confirmation</span>
+                </p>
+              ` : data.deliveryAddress ? `
+                <p style="margin: 0; color: #666; font-size: 14px;">
+                  <strong>Delivery Address:</strong><br>
+                  ${data.deliveryAddress.line1}<br>
+                  ${data.deliveryAddress.line2 ? data.deliveryAddress.line2 + '<br>' : ''}
+                  ${data.deliveryAddress.city}, ${data.deliveryAddress.province} ${data.deliveryAddress.postalCode}
+                </p>
+                ${data.deliveryDate ? `
+                  <p style="margin: 10px 0 0; color: #D4842A; font-size: 14px;">
+                    <strong>Scheduled:</strong> ${new Date(data.deliveryDate).toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric' })}${timeSlotLabel ? `, ${timeSlotLabel}` : ''}
+                  </p>
+                ` : ''}
+              ` : ''}
+            </td>
+          </tr>
+          
+          <!-- Order Items -->
+          <tr>
+            <td style="padding: 0 30px 20px;">
+              <h3 style="margin: 0 0 15px; color: #2D2D2D; font-size: 16px; border-bottom: 1px solid #eee; padding-bottom: 10px;">Order Items</h3>
+              <table width="100%" cellpadding="0" cellspacing="0">
+                ${data.items.map(item => `
+                  <tr>
+                    <td style="padding: 10px 0; border-bottom: 1px solid #f0f0f0;">
+                      <span style="color: #2D2D2D; font-size: 14px;">${item.productName}</span><br>
+                      <span style="color: #888; font-size: 12px;">${item.size} × ${item.quantity}</span>
+                    </td>
+                    <td style="padding: 10px 0; border-bottom: 1px solid #f0f0f0; text-align: right; color: #2D2D2D; font-size: 14px;">
+                      $${(item.price * item.quantity).toFixed(2)}
+                    </td>
+                  </tr>
+                `).join('')}
+              </table>
+            </td>
+          </tr>
+          
+          <!-- Order Total -->
+          <tr>
+            <td style="padding: 0 30px 30px;">
+              <table width="100%" style="background-color: #f8f5f0; border-radius: 8px; padding: 15px;">
+                <tr>
+                  <td style="padding: 5px 0;">
+                    <span style="color: #666; font-size: 14px;">Subtotal</span>
+                  </td>
+                  <td style="padding: 5px 0; text-align: right;">
+                    <span style="color: #2D2D2D; font-size: 14px;">$${data.subtotal.toFixed(2)}</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 5px 0;">
+                    <span style="color: #666; font-size: 14px;">${data.fulfillmentMethod === 'pickup' ? 'Pickup' : data.fulfillmentMethod === 'delivery' ? 'Delivery' : 'Shipping'}</span>
+                  </td>
+                  <td style="padding: 5px 0; text-align: right;">
+                    <span style="${data.deliveryFee === 0 ? 'color: #28a745;' : 'color: #2D2D2D;'} font-size: 14px;">
+                      ${data.deliveryFee === 0 ? 'FREE' : '$' + data.deliveryFee.toFixed(2)}
+                    </span>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 15px 0 5px; border-top: 1px solid #ddd;">
+                    <span style="color: #2D2D2D; font-size: 16px; font-weight: 600;">Total</span>
+                  </td>
+                  <td style="padding: 15px 0 5px; border-top: 1px solid #ddd; text-align: right;">
+                    <span style="color: #D4842A; font-size: 20px; font-weight: 700;">$${data.totalPrice.toFixed(2)}</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #2D2D2D; padding: 25px 30px; text-align: center;">
+              <p style="margin: 0 0 10px; color: #ffffff; font-size: 14px;">Questions? Contact us at</p>
+              <p style="margin: 0; color: #D4842A; font-size: 14px;">
+                ${STORE_LOCATION.phone} | ${ETRANSFER_CONFIG.recipientEmail}
+              </p>
+              <p style="margin: 15px 0 0; color: #888; font-size: 12px;">
+                Healing Room Six Nations<br>
+                ${STORE_LOCATION.address}
+              </p>
+            </td>
+          </tr>
+          
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `.trim();
+
+  const text = `
+Order Confirmed - ${data.orderNumber}
+
+Thank you for your order, ${data.customerName}!
+
+ORDER NUMBER: ${data.orderNumber}
+
+COMPLETE YOUR PAYMENT
+Send an Interac e-Transfer:
+- Send to: ${ETRANSFER_CONFIG.recipientEmail}
+- Amount: $${data.totalPrice.toFixed(2)}
+- Message: ${data.orderNumber}
+
+Please complete payment within 24 hours.
+
+${data.fulfillmentMethod === 'pickup' 
+  ? `PICKUP LOCATION\n${STORE_LOCATION.address}\nReady after payment confirmation.`
+  : data.deliveryAddress 
+    ? `DELIVERY ADDRESS\n${data.deliveryAddress.line1}\n${data.deliveryAddress.line2 ? data.deliveryAddress.line2 + '\n' : ''}${data.deliveryAddress.city}, ${data.deliveryAddress.province} ${data.deliveryAddress.postalCode}${data.deliveryDate ? '\nScheduled: ' + new Date(data.deliveryDate).toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric' }) + (timeSlotLabel ? ', ' + timeSlotLabel : '') : ''}`
+    : ''
+}
+
+ORDER ITEMS
+${data.items.map(item => `- ${item.productName} (${item.size}) × ${item.quantity} - $${(item.price * item.quantity).toFixed(2)}`).join('\n')}
+
+Subtotal: $${data.subtotal.toFixed(2)}
+${data.fulfillmentMethod === 'pickup' ? 'Pickup' : data.fulfillmentMethod === 'delivery' ? 'Delivery' : 'Shipping'}: ${data.deliveryFee === 0 ? 'FREE' : '$' + data.deliveryFee.toFixed(2)}
+Total: $${data.totalPrice.toFixed(2)}
+
+Questions? Contact us at ${STORE_LOCATION.phone} or ${ETRANSFER_CONFIG.recipientEmail}
+
+Healing Room Six Nations
+${STORE_LOCATION.address}
+  `.trim();
+
+  return { subject, html, text };
+}
+
+export function generateOrderStatusUpdateEmail(
+  orderNumber: string,
+  customerName: string,
+  newStatus: string,
+  message?: string
+): { subject: string; html: string; text: string } {
+  const statusLabels: Record<string, string> = {
+    paid: "Payment Received",
+    processing: "Being Prepared",
+    ready_for_pickup: "Ready for Pickup",
+    out_for_delivery: "Out for Delivery",
+    shipped: "Shipped",
+    delivered: "Delivered",
+    completed: "Completed",
+    cancelled: "Cancelled",
+  };
+
+  const statusEmoji: Record<string, string> = {
+    paid: "✅",
+    processing: "🔧",
+    ready_for_pickup: "📦",
+    out_for_delivery: "🚗",
+    shipped: "📬",
+    delivered: "🎉",
+    completed: "✨",
+    cancelled: "❌",
+  };
+
+  const subject = `${statusEmoji[newStatus] || '📋'} Order ${orderNumber} - ${statusLabels[newStatus] || newStatus}`;
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Order Update</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; line-height: 1.6; color: #2D2D2D; margin: 0; padding: 20px; background-color: #f5f5f5;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 500px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+    <tr>
+      <td style="background: linear-gradient(135deg, #D4842A 0%, #c47a25 100%); padding: 25px; text-align: center;">
+        <h1 style="color: #ffffff; margin: 0; font-size: 20px;">${statusEmoji[newStatus] || '📋'} Order Update</h1>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding: 30px;">
+        <p style="margin: 0 0 20px;">Hi ${customerName},</p>
+        <p style="margin: 0 0 20px;">Your order <strong style="font-family: monospace; color: #D4842A;">${orderNumber}</strong> is now:</p>
+        <p style="margin: 0 0 20px; font-size: 24px; font-weight: 700; color: #D4842A; text-align: center;">
+          ${statusLabels[newStatus] || newStatus}
+        </p>
+        ${message ? `<p style="margin: 20px 0; padding: 15px; background: #f8f5f0; border-radius: 8px; font-size: 14px;">${message}</p>` : ''}
+        <p style="margin: 20px 0 0; text-align: center;">
+          <a href="https://healingroomsixnations.ca/orders" style="display: inline-block; background: #D4842A; color: #ffffff; padding: 12px 30px; border-radius: 6px; text-decoration: none; font-weight: 600;">View Order</a>
+        </p>
+      </td>
+    </tr>
+    <tr>
+      <td style="background: #2D2D2D; padding: 20px; text-align: center;">
+        <p style="margin: 0; color: #888; font-size: 12px;">Healing Room Six Nations | ${STORE_LOCATION.phone}</p>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `.trim();
+
+  const text = `
+Order Update - ${orderNumber}
+
+Hi ${customerName},
+
+Your order ${orderNumber} is now: ${statusLabels[newStatus] || newStatus}
+
+${message || ''}
+
+View your order at: https://healingroomsixnations.ca/orders
+
+Healing Room Six Nations
+${STORE_LOCATION.phone}
+  `.trim();
+
+  return { subject, html, text };
+}
+

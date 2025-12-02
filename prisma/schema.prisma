@@ -112,32 +112,55 @@ model Order {
   userId               String
   user                 User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   items                OrderItem[]
-  totalPrice           Float
-  status               String      @default("pending") // pending, confirmed, processing, ready, completed, cancelled
   
-  // Customer info (optional - for pickup orders)
-  customerName         String?
-  customerEmail        String?
+  // Pricing
+  subtotal             Float       @default(0)
+  deliveryFee          Float       @default(0)
+  totalPrice           Float
+  
+  // Order status
+  status               String      @default("awaiting_payment") 
+  // awaiting_payment, paid, processing, ready_for_pickup, out_for_delivery, shipped, delivered, completed, cancelled, refunded
+  
+  // Payment
+  paymentMethod        String      @default("etransfer") // etransfer, cash_on_delivery
+  paymentStatus        String      @default("pending") // pending, received, confirmed, failed
+  paymentReference     String?     // e-transfer confirmation or reference number
+  paidAt               DateTime?
+  
+  // Fulfillment method
+  fulfillmentMethod    String      @default("pickup") // pickup, delivery, shipping
+  
+  // Customer info
+  customerName         String
+  customerEmail        String
   customerPhone        String?
   
-  // Shipping/pickup info (optional)
-  shippingName         String?
-  shippingEmail        String?
-  shippingPhone        String?
-  shippingAddressLine1 String?
-  shippingAddressLine2 String?
-  shippingCity         String?
-  shippingState        String?
-  shippingPostalCode   String?
-  shippingCountry      String?
+  // Delivery/Shipping address (for delivery and shipping orders)
+  deliveryAddressLine1 String?
+  deliveryAddressLine2 String?
+  deliveryCity         String?
+  deliveryProvince     String?
+  deliveryPostalCode   String?
+  deliveryCountry      String?     @default("Canada")
   
-  // Order notes
+  // Delivery specifics
+  deliveryDate         DateTime?   // Scheduled delivery date
+  deliveryTimeSlot     String?     // e.g., "12pm-3pm", "3pm-6pm", "6pm-9pm"
+  deliveryInstructions String?     // Special delivery instructions
+  deliveryDistance     Float?      // Distance in km from store
+  
+  // Order notes (internal)
   notes                String?
+  staffNotes           String?     // Notes from staff
 
   purchaseDate         DateTime    @default(now())
-  expectedDeliveryDate DateTime?
   createdAt            DateTime    @default(now())
   updatedAt            DateTime    @updatedAt
+  
+  @@index([status])
+  @@index([paymentStatus])
+  @@index([userId])
 }
 
 // OrderItem stores product info directly (no foreign key to Product)

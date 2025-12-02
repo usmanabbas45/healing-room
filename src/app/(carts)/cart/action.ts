@@ -400,10 +400,15 @@ export async function placeOrder(
       data: {
         orderNumber: generateOrderNumber(),
         userId,
+        subtotal: total,
+        deliveryFee: 0,
         totalPrice: total,
-        status: "pending", // Awaiting payment
-        customerName: user?.name || null,
-        customerEmail: user?.email || null,
+        status: "awaiting_payment",
+        paymentMethod: "etransfer",
+        paymentStatus: "pending",
+        fulfillmentMethod: "pickup",
+        customerName: user?.name || "Customer",
+        customerEmail: user?.email || "unknown@email.com",
         items: {
           create: cart.items.map((item) => ({
             productId: item.productId,

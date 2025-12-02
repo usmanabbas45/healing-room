@@ -61,6 +61,9 @@ export const RATE_LIMITS = {
   // OAuth routes - prevent abuse
   oauth: { maxRequests: 10, windowMs: 15 * 60 * 1000 }, // 10 attempts per 15 minutes
   
+  // Checkout - prevent abuse
+  checkout: { maxRequests: 10, windowMs: 60 * 1000 }, // 10 checkouts per minute
+  
   // General API - default limit
   default: { maxRequests: 100, windowMs: 60 * 1000 }, // 100 requests per minute
 } as const;

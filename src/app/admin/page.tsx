@@ -4,6 +4,7 @@ import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { isHikeupConnected, getTokenStatus } from "@/libs/hikeup";
 import { getAllProducts } from "@/app/actions";
+import prisma from "@/libs/prisma";
 
 export default async function AdminPage({
   searchParams,
@@ -34,6 +35,17 @@ export default async function AdminPage({
   } catch (e) {
     console.error('Error fetching products:', e);
   }
+  
+  // Get order counts
+  const orderCounts = await prisma.order.groupBy({
+    by: ["status"],
+    _count: { id: true },
+  });
+  
+  const pendingPayments = orderCounts.find(c => c.status === "awaiting_payment")?._count.id || 0;
+  const processingOrders = orderCounts.find(c => c.status === "processing")?._count.id || 0;
+  const paidOrders = orderCounts.find(c => c.status === "paid")?._count.id || 0;
+  const totalOrders = orderCounts.reduce((sum, c) => sum + c._count.id, 0);
 
   return (
     <section className="pt-12 max-w-4xl mx-auto">
@@ -131,8 +143,44 @@ export default async function AdminPage({
         )}
       </div>
 
+      {/* Orders Card - Prominent */}
+      {(pendingPayments > 0 || paidOrders > 0) && (
+        <div className="bg-gradient-to-r from-primary/10 to-orange-100 border border-primary/30 rounded-lg p-6 mb-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-text-primary mb-1">
+                📦 Orders Require Attention
+              </h2>
+              <p className="text-text-muted">
+                {pendingPayments > 0 && <span className="text-yellow-600 font-medium">{pendingPayments} awaiting payment</span>}
+                {pendingPayments > 0 && paidOrders > 0 && " • "}
+                {paidOrders > 0 && <span className="text-blue-600 font-medium">{paidOrders} paid & ready to process</span>}
+              </p>
+            </div>
+            <Link
+              href="/admin/orders?status=awaiting_payment"
+              className="bg-primary text-white px-6 py-2.5 rounded-lg font-medium hover:bg-primary-dark transition-colors"
+            >
+              Manage Orders →
+            </Link>
+          </div>
+        </div>
+      )}
+      
       {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+        <Link href="/admin/orders" className="bg-white border border-border-primary rounded-lg p-6 hover:border-primary transition-colors">
+          <h3 className="text-sm text-text-light mb-1">Total Orders</h3>
+          <p className="text-2xl font-bold text-text-primary">{totalOrders}</p>
+        </Link>
+        <Link href="/admin/orders?status=awaiting_payment" className="bg-white border border-border-primary rounded-lg p-6 hover:border-primary transition-colors">
+          <h3 className="text-sm text-text-light mb-1">Awaiting Payment</h3>
+          <p className="text-2xl font-bold text-yellow-600">{pendingPayments}</p>
+        </Link>
+        <Link href="/admin/orders?status=processing" className="bg-white border border-border-primary rounded-lg p-6 hover:border-primary transition-colors">
+          <h3 className="text-sm text-text-light mb-1">Processing</h3>
+          <p className="text-2xl font-bold text-purple-600">{processingOrders}</p>
+        </Link>
         <div className="bg-white border border-border-primary rounded-lg p-6">
           <h3 className="text-sm text-text-light mb-1">Products</h3>
           <p className="text-2xl font-bold text-text-primary">{productCount}</p>
@@ -141,24 +189,9 @@ export default async function AdminPage({
           </p>
         </div>
         <div className="bg-white border border-border-primary rounded-lg p-6">
-          <h3 className="text-sm text-text-light mb-1">Data Source</h3>
-          <p className="text-lg font-bold text-text-primary">
-            {connected ? '🔴 Live POS' : '💾 Database'}
-          </p>
-        </div>
-        <div className="bg-white border border-border-primary rounded-lg p-6">
-          <h3 className="text-sm text-text-light mb-1">Token Expires</h3>
-          <p className={`text-lg font-bold ${tokenStatus.isExpired ? 'text-red-500' : 'text-green-600'}`}>
-            {tokenStatus.connected ? tokenStatus.expiresIn : 'N/A'}
-          </p>
-          <p className="text-xs text-text-muted mt-1">
-            {tokenStatus.hasRefreshToken ? '✅ Auto-refresh enabled' : '⚠️ Manual reconnect needed'}
-          </p>
-        </div>
-        <div className="bg-white border border-border-primary rounded-lg p-6">
-          <h3 className="text-sm text-text-light mb-1">Refresh Token</h3>
-          <p className={`text-lg font-bold ${tokenStatus.hasRefreshToken ? 'text-green-600' : 'text-yellow-500'}`}>
-            {tokenStatus.hasRefreshToken ? '✅ Yes' : '❌ No'}
+          <h3 className="text-sm text-text-light mb-1">POS Status</h3>
+          <p className={`text-lg font-bold ${connected ? 'text-green-600' : 'text-yellow-500'}`}>
+            {connected ? '🟢 Connected' : '🟡 Disconnected'}
           </p>
         </div>
       </div>
