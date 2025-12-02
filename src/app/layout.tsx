@@ -209,6 +209,8 @@ export default async function RootLayout({
       <head>
         <link rel="icon" href="/logo.png" type="image/png" />
         <link rel="apple-touch-icon" href="/logo.png" />
+        {/* PWA meta tags */}
+        <meta name="mobile-web-app-capable" content="yes" />
         {/* Preconnect to external domains for performance */}
         <link rel="preconnect" href="https://hikeupdatastorage.s3-us-west-2.amazonaws.com" />
         <link rel="dns-prefetch" href="https://hikeupdatastorage.s3-us-west-2.amazonaws.com" />

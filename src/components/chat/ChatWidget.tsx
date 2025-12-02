@@ -105,30 +105,39 @@ export default function ChatWidget() {
 
   return (
     <>
-      {/* Chat Button */}
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className={`fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full shadow-lg transition-all duration-300 flex items-center justify-center ${
-          isOpen 
-            ? "bg-text-primary rotate-0" 
-            : "bg-primary hover:bg-primary-dark hover:scale-105"
-        }`}
-        aria-label={isOpen ? "Close chat" : "Open chat"}
-      >
-        {isOpen ? (
-          <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        ) : (
-          <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-          </svg>
+      {/* Chat Button with Label */}
+      <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3">
+        {/* Label - hidden when chat is open */}
+        {!isOpen && (
+          <div className="bg-white px-4 py-2 rounded-full shadow-lg border border-border-primary animate-pulse">
+            <span className="text-sm font-medium text-text-primary whitespace-nowrap">Ask an Expert</span>
+          </div>
         )}
-      </button>
+        
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className={`w-14 h-14 rounded-full shadow-lg transition-all duration-300 flex items-center justify-center ${
+            isOpen 
+              ? "bg-text-primary rotate-0" 
+              : "bg-primary hover:bg-primary-dark hover:scale-105"
+          }`}
+          aria-label={isOpen ? "Close chat" : "Open chat"}
+        >
+          {isOpen ? (
+            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          ) : (
+            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+          )}
+        </button>
+      </div>
 
       {/* Notification dot */}
       {!isOpen && !hasGreeted && (
-        <span className="fixed bottom-16 right-6 z-50 w-3 h-3 bg-green-500 rounded-full animate-pulse" />
+        <span className="fixed bottom-[76px] right-7 z-50 w-3 h-3 bg-green-500 rounded-full animate-pulse" />
       )}
 
       {/* Chat Window */}

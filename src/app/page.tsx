@@ -132,6 +132,7 @@ export default function Home() {
                       src="/hero-background.png"
                       alt=""
                       fill
+                      sizes="(max-width: 768px) 280px, 340px"
                       className="object-cover"
                       priority
                     />
@@ -259,6 +260,7 @@ export default function Home() {
                   src="/categories/indica.png"
                   alt="Indica"
                   fill
+                  sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 150px"
                   className="object-cover group-hover:scale-105 transition-transform duration-500"
                 />
               </div>
@@ -275,6 +277,7 @@ export default function Home() {
                   src="/categories/sativa.png"
                   alt="Sativa"
                   fill
+                  sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 150px"
                   className="object-cover group-hover:scale-105 transition-transform duration-500"
                 />
               </div>
@@ -291,6 +294,7 @@ export default function Home() {
                   src="/categories/hybrid.png"
                   alt="Hybrid"
                   fill
+                  sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 150px"
                   className="object-cover group-hover:scale-105 transition-transform duration-500"
                 />
               </div>
@@ -307,6 +311,7 @@ export default function Home() {
                   src="/categories/cannabis.png"
                   alt="Cannabis"
                   fill
+                  sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 150px"
                   className="object-cover group-hover:scale-105 transition-transform duration-500"
                 />
               </div>
@@ -323,6 +328,7 @@ export default function Home() {
                   src="/categories/nicotine.png"
                   alt="Nicotine"
                   fill
+                  sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 150px"
                   className="object-cover group-hover:scale-105 transition-transform duration-500"
                 />
               </div>
@@ -339,6 +345,7 @@ export default function Home() {
                   src="/categories/accessories.png"
                   alt="Accessories"
                   fill
+                  sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 150px"
                   className="object-cover group-hover:scale-105 transition-transform duration-500"
                 />
               </div>
@@ -355,6 +362,7 @@ export default function Home() {
                   src="/categories/edibles.png"
                   alt="Edibles"
                   fill
+                  sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 150px"
                   className="object-cover group-hover:scale-105 transition-transform duration-500"
                 />
               </div>
@@ -371,6 +379,7 @@ export default function Home() {
                   src="/categories/vape.png"
                   alt="Vape"
                   fill
+                  sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 150px"
                   className="object-cover group-hover:scale-105 transition-transform duration-500"
                 />
               </div>
@@ -411,6 +420,7 @@ export default function Home() {
                     src="/store-interior.webp"
                     alt="Healing Room Store Interior"
                     fill
+                    sizes="(max-width: 768px) 100vw, 50vw"
                     className="object-cover"
                   />
                 </div>
