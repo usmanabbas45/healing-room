@@ -38,18 +38,18 @@ export async function GET(request: NextRequest, context: any) {
 // Wrap POST handler with rate limiting for login attempts
 export async function POST(request: NextRequest, context: { params: { nextauth: string[] } }) {
   try {
-    // Only rate limit the credentials callback (login attempts)
-    const isLoginAttempt = context.params.nextauth?.includes("callback") && 
-                           context.params.nextauth?.includes("credentials");
-    
-    if (isLoginAttempt) {
-      // Rate limit: 5 login attempts per 15 minutes per IP
-      const { limited, resetIn, headers } = rateLimit(request, "login");
-      if (limited) {
-        return rateLimitedResponse(resetIn, headers);
-      }
+  // Only rate limit the credentials callback (login attempts)
+  const isLoginAttempt = context.params.nextauth?.includes("callback") && 
+                         context.params.nextauth?.includes("credentials");
+  
+  if (isLoginAttempt) {
+    // Rate limit: 5 login attempts per 15 minutes per IP
+    const { limited, resetIn, headers } = rateLimit(request, "login");
+    if (limited) {
+      return rateLimitedResponse(resetIn, headers);
     }
-    
+  }
+  
     return await handler(request, context);
   } catch (error: any) {
     // If JWT decryption fails during POST, clear the cookie

@@ -36,7 +36,7 @@ export function generateOrderConfirmationEmail(data: OrderEmailData): { subject:
 
   // Use the correct e-transfer email from LOCAL_DELIVERY_CONFIG
   const etransferEmail = LOCAL_DELIVERY_CONFIG.payment.email;
-  
+
   const subject = `Order Confirmed - ${data.orderNumber} | Healing Room`;
 
   const html = `

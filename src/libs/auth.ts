@@ -91,15 +91,15 @@ export const authOptions: NextAuthOptions = {
           return null as any;
         }
         
-        return {
-          ...session,
-          user: {
-            ...session.user,
-            _id: token.id,
-            name: token.name,
-            role: token.role as string,
-          },
-        };
+      return {
+        ...session,
+        user: {
+          ...session.user,
+          _id: token.id,
+          name: token.name,
+          role: token.role as string,
+        },
+      };
       } catch (error) {
         // Silently fail and clear session
         console.log("Session validation error, clearing session");

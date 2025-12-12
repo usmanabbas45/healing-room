@@ -581,30 +581,30 @@ export default function CheckoutPage() {
                     />
                   ) : (
                     <>
-                      <h2 className="text-lg lg:text-xl font-semibold text-text-primary">
+                  <h2 className="text-lg lg:text-xl font-semibold text-text-primary">
                         Shipping Speed
-                      </h2>
-                      
-                      <div className="space-y-3">
-                        <label
-                          className={`flex items-start p-4 border-2 rounded-xl cursor-pointer transition-colors border-primary bg-primary/5`}
-                        >
-                          <input type="radio" checked readOnly className="mt-1 text-primary" />
-                          <div className="ml-3 flex-1">
-                            <div className="flex items-center justify-between">
-                              <span className="font-medium text-text-primary">Standard Shipping</span>
-                              <span className="font-medium text-text-primary">
-                                {subtotal >= SHIPPING_FEES.freeShippingMinimum ? (
-                                  <span className="text-green-600">FREE</span>
-                                ) : (
-                                  `$${SHIPPING_FEES.standard.toFixed(2)}`
-                                )}
-                              </span>
-                            </div>
-                            <p className="text-sm text-text-muted mt-1">2-5 business days</p>
+                  </h2>
+                  
+                    <div className="space-y-3">
+                      <label
+                        className={`flex items-start p-4 border-2 rounded-xl cursor-pointer transition-colors border-primary bg-primary/5`}
+                      >
+                        <input type="radio" checked readOnly className="mt-1 text-primary" />
+                        <div className="ml-3 flex-1">
+                          <div className="flex items-center justify-between">
+                            <span className="font-medium text-text-primary">Standard Shipping</span>
+                            <span className="font-medium text-text-primary">
+                              {subtotal >= SHIPPING_FEES.freeShippingMinimum ? (
+                                <span className="text-green-600">FREE</span>
+                              ) : (
+                                `$${SHIPPING_FEES.standard.toFixed(2)}`
+                              )}
+                            </span>
                           </div>
-                        </label>
-                      </div>
+                          <p className="text-sm text-text-muted mt-1">2-5 business days</p>
+                        </div>
+                      </label>
+                    </div>
                     </>
                   )}
                 </div>
@@ -642,8 +642,8 @@ export default function CheckoutPage() {
                         </p>
                         {fulfillmentMethod === "delivery" && deliveryDate && (
                           <>
-                            <p className="text-sm text-primary mt-2">
-                              {new Date(deliveryDate).toLocaleDateString("en-CA", { weekday: "long", month: "long", day: "numeric" })}
+                          <p className="text-sm text-primary mt-2">
+                            {new Date(deliveryDate).toLocaleDateString("en-CA", { weekday: "long", month: "long", day: "numeric" })}
                             </p>
                             {deliveryDistance && (
                               <p className="text-xs text-text-muted mt-1">
@@ -729,8 +729,8 @@ export default function CheckoutPage() {
                             </p>
                             <p className="text-xs text-yellow-800 mt-0.5">
                               We use this to confirm your order
-                            </p>
-                          </div>
+                          </p>
+                        </div>
                         </div>
                         {fulfillmentMethod === "delivery" && (
                           <p className="text-xs text-red-700 font-medium mt-3">

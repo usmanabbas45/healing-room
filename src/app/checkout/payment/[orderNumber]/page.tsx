@@ -214,16 +214,16 @@ export default async function PaymentInstructionsPage({ params }: Props) {
             {/* Delivery Schedule & Distance */}
             {order.fulfillmentMethod === "delivery" && order.deliveryDate && (
               <>
-                <div className="flex justify-between">
-                  <span className="text-text-muted">Scheduled</span>
-                  <span className="font-medium text-text-primary">
-                    {new Date(order.deliveryDate).toLocaleDateString("en-CA", { 
-                      weekday: "long", 
-                      month: "long", 
-                      day: "numeric" 
-                    })}
-                  </span>
-                </div>
+              <div className="flex justify-between">
+                <span className="text-text-muted">Scheduled</span>
+                <span className="font-medium text-text-primary">
+                  {new Date(order.deliveryDate).toLocaleDateString("en-CA", { 
+                    weekday: "long", 
+                    month: "long", 
+                    day: "numeric" 
+                  })}
+                </span>
+              </div>
                 {order.deliveryDistance && (
                   <div className="flex justify-between">
                     <span className="text-text-muted">Distance from store</span>

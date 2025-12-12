@@ -200,3 +200,21 @@ model PasswordReset {
   @@index([email])
   @@index([code])
 }
+
+// Hikeup integration event logs
+model HikeupLog {
+  id               String   @id @default(cuid())
+  eventType        String   // "token_deleted", "token_refreshed", "token_created", "refresh_failed", "api_error"
+  message          String
+  endpoint         String?  // API endpoint that triggered the event
+  statusCode       Int?     // HTTP status code from Hikeup
+  tokenAge         Int?     // Token age in days
+  tokenExpired     Boolean?
+  hadRefreshToken  Boolean?
+  errorResponse    String?  // Raw error response from Hikeup (max 1000 chars)
+  metadata         String?  // JSON string for additional context
+  createdAt        DateTime @default(now())
+  
+  @@index([eventType])
+  @@index([createdAt])
+}

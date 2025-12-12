@@ -275,7 +275,7 @@ export default async function AdminOrdersPage({
                     )}
                   </div>
                 )}
-                
+
                 {/* Staff Notes */}
                 {order.staffNotes && (
                   <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">

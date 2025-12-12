@@ -320,9 +320,27 @@ async function refreshAccessToken(): Promise<string | null> {
       console.log('✅ Token refreshed successfully!');
       console.log(`📅 New token expires in: ${Math.round(expiresIn / 3600)} hours`);
       
+      // Log successful refresh
+      await logHikeupEvent('token_refreshed', 'Hikeup token successfully refreshed', {
+        statusCode: response.status,
+        hadRefreshToken: !!newRefreshToken,
+        metadata: {
+          expiresIn: expiresIn,
+          expiresInHours: Math.round(expiresIn / 3600),
+        },
+      });
+      
       return data.access_token;
     } else {
       console.error('❌ Token refresh failed:', response.status, response.body);
+      
+      // Log refresh failure
+      await logHikeupEvent('refresh_failed', 'Failed to refresh Hikeup token', {
+        statusCode: response.status,
+        hadRefreshToken: !!token.refreshToken,
+        errorResponse: response.body,
+      });
+      
       return null;
     }
   } catch (error) {
@@ -377,6 +395,15 @@ export async function setHikeupToken(accessToken: string, refreshToken: string, 
   console.log('✅ Hikeup token stored successfully');
   console.log(`📅 Token expires: ${expiryDate.toISOString()}`);
   console.log(`🔑 Has refresh token: ${refreshToken ? 'YES' : 'NO'}`);
+  
+  // Log token creation
+  await logHikeupEvent('token_created', 'Hikeup token successfully created and stored', {
+    hadRefreshToken: !!refreshToken,
+    metadata: {
+      expiresIn: expiresIn,
+      expiresAt: expiryDate.toISOString(),
+    },
+  });
 }
 
 /**
@@ -385,6 +412,43 @@ export async function setHikeupToken(accessToken: string, refreshToken: string, 
 export async function getStoredToken() {
   if (cache.token) return cache.token;
   return await loadTokenFromDb();
+}
+
+/**
+ * Log Hikeup events to database for auditing
+ */
+async function logHikeupEvent(
+  eventType: string,
+  message: string,
+  options?: {
+    endpoint?: string;
+    statusCode?: number;
+    tokenAge?: number;
+    tokenExpired?: boolean;
+    hadRefreshToken?: boolean;
+    errorResponse?: string;
+    metadata?: Record<string, any>;
+  }
+) {
+  try {
+    await prisma.hikeupLog.create({
+      data: {
+        eventType,
+        message,
+        endpoint: options?.endpoint,
+        statusCode: options?.statusCode,
+        tokenAge: options?.tokenAge,
+        tokenExpired: options?.tokenExpired,
+        hadRefreshToken: options?.hadRefreshToken,
+        errorResponse: options?.errorResponse?.substring(0, 1000), // Limit to 1000 chars
+        metadata: options?.metadata ? JSON.stringify(options.metadata) : null,
+      },
+    });
+    console.log(`📝 Logged Hikeup event: ${eventType}`);
+  } catch (error) {
+    console.error('❌ Failed to log Hikeup event to database:', error);
+    // Don't throw - logging failures shouldn't break the flow
+  }
 }
 
 /**
@@ -585,8 +649,30 @@ async function hikeupFetch<T>(endpoint: string): Promise<T> {
 
   // Handle 401 Unauthorized - token is definitely invalid
   if (response.status === 401) {
+    const token = cache.token;
+    const tokenAge = token ? Math.round((Date.now() - (token.expiresAt - 7*24*60*60*1000)) / 86400000) : null;
+    const tokenExpired = token ? Date.now() > token.expiresAt : null;
+    const hadRefreshToken = !!token?.refreshToken;
+    
     console.error('🔴 Hikeup API returned 401 - Token is invalid');
-    console.error('🔴 Please reconnect Hikeup via /admin');
+    console.error('🔴 TOKEN DELETION REASON:');
+    console.error(`   - Endpoint: ${url}`);
+    console.error(`   - Token age: ${tokenAge ?? 'unknown'} days old`);
+    console.error(`   - Token expired: ${tokenExpired ?? 'unknown'}`);
+    console.error(`   - Has refresh token: ${hadRefreshToken ? 'YES' : 'NO'}`);
+    console.error(`   - Response: ${response.body.substring(0, 200)}`);
+    console.error('🔴 DELETING TOKEN FROM DATABASE - Please reconnect Hikeup via /admin');
+    
+    // Log to database before clearing token
+    await logHikeupEvent('token_deleted', 'Hikeup token deleted due to 401 Unauthorized from API', {
+      endpoint: url,
+      statusCode: 401,
+      tokenAge: tokenAge ?? undefined,
+      tokenExpired: tokenExpired ?? undefined,
+      hadRefreshToken,
+      errorResponse: response.body,
+    });
+    
     // NOW we clear the token since we know for sure it's invalid
     await clearHikeupToken();
     throw new Error('Hikeup token is invalid. Please reconnect via /admin.');
@@ -594,6 +680,14 @@ async function hikeupFetch<T>(endpoint: string): Promise<T> {
 
   if (response.status !== 200) {
     console.error(`❌ Hikeup API Error (${response.status}):`, response.body);
+    
+    // Log non-401 API errors for monitoring
+    await logHikeupEvent('api_error', `Hikeup API error: ${response.status}`, {
+      endpoint: url,
+      statusCode: response.status,
+      errorResponse: response.body,
+    });
+    
     throw new Error(`Hikeup API Error: ${response.status}`);
   }
 
@@ -1161,13 +1255,44 @@ async function hikeupPost<T>(endpoint: string, body: any): Promise<T> {
 
   // Handle 401 Unauthorized - token is definitely invalid
   if (response.status === 401) {
-    console.error('🔴 Hikeup API returned 401 - Token is invalid');
+    const token = cache.token;
+    const tokenAge = token ? Math.round((Date.now() - (token.expiresAt - 7*24*60*60*1000)) / 86400000) : null;
+    const tokenExpired = token ? Date.now() > token.expiresAt : null;
+    const hadRefreshToken = !!token?.refreshToken;
+    
+    console.error('🔴 Hikeup POST API returned 401 - Token is invalid');
+    console.error('🔴 TOKEN DELETION REASON (POST):');
+    console.error(`   - Endpoint: ${url}`);
+    console.error(`   - Token age: ${tokenAge ?? 'unknown'} days old`);
+    console.error(`   - Token expired: ${tokenExpired ?? 'unknown'}`);
+    console.error(`   - Has refresh token: ${hadRefreshToken ? 'YES' : 'NO'}`);
+    console.error(`   - Response: ${response.body.substring(0, 200)}`);
+    console.error('🔴 DELETING TOKEN FROM DATABASE - Please reconnect Hikeup via /admin');
+    
+    // Log to database before clearing token
+    await logHikeupEvent('token_deleted', 'Hikeup token deleted due to 401 Unauthorized from POST API', {
+      endpoint: url,
+      statusCode: 401,
+      tokenAge: tokenAge ?? undefined,
+      tokenExpired: tokenExpired ?? undefined,
+      hadRefreshToken,
+      errorResponse: response.body,
+    });
+    
     await clearHikeupToken();
     throw new Error('Hikeup token is invalid. Please reconnect via /admin.');
   }
 
   if (response.status !== 200) {
     console.error(`❌ Hikeup API Error (${response.status}):`, response.body);
+    
+    // Log non-401 POST API errors for monitoring
+    await logHikeupEvent('api_error', `Hikeup POST API error: ${response.status}`, {
+      endpoint: url,
+      statusCode: response.status,
+      errorResponse: response.body,
+    });
+    
     throw new Error(`Hikeup API Error: ${response.status} - ${response.body}`);
   }
 
