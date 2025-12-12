@@ -1,13 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { geocodeAddress, isValidDeliveryAddress, getEstimatedDeliveryTime } from "@/libs/geocoding";
-import {
-  calculateDistance,
-  calculateLocalDeliveryFee,
-  isWithinDeliveryArea,
-  STORE_LOCATION,
-} from "@/libs/local-delivery-config";
+import { getEstimatedDeliveryTime } from "@/libs/geocoding";
+import { LOCAL_DELIVERY_CONFIG } from "@/libs/local-delivery-config";
+import { STORE_LOCATION } from "@/libs/delivery-config";
 import { Loader } from "@/components/common/Loader";
 
 interface DeliveryAreaValidatorProps {
@@ -20,12 +16,14 @@ interface DeliveryAreaValidatorProps {
   };
   onDistanceCalculated: (distance: number, fee: number, coords: { lat: number; lng: number }) => void;
   onValidationError: (error: string) => void;
+  triggerValidation?: boolean; // Trigger validation when this changes to true
 }
 
 export default function DeliveryAreaValidator({
   address,
   onDistanceCalculated,
   onValidationError,
+  triggerValidation = false,
 }: DeliveryAreaValidatorProps) {
   const [isValidating, setIsValidating] = useState(false);
   const [distance, setDistance] = useState<number | null>(null);
@@ -35,17 +33,11 @@ export default function DeliveryAreaValidator({
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   
   useEffect(() => {
-    // Only validate if we have all required address fields
-    if (address.line1 && address.city && address.province && address.postalCode) {
+    // Only validate when explicitly triggered (e.g., user clicks "Continue")
+    if (triggerValidation && address.line1 && address.city && address.province && address.postalCode) {
       validateDeliveryArea();
-    } else {
-      // Reset state if address is incomplete
-      setDistance(null);
-      setDeliveryFee(null);
-      setError(null);
-      setCoords(null);
     }
-  }, [address.line1, address.city, address.province, address.postalCode]);
+  }, [triggerValidation]);
   
   const validateDeliveryArea = async () => {
     setIsValidating(true);
@@ -54,44 +46,41 @@ export default function DeliveryAreaValidator({
     setDeliveryFee(null);
     
     try {
-      // Geocode the address using Nominatim (OpenStreetMap)
-      const result = await geocodeAddress(address);
+      // Call server-side geocoding API to avoid CORS and rate limiting issues
+      const response = await fetch('/api/geocode', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(address),
+      });
       
-      // Check if geocoding failed
-      if ("error" in result) {
-        setError(result.message);
-        onValidationError(result.message);
+      const result = await response.json();
+      
+      if (!response.ok || !result.success) {
+        setError(result.error || "Unable to verify address");
+        onValidationError(result.error || "Geocoding failed");
         return;
       }
       
-      // Validate address is in deliverable area (Canada, Ontario)
-      const validation = isValidDeliveryAddress(result);
-      if (!validation.valid) {
-        setError(validation.message || "Address not in delivery area");
-        onValidationError(validation.message || "Address not in delivery area");
-        return;
-      }
+      const { coords, distance: dist, isValid, fee } = result;
       
-      // Calculate distance from store
-      const dist = calculateDistance(result.lat, result.lng);
       setDistance(dist);
-      setCoords({ lat: result.lat, lng: result.lng });
+      setCoords(coords);
       
       // Check if within delivery radius
-      if (!isWithinDeliveryArea(dist)) {
+      if (!isValid) {
         setError(
-          `Address is ${dist.toFixed(1)} km away (maximum ${50} km). Please contact us at ${STORE_LOCATION.phone} for a custom delivery quote.`
+          `Address is ${dist.toFixed(1)} km away (maximum ${LOCAL_DELIVERY_CONFIG.maxDeliveryDistance} km). Please contact us at ${STORE_LOCATION.phone} for a custom delivery quote.`
         );
         onValidationError("Outside delivery area");
         return;
       }
       
-      // Calculate delivery fee
-      const fee = calculateLocalDeliveryFee(dist);
       setDeliveryFee(fee);
       
       // Notify parent component
-      onDistanceCalculated(dist, fee, { lat: result.lat, lng: result.lng });
+      onDistanceCalculated(dist, fee, coords);
       
     } catch (err) {
       console.error("Validation error:", err);

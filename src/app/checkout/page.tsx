@@ -80,6 +80,7 @@ export default function CheckoutPage() {
   const [calculatedDeliveryFee, setCalculatedDeliveryFee] = useState<number | null>(null);
   const [deliveryCoords, setDeliveryCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [addressValidationError, setAddressValidationError] = useState<string | null>(null);
+  const [triggerAddressValidation, setTriggerAddressValidation] = useState(false);
   
   // Calculated values
   const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
@@ -168,16 +169,14 @@ export default function CheckoutPage() {
         if (fulfillmentMethod === "pickup") {
           return contactInfo.name && contactInfo.email;
         }
-        // For delivery, also require valid distance calculation
+        // For delivery, require address fields (validation happens on Continue click)
         if (fulfillmentMethod === "delivery") {
           return (
             contactInfo.name &&
             contactInfo.email &&
             deliveryAddress.line1 &&
             deliveryAddress.city &&
-            deliveryAddress.postalCode &&
-            calculatedDeliveryFee !== null &&
-            !addressValidationError
+            deliveryAddress.postalCode
           );
         }
         // For shipping
@@ -202,6 +201,28 @@ export default function CheckoutPage() {
   };
   
   const nextStep = () => {
+    // Special handling for delivery address validation
+    if (currentStep === "address" && fulfillmentMethod === "delivery") {
+      // Check if address fields are filled
+      if (!deliveryAddress.line1 || !deliveryAddress.city || !deliveryAddress.postalCode) {
+        toast.error("Please fill in all required address fields");
+        return;
+      }
+      
+      // If not yet validated, trigger validation
+      if (calculatedDeliveryFee === null && !addressValidationError) {
+        toast.info("Validating delivery address...");
+        setTriggerAddressValidation(true);
+        return; // Wait for validation to complete
+      }
+      
+      // If validation failed, show error
+      if (addressValidationError) {
+        toast.error("Please fix the delivery address issues");
+        return;
+      }
+    }
+    
     if (!canProceed()) {
       toast.error("Please fill in all required fields");
       return;
@@ -549,17 +570,27 @@ export default function CheckoutPage() {
                       {fulfillmentMethod === "delivery" && (
                         <DeliveryAreaValidator
                           address={deliveryAddress}
+                          triggerValidation={triggerAddressValidation}
                           onDistanceCalculated={(distance, fee, coords) => {
                             setDeliveryDistance(distance);
                             setCalculatedDeliveryFee(fee);
                             setDeliveryCoords(coords);
                             setAddressValidationError(null);
+                            setTriggerAddressValidation(false); // Reset trigger
+                            // Auto-proceed to next step after successful validation
+                            setTimeout(() => {
+                              const idx = currentStepIndex;
+                              if (idx < steps.length - 1) {
+                                setCurrentStep(steps[idx + 1].id);
+                              }
+                            }, 500);
                           }}
                           onValidationError={(error) => {
                             setDeliveryDistance(null);
                             setCalculatedDeliveryFee(null);
                             setDeliveryCoords(null);
                             setAddressValidationError(error);
+                            setTriggerAddressValidation(false); // Reset trigger
                           }}
                         />
                       )}
