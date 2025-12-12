@@ -93,12 +93,12 @@ export default async function AdminPage({
         
         <div className="flex flex-wrap gap-4">
           {!connected ? (
-            <Link
+            <a
               href="/api/hikeup/connect"
               className="bg-primary text-white px-4 py-2 rounded-md hover:bg-primary-dark transition-colors"
             >
               Connect Hikeup POS
-            </Link>
+            </a>
           ) : (
             <>
               <Link
@@ -107,12 +107,12 @@ export default async function AdminPage({
               >
                 View Store →
               </Link>
-              <Link
+              <a
                 href="/api/hikeup/connect"
                 className="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300 transition-colors"
               >
                 🔄 Reconnect (Get Fresh Token)
-              </Link>
+              </a>
             </>
           )}
           <Link

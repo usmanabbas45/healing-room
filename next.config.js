@@ -3,10 +3,6 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'res.cloudinary.com',
-      },
-      {
-        protocol: 'https',
         hostname: 'hikeupdatastorage.s3-us-west-2.amazonaws.com',
       },
       {
