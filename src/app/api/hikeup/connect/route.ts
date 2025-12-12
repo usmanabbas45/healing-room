@@ -32,13 +32,12 @@ export async function GET(request: NextRequest) {
   }
 
   // Build Hikeup OAuth authorization URL
-  // Request 'all' scope and 'offline_access' for refresh tokens
+  // Per Hikeup docs: scope=all is the only option currently
   const hikeupAuthUrl = new URL('https://api.hikeup.com/oauth/authorize');
+  hikeupAuthUrl.searchParams.set('response_type', 'code');
   hikeupAuthUrl.searchParams.set('client_id', clientId);
   hikeupAuthUrl.searchParams.set('redirect_uri', redirectUri);
-  hikeupAuthUrl.searchParams.set('response_type', 'code');
-  hikeupAuthUrl.searchParams.set('scope', 'all offline_access');
-  hikeupAuthUrl.searchParams.set('access_type', 'offline'); // Request refresh token
+  hikeupAuthUrl.searchParams.set('scope', 'all');
   
   // Add state parameter for security (prevents CSRF)
   const state = Buffer.from(JSON.stringify({ 

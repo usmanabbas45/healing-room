@@ -29,6 +29,8 @@ export async function POST(request: NextRequest) {
       deliveryDate,
       deliveryTimeSlot,
       deliveryInstructions,
+      deliveryDistance,
+      deliveryCoords,
       subtotal,
       deliveryFee,
       totalPrice,
@@ -111,6 +113,7 @@ export async function POST(request: NextRequest) {
         deliveryDate: deliveryDate ? new Date(deliveryDate) : null,
         deliveryTimeSlot: deliveryTimeSlot || null,
         deliveryInstructions: deliveryInstructions || null,
+        deliveryDistance: deliveryDistance || null,
         
         // Create order items from cart
         items: {
@@ -154,6 +157,7 @@ export async function POST(request: NextRequest) {
         } : undefined,
         deliveryDate: deliveryDate ? new Date(deliveryDate) : undefined,
         deliveryTimeSlot,
+        deliveryDistance: deliveryDistance || undefined,
         items: order.items.map(item => ({
           productName: item.productName,
           size: item.size,

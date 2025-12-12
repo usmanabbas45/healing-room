@@ -42,9 +42,26 @@ export const authOptions: NextAuthOptions = {
   },
   session: {
     strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+    updateAge: 24 * 60 * 60, // Update session every 24 hours
+  },
+  jwt: {
+    maxAge: 30 * 24 * 60 * 60, // 30 days - matches session maxAge
+  },
+  cookies: {
+    sessionToken: {
+      name: `next-auth.session-token`,
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+      },
+    },
   },
   callbacks: {
     async jwt({ token, user, session, trigger }) {
+      // Handle session updates
       if (trigger === "update" && session?.name) {
         token.name = session.name;
       }
@@ -53,6 +70,7 @@ export const authOptions: NextAuthOptions = {
         token.email = session.email;
       }
 
+      // Handle new login
       if (user) {
         const u = user as unknown as any;
         return {
@@ -61,18 +79,38 @@ export const authOptions: NextAuthOptions = {
           role: u.role,
         };
       }
+      
       return token;
     },
     async session({ session, token }) {
-      return {
-        ...session,
-        user: {
-          ...session.user,
-          _id: token.id,
-          name: token.name,
-          role: token.role as string,
-        },
-      };
+      // Gracefully handle invalid/corrupted tokens
+      try {
+        // If token is missing critical data, return null to force logout
+        if (!token?.id || !token?.email) {
+          console.log("Invalid token detected, session will be cleared");
+          return null as any;
+        }
+        
+        return {
+          ...session,
+          user: {
+            ...session.user,
+            _id: token.id,
+            name: token.name,
+            role: token.role as string,
+          },
+        };
+      } catch (error) {
+        // Silently fail and clear session
+        console.log("Session validation error, clearing session");
+        return null as any;
+      }
+    },
+  },
+  events: {
+    async signOut({ token }) {
+      // Clean up any resources when user signs out
+      console.log("User signed out:", token?.email);
     },
   },
 };

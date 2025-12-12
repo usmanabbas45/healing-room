@@ -140,28 +140,28 @@ const Signin = () => {
             )}
           </button>
         </div>
-        <div className="w-full flex justify-end">
-          <Link
-            href="/forgot-password"
-            className="text-sm text-primary hover:underline"
-          >
-            Forgot password?
-          </Link>
-        </div>
-
         <button
-          className="w-full bg-primary text-white border border-solid border-primary py-2.5 mt-2.5 rounded-md transition-all hover:bg-primary-dark text-sm font-medium"
+          className="w-full bg-primary text-white border border-solid border-primary py-2.5 mt-4 rounded-md transition-all hover:bg-primary-dark text-sm font-medium"
           type="submit"
         >
           Sign In
         </button>
 
-        <Link
-          href="/register"
-          className="text-sm transition duration-150 text-text-light ease hover:text-primary"
-        >
-          Don&apos;t have an account?
-        </Link>
+        <div className="w-full flex items-center justify-center gap-3 mt-3">
+          <Link
+            href="/forgot-password"
+            className="text-sm text-text-muted hover:text-primary transition-colors"
+          >
+            Forgot password?
+          </Link>
+          <span className="text-border-primary">|</span>
+          <Link
+            href="/register"
+            className="text-sm text-text-muted hover:text-primary transition-colors"
+          >
+            Create account
+          </Link>
+        </div>
       </form>
     </section>
   );

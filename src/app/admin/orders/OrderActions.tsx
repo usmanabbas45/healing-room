@@ -79,10 +79,10 @@ export function OrderActions({ order }: { order: Order }) {
   const handleStatusChange = async (newStatus: string) => {
     // If marking as paid, prompt for payment reference
     if (newStatus === "paid" && order.paymentStatus !== "confirmed") {
-      const ref = window.prompt("Enter e-Transfer confirmation/reference (optional):");
+      const ref = window.prompt(`Enter e-Transfer reference/confirmation number:\n\nTIP: Check if customer included order number "${order.orderNumber}" in e-transfer message (REQUIRED for order confirmation)`);
       await updateOrder(newStatus, { 
         paymentStatus: "confirmed", 
-        paymentReference: ref || undefined,
+        paymentReference: ref || `Order ${order.orderNumber}`,
         paidAt: new Date().toISOString(),
       });
     } else if (newStatus === "cancelled" || newStatus === "refunded") {

@@ -196,7 +196,7 @@ export default function EditProfile() {
       <DialogHeader>
         <DialogTitle>Edit Profile</DialogTitle>
         <DialogDescription>
-          Update your account details. Changes will sync to our POS system.
+          Update your account details.
         </DialogDescription>
       </DialogHeader>
 

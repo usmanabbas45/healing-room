@@ -6,7 +6,7 @@ export const STORE_LOCATION = {
   lat: 42.9625,
   lng: -80.1050,
   phone: "(365) 336-7919",
-  email: "info@healingroomsixnations.ca",
+  email: "healingroom7147@proton.me",
 };
 
 export const STORE_HOURS = {
@@ -16,7 +16,7 @@ export const STORE_HOURS = {
 };
 
 // Delivery cutoff time for same-day delivery
-export const SAME_DAY_CUTOFF_HOUR = 19; // 7 PM - orders after this get next-day delivery
+export const SAME_DAY_CUTOFF_HOUR = 13; // 1 PM - orders after this get next-day delivery
 
 // Delivery radius in kilometers
 export const DELIVERY_RADIUS_KM = 25; // Placeholder - update as needed
@@ -49,7 +49,7 @@ export const DELIVERY_TIME_SLOTS = [
 
 // E-transfer payment details
 export const ETRANSFER_CONFIG = {
-  recipientEmail: "info@healingroomsixnations.ca",
+  recipientEmail: "healingroom7147@proton.me",
   recipientName: "Healing Room Six Nations",
   autoDepositEnabled: true, // If true, no security question needed
   securityQuestion: null, // Set if auto-deposit is not enabled

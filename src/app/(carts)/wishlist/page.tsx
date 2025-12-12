@@ -8,8 +8,8 @@ import { Loader } from "@/components/common/Loader";
 
 export async function generateMetadata() {
   return {
-    title: "Wishlists | Ecommerce Template",
-    description: `Wishlists at e-commerce template made by Marcos Cámara`,
+    title: "Wishlist | Healing Room",
+    description: `Your wishlist at Healing Room`,
   };
 }
 
@@ -31,50 +31,53 @@ const Wishlists = async () => {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center w-full h-[calc(100vh-91px)] gap-2 px-4">
-      <h1 className="mb-6 text-4xl font-bold text-text-primary">YOUR WISHLIST IS EMPTY</h1>
-      <p className="mb-4 text-lg">
-        Not registered? You must be in order to save your favorite products.
+    <section className="flex flex-col items-center justify-center w-full h-[calc(100vh-91px)] gap-2">
+      <h1 className="mb-4 text-2xl md:text-3xl font-bold text-text-primary">Your Wishlist is Empty</h1>
+      <p className="mb-4 text-text-muted text-center max-w-md">
+        Sign in to save your favorite products to your wishlist.
       </p>
       <Link
-        className="flex font-medium items-center bg-primary text-white justify-center text-sm min-w-[160px] max-w-[160px] h-[40px] px-[10px] rounded-md transition-all hover:bg-primary-dark"
+        className="flex font-medium items-center bg-primary text-white justify-center text-sm min-w-[160px] h-[44px] px-6 rounded-lg transition-all hover:bg-primary-dark"
         href="/login"
       >
-        Login
+        Sign In
       </Link>
-    </div>
+    </section>
   );
 };
 
 const ProductsWishlists = async ({ session }: { session: Session }) => {
   const filteredWishlist = await getItems(session.user._id || "");
+  const itemCount = filteredWishlist?.length || 0;
 
   if (filteredWishlist && filteredWishlist?.length > 0) {
     return (
-      <div className="pt-12">
-        <h2 className="mb-5 text-xl font-bold sm:text-2xl">YOUR WISHLISTS</h2>
+      <section className="pt-4">
+        <div className="mb-6">
+          <h1 className="text-2xl md:text-3xl font-bold text-text-primary">Your Wishlist</h1>
+          <p className="text-sm text-text-muted mt-1">{itemCount} item{itemCount !== 1 ? 's' : ''} saved</p>
+        </div>
         <Products
           products={filteredWishlist}
           extraClassname={"colums-mobile"}
         />
-      </div>
+      </section>
     );
   }
 
   return (
-    <div className="flex flex-col items-center justify-center w-full h-[calc(100vh-91px)] gap-2 px-4">
-      <h1 className="mb-6 text-4xl font-bold text-text-primary">YOUR WISHLIST IS EMPTY</h1>
-      <p className="mb-4 text-lg">
-        When you have added something to the wishlist, it will appear here. Want
-        to get started?
+    <section className="flex flex-col items-center justify-center w-full h-[calc(100vh-91px)] gap-2">
+      <h1 className="mb-4 text-2xl md:text-3xl font-bold text-text-primary">Your Wishlist is Empty</h1>
+      <p className="mb-4 text-text-muted text-center max-w-md">
+        When you add products to your wishlist, they will appear here.
       </p>
       <Link
-        className="flex font-medium items-center bg-primary text-white justify-center text-sm min-w-[160px] max-w-[160px] h-[40px] px-[10px] rounded-md transition-all hover:bg-primary-dark"
-        href="/"
+        className="flex font-medium items-center bg-primary text-white justify-center text-sm min-w-[160px] h-[44px] px-6 rounded-lg transition-all hover:bg-primary-dark"
+        href="/shop"
       >
-        Start
+        Start Shopping
       </Link>
-    </div>
+    </section>
   );
 };
 

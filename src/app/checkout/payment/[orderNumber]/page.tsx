@@ -3,6 +3,7 @@ import { authOptions } from "@/libs/auth";
 import { redirect } from "next/navigation";
 import prisma from "@/libs/prisma";
 import { ETRANSFER_CONFIG, DELIVERY_TIME_SLOTS, STORE_LOCATION } from "@/libs/delivery-config";
+import { LOCAL_DELIVERY_CONFIG } from "@/libs/local-delivery-config";
 import Link from "next/link";
 
 interface Props {
@@ -37,6 +38,9 @@ export default async function PaymentInstructionsPage({ params }: Props) {
   const timeSlot = order.deliveryTimeSlot 
     ? DELIVERY_TIME_SLOTS.find(s => s.id === order.deliveryTimeSlot)?.label 
     : null;
+  
+  // Use correct e-transfer email
+  const etransferEmail = LOCAL_DELIVERY_CONFIG.payment.email;
   
   return (
     <div className="min-h-screen bg-bg-alt py-12">
@@ -84,22 +88,42 @@ export default async function PaymentInstructionsPage({ params }: Props) {
               <div className="w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center shrink-0 font-semibold">
                 2
               </div>
-              <div>
+              <div className="flex-1">
                 <h3 className="font-medium text-text-primary mb-1">Send an Interac e-Transfer</h3>
                 <div className="bg-bg-alt rounded-lg p-4 mt-2 space-y-3">
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-text-muted">Send to:</span>
-                    <span className="font-mono font-medium text-text-primary">{ETRANSFER_CONFIG.recipientEmail}</span>
+                    <span className="font-mono font-medium text-text-primary">{etransferEmail}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-text-muted">Amount:</span>
                     <span className="text-xl font-bold text-primary">${order.totalPrice.toFixed(2)}</span>
                   </div>
-                  <div className="flex justify-between items-start">
-                    <span className="text-sm text-text-muted">Message:</span>
-                    <span className="font-mono font-medium text-text-primary text-right">{order.orderNumber}</span>
+                  <div className="border-t border-gray-200 pt-3">
+                    <div className="bg-yellow-50 border-2 border-yellow-300 rounded-lg p-3">
+                      <p className="text-xs font-bold text-yellow-900 mb-2 flex items-center gap-1">
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                        REQUIRED: Add Message
+                      </p>
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs text-yellow-800">Message field:</span>
+                        <span className="font-mono font-bold text-yellow-900 text-base">{order.orderNumber}</span>
+                      </div>
+                      <p className="text-xs text-yellow-800 mt-2">
+                        ⚠️ Your order number MUST be in the e-transfer message - we use this to confirm your order!
+                      </p>
+                    </div>
                   </div>
                 </div>
+                {order.fulfillmentMethod === "delivery" && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3 mt-3">
+                    <p className="text-xs font-medium text-red-900">
+                      🚫 No cash accepted at delivery - e-Transfer payment only
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
             
@@ -110,11 +134,26 @@ export default async function PaymentInstructionsPage({ params }: Props) {
               </div>
               <div>
                 <h3 className="font-medium text-text-primary mb-1">We&apos;ll confirm & process</h3>
-                <p className="text-sm text-text-muted">
-                  {ETRANSFER_CONFIG.autoDepositEnabled 
+                <p className="text-sm text-text-muted mb-2">
+                  {LOCAL_DELIVERY_CONFIG.payment.mustPayBeforeDelivery && order.fulfillmentMethod === "delivery"
+                    ? "Payment must be received before your order goes out for delivery. We have auto-deposit enabled for instant confirmation!"
+                    : ETRANSFER_CONFIG.autoDepositEnabled 
                     ? "We have auto-deposit enabled, so your payment will be received instantly. No security question needed!"
                     : "Once we receive and confirm your payment, we&apos;ll start preparing your order."}
                 </p>
+                {order.fulfillmentMethod === "delivery" && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-2">
+                    <p className="text-xs text-blue-900">
+                      <strong>📅 Expected Delivery:</strong> {order.deliveryDate 
+                        ? new Date(order.deliveryDate).toLocaleDateString("en-CA", { weekday: "long", month: "long", day: "numeric" })
+                        : "Next business day"
+                      }
+                    </p>
+                    <p className="text-xs text-blue-800 mt-1">
+                      ⏰ Delivery window: 2:00 PM - 7:00 PM (afternoon run)
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
             
@@ -122,7 +161,7 @@ export default async function PaymentInstructionsPage({ params }: Props) {
             <div className="pt-4 border-t border-border-primary">
               <button
                 onClick={() => {
-                  navigator.clipboard.writeText(ETRANSFER_CONFIG.recipientEmail);
+                  navigator.clipboard.writeText(etransferEmail);
                 }}
                 className="w-full py-3 bg-bg-alt hover:bg-gray-100 rounded-lg text-text-primary font-medium transition-colors flex items-center justify-center gap-2"
               >
@@ -172,19 +211,31 @@ export default async function PaymentInstructionsPage({ params }: Props) {
               </div>
             )}
             
-            {/* Delivery Schedule */}
+            {/* Delivery Schedule & Distance */}
             {order.fulfillmentMethod === "delivery" && order.deliveryDate && (
-              <div className="flex justify-between">
-                <span className="text-text-muted">Scheduled</span>
-                <span className="font-medium text-text-primary">
-                  {new Date(order.deliveryDate).toLocaleDateString("en-CA", { 
-                    weekday: "long", 
-                    month: "long", 
-                    day: "numeric" 
-                  })}
-                  {timeSlot && `, ${timeSlot}`}
-                </span>
-              </div>
+              <>
+                <div className="flex justify-between">
+                  <span className="text-text-muted">Scheduled</span>
+                  <span className="font-medium text-text-primary">
+                    {new Date(order.deliveryDate).toLocaleDateString("en-CA", { 
+                      weekday: "long", 
+                      month: "long", 
+                      day: "numeric" 
+                    })}
+                  </span>
+                </div>
+                {order.deliveryDistance && (
+                  <div className="flex justify-between">
+                    <span className="text-text-muted">Distance from store</span>
+                    <span className="font-medium text-text-primary">{order.deliveryDistance.toFixed(1)} km</span>
+                  </div>
+                )}
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mt-3">
+                  <p className="text-xs text-yellow-800">
+                    <strong>⚠️ Delivery Requirements:</strong> {LOCAL_DELIVERY_CONFIG.idRequirements.message}
+                  </p>
+                </div>
+              </>
             )}
             
             {/* Items */}
@@ -232,9 +283,14 @@ export default async function PaymentInstructionsPage({ params }: Props) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
             <div>
-              <p className="font-medium text-yellow-800">Payment Required Within 24 Hours</p>
+              <p className="font-medium text-yellow-800">⏰ Payment Required Within 24 Hours</p>
               <p className="text-sm text-yellow-700 mt-1">
                 Please complete your e-Transfer within 24 hours to avoid order cancellation.
+              </p>
+              <p className="text-sm text-yellow-700 mt-2">
+                <strong>Don&apos;t forget:</strong> Include your order number (<span className="font-mono font-bold">{order.orderNumber}</span>) in the e-transfer message field!
+              </p>
+              <p className="text-xs text-yellow-600 mt-2">
                 A confirmation email has been sent to {order.customerEmail}.
               </p>
             </div>
@@ -260,7 +316,7 @@ export default async function PaymentInstructionsPage({ params }: Props) {
         {/* Contact Info */}
         <div className="text-center mt-8 text-sm text-text-muted">
           <p>Questions? Contact us at {STORE_LOCATION.phone}</p>
-          <p>or email {ETRANSFER_CONFIG.recipientEmail}</p>
+          <p>or email {etransferEmail}</p>
         </div>
       </div>
     </div>

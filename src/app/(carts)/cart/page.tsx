@@ -47,8 +47,8 @@ const CartPage = async () => {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center w-full h-[calc(100vh-91px)] gap-2 px-4">
-      <h1 className="mb-6 text-4xl font-bold text-text-primary">Your Cart is Empty</h1>
+    <section className="flex flex-col items-center justify-center w-full h-[calc(100vh-91px)] gap-2">
+      <h1 className="mb-4 text-2xl md:text-3xl font-bold text-text-primary">Your Cart is Empty</h1>
       <p className="mb-4 text-text-muted text-center max-w-md">
         Sign in to save products to your cart and checkout.
       </p>
@@ -58,7 +58,7 @@ const CartPage = async () => {
       >
         Sign In
       </Link>
-    </div>
+    </section>
   );
 };
 
@@ -76,11 +76,11 @@ const ProductsCart = async ({ session }: { session: Session }) => {
 
   if (filteredCart && filteredCart.length > 0) {
     return (
-      <div className="pt-8 pb-32 lg:pb-8">
-        <h1 className="text-2xl md:text-3xl font-bold text-text-primary mb-6">
-          Shopping Cart
-          <span className="text-text-muted font-normal text-lg ml-2">({totalItems} items)</span>
-        </h1>
+      <section className="pt-4 pb-32 lg:pb-8">
+        <div className="mb-6">
+          <h1 className="text-2xl md:text-3xl font-bold text-text-primary">Shopping Cart</h1>
+          <p className="text-sm text-text-muted mt-1">{totalItems} item{totalItems !== 1 ? 's' : ''} in your cart</p>
+        </div>
         
         {/* Two-column layout on desktop */}
         <div className="flex flex-col lg:flex-row gap-8">
@@ -130,13 +130,13 @@ const ProductsCart = async ({ session }: { session: Session }) => {
             </div>
           </div>
         </div>
-      </div>
+      </section>
     );
   }
 
   return (
-    <div className="flex flex-col items-center justify-center w-full h-[calc(100vh-91px)] gap-2 px-4">
-      <h1 className="mb-6 text-4xl font-bold text-text-primary">Your Cart is Empty</h1>
+    <section className="flex flex-col items-center justify-center w-full h-[calc(100vh-91px)] gap-2">
+      <h1 className="mb-4 text-2xl md:text-3xl font-bold text-text-primary">Your Cart is Empty</h1>
       <p className="mb-4 text-text-muted text-center max-w-md">
         When you add products to your cart, they will appear here.
       </p>
@@ -146,7 +146,7 @@ const ProductsCart = async ({ session }: { session: Session }) => {
       >
         Start Shopping
       </Link>
-    </div>
+    </section>
   );
 };
 

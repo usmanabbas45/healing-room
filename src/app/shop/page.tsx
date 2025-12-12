@@ -83,6 +83,16 @@ export default async function ShopPage({
         ]} 
       />
       <section className="pt-4">
+        {/* Page Header */}
+        <div className="mb-6">
+          <h1 className="text-2xl md:text-3xl font-bold text-text-primary">
+            {validType !== 'all' ? typeName : 'Shop'}
+          </h1>
+          <p className="text-sm text-text-muted mt-1">
+            {totalCount} product{totalCount !== 1 ? 's' : ''} available
+          </p>
+        </div>
+        
         {/* Shop Toolbar with Search and Filter */}
         <ShopToolbar 
           currentType={validType}

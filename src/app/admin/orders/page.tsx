@@ -236,7 +236,12 @@ export default async function AdminOrdersPage({
                           month: "short",
                           day: "numeric",
                         })}
-                        {order.deliveryTimeSlot && ` • ${order.deliveryTimeSlot}`}
+                        {order.fulfillmentMethod === "delivery" ? " (2-7 PM run)" : order.deliveryTimeSlot ? ` • ${order.deliveryTimeSlot}` : ""}
+                      </p>
+                    )}
+                    {order.fulfillmentMethod === "delivery" && order.deliveryDistance && (
+                      <p className="text-xs text-text-muted mt-1">
+                        📍 {order.deliveryDistance.toFixed(1)} km • ${(order.deliveryDistance * 0.5).toFixed(2)} fee
                       </p>
                     )}
                   </div>
@@ -257,12 +262,44 @@ export default async function AdminOrdersPage({
                   </div>
                 </div>
 
+                {/* Payment Reference (Order Number in e-transfer) */}
+                {order.paymentReference && (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
+                    <p className="text-sm text-green-800">
+                      <strong>💳 Payment Reference:</strong> {order.paymentReference}
+                    </p>
+                    {order.paidAt && (
+                      <p className="text-xs text-green-700 mt-1">
+                        Paid: {new Date(order.paidAt).toLocaleString("en-CA")}
+                      </p>
+                    )}
+                  </div>
+                )}
+                
                 {/* Staff Notes */}
                 {order.staffNotes && (
                   <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
                     <p className="text-sm text-yellow-800">
-                      <strong>Staff Note:</strong> {order.staffNotes}
+                      <strong>📝 Staff Note:</strong> {order.staffNotes}
                     </p>
+                  </div>
+                )}
+                
+                {/* Delivery Requirements for delivery orders */}
+                {order.fulfillmentMethod === "delivery" && order.status !== "completed" && order.status !== "cancelled" && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                    <p className="text-sm text-blue-900">
+                      <strong>🚗 Delivery Checklist:</strong>
+                    </p>
+                    <ul className="text-xs text-blue-800 mt-2 space-y-1 ml-4 list-disc">
+                      <li>Verify payment received with order number ({order.orderNumber}) in e-transfer message</li>
+                      <li>Check customer ID (19+ required)</li>
+                      <li>Verify ID name matches order name: {order.customerName}</li>
+                      {order.totalPrice >= 200 && (
+                        <li className="font-bold text-blue-900">⚠️ Order $200+ - Verify ID before handing over product</li>
+                      )}
+                      <li>🚫 No cash accepted at door</li>
+                    </ul>
                   </div>
                 )}
 

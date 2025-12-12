@@ -1,4 +1,5 @@
 import { STORE_LOCATION, ETRANSFER_CONFIG, DELIVERY_TIME_SLOTS } from "./delivery-config";
+import { LOCAL_DELIVERY_CONFIG } from "./local-delivery-config";
 
 interface OrderItem {
   productName: string;
@@ -21,6 +22,7 @@ interface OrderEmailData {
   };
   deliveryDate?: Date;
   deliveryTimeSlot?: string;
+  deliveryDistance?: number; // Distance in km for local delivery
   items: OrderItem[];
   subtotal: number;
   deliveryFee: number;
@@ -32,6 +34,9 @@ export function generateOrderConfirmationEmail(data: OrderEmailData): { subject:
     ? DELIVERY_TIME_SLOTS.find(s => s.id === data.deliveryTimeSlot)?.label 
     : null;
 
+  // Use the correct e-transfer email from LOCAL_DELIVERY_CONFIG
+  const etransferEmail = LOCAL_DELIVERY_CONFIG.payment.email;
+  
   const subject = `Order Confirmed - ${data.orderNumber} | Healing Room`;
 
   const html = `
@@ -84,7 +89,7 @@ export function generateOrderConfirmationEmail(data: OrderEmailData): { subject:
                       <tr>
                         <td style="padding: 8px 0; border-bottom: 1px solid #eee;">
                           <span style="color: #666; font-size: 13px;">Send to:</span><br>
-                          <strong style="color: #2D2D2D;">${ETRANSFER_CONFIG.recipientEmail}</strong>
+                          <strong style="color: #2D2D2D;">${etransferEmail}</strong>
                         </td>
                       </tr>
                       <tr>
@@ -94,15 +99,23 @@ export function generateOrderConfirmationEmail(data: OrderEmailData): { subject:
                         </td>
                       </tr>
                       <tr>
-                        <td style="padding: 8px 0;">
-                          <span style="color: #666; font-size: 13px;">Message:</span><br>
-                          <strong style="color: #2D2D2D; font-family: monospace;">${data.orderNumber}</strong>
+                        <td style="padding: 8px 0; background: #fff3cd; border: 2px solid #ffc107; border-radius: 4px; padding: 10px;">
+                          <span style="color: #856404; font-size: 12px; font-weight: bold;">⚠️ REQUIRED - Message field:</span><br>
+                          <strong style="color: #2D2D2D; font-family: monospace; font-size: 16px;">${data.orderNumber}</strong><br>
+                          <span style="color: #856404; font-size: 11px; margin-top: 4px; display: block;">
+                            You MUST include your order number in the e-transfer message - we use this to confirm your order!
+                          </span>
                         </td>
                       </tr>
                     </table>
                     <p style="margin: 15px 0 0; color: #856404; font-size: 12px;">
                       ⏰ Please complete payment within 24 hours to avoid order cancellation.
                     </p>
+                    ${data.fulfillmentMethod === 'delivery' ? `
+                      <p style="margin: 10px 0 0; color: #dc3545; font-size: 12px; font-weight: bold;">
+                        🚫 No cash accepted at delivery - e-Transfer payment only
+                      </p>
+                    ` : ''}
                   </td>
                 </tr>
               </table>
@@ -128,10 +141,28 @@ export function generateOrderConfirmationEmail(data: OrderEmailData): { subject:
                   ${data.deliveryAddress.line2 ? data.deliveryAddress.line2 + '<br>' : ''}
                   ${data.deliveryAddress.city}, ${data.deliveryAddress.province} ${data.deliveryAddress.postalCode}
                 </p>
+                ${data.fulfillmentMethod === 'delivery' && data.deliveryDistance ? `
+                  <p style="margin: 10px 0 0; color: #666; font-size: 13px;">
+                    <strong>Distance:</strong> ${data.deliveryDistance.toFixed(1)} km • <strong>Delivery Fee:</strong> $${data.deliveryFee.toFixed(2)}
+                  </p>
+                ` : ''}
                 ${data.deliveryDate ? `
                   <p style="margin: 10px 0 0; color: #D4842A; font-size: 14px;">
-                    <strong>Scheduled:</strong> ${new Date(data.deliveryDate).toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric' })}${timeSlotLabel ? `, ${timeSlotLabel}` : ''}
+                    <strong>Scheduled:</strong> ${new Date(data.deliveryDate).toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric' })}${data.fulfillmentMethod === 'delivery' ? ' (daily delivery run)' : timeSlotLabel ? `, ${timeSlotLabel}` : ''}
                   </p>
+                ` : ''}
+                ${data.fulfillmentMethod === 'delivery' ? `
+                  <p style="margin: 10px 0 0; color: #666; font-size: 13px;">
+                    <strong>⏰ Delivery Window:</strong> 2:00 PM - 7:00 PM (afternoon run)
+                  </p>
+                  <div style="margin-top: 15px; padding: 12px; background: #fff8e6; border: 1px solid #ffeeba; border-radius: 6px;">
+                    <p style="margin: 0 0 8px 0; color: #856404; font-size: 12px;">
+                      <strong>⚠️ ID Required at Delivery:</strong> ${LOCAL_DELIVERY_CONFIG.idRequirements.message}
+                    </p>
+                    <p style="margin: 0; color: #856404; font-size: 12px;">
+                      Driver will check ID before completing delivery.
+                    </p>
+                  </div>
                 ` : ''}
               ` : ''}
             </td>
@@ -196,7 +227,7 @@ export function generateOrderConfirmationEmail(data: OrderEmailData): { subject:
             <td style="background-color: #2D2D2D; padding: 25px 30px; text-align: center;">
               <p style="margin: 0 0 10px; color: #ffffff; font-size: 14px;">Questions? Contact us at</p>
               <p style="margin: 0; color: #D4842A; font-size: 14px;">
-                ${STORE_LOCATION.phone} | ${ETRANSFER_CONFIG.recipientEmail}
+                ${STORE_LOCATION.phone} | ${etransferEmail}
               </p>
               <p style="margin: 15px 0 0; color: #888; font-size: 12px;">
                 Healing Room Six Nations<br>
@@ -222,16 +253,18 @@ ORDER NUMBER: ${data.orderNumber}
 
 COMPLETE YOUR PAYMENT
 Send an Interac e-Transfer:
-- Send to: ${ETRANSFER_CONFIG.recipientEmail}
+- Send to: ${etransferEmail}
 - Amount: $${data.totalPrice.toFixed(2)}
-- Message: ${data.orderNumber}
+- Message: ${data.orderNumber} (REQUIRED - include this in e-transfer message!)
 
-Please complete payment within 24 hours.
+⚠️ IMPORTANT: You MUST include your order number in the e-transfer message field - we use this to confirm your order!
+
+${data.fulfillmentMethod === 'delivery' ? '🚫 No cash accepted at delivery - e-Transfer payment only\n\n' : ''}Please complete payment within 24 hours to avoid order cancellation.
 
 ${data.fulfillmentMethod === 'pickup' 
   ? `PICKUP LOCATION\n${STORE_LOCATION.address}\nReady after payment confirmation.`
   : data.deliveryAddress 
-    ? `DELIVERY ADDRESS\n${data.deliveryAddress.line1}\n${data.deliveryAddress.line2 ? data.deliveryAddress.line2 + '\n' : ''}${data.deliveryAddress.city}, ${data.deliveryAddress.province} ${data.deliveryAddress.postalCode}${data.deliveryDate ? '\nScheduled: ' + new Date(data.deliveryDate).toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric' }) + (timeSlotLabel ? ', ' + timeSlotLabel : '') : ''}`
+    ? `DELIVERY ADDRESS\n${data.deliveryAddress.line1}\n${data.deliveryAddress.line2 ? data.deliveryAddress.line2 + '\n' : ''}${data.deliveryAddress.city}, ${data.deliveryAddress.province} ${data.deliveryAddress.postalCode}${data.fulfillmentMethod === 'delivery' && data.deliveryDistance ? `\nDistance: ${data.deliveryDistance.toFixed(1)} km • Fee: $${data.deliveryFee.toFixed(2)}` : ''}${data.deliveryDate ? '\nScheduled: ' + new Date(data.deliveryDate).toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric' }) + (data.fulfillmentMethod === 'delivery' ? ' (daily delivery run, 2 PM - 7 PM)' : timeSlotLabel ? ', ' + timeSlotLabel : '') : ''}${data.fulfillmentMethod === 'delivery' ? '\n\n⚠️ ID Required at Delivery: ' + LOCAL_DELIVERY_CONFIG.idRequirements.message + '\nDriver will check ID before completing delivery.' : ''}`
     : ''
 }
 
@@ -242,7 +275,7 @@ Subtotal: $${data.subtotal.toFixed(2)}
 ${data.fulfillmentMethod === 'pickup' ? 'Pickup' : data.fulfillmentMethod === 'delivery' ? 'Delivery' : 'Shipping'}: ${data.deliveryFee === 0 ? 'FREE' : '$' + data.deliveryFee.toFixed(2)}
 Total: $${data.totalPrice.toFixed(2)}
 
-Questions? Contact us at ${STORE_LOCATION.phone} or ${ETRANSFER_CONFIG.recipientEmail}
+Questions? Contact us at ${STORE_LOCATION.phone} or ${etransferEmail}
 
 Healing Room Six Nations
 ${STORE_LOCATION.address}

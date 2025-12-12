@@ -156,6 +156,11 @@ export default async function AdminPage({
                 {pendingPayments > 0 && paidOrders > 0 && " • "}
                 {paidOrders > 0 && <span className="text-blue-600 font-medium">{paidOrders} paid & ready to process</span>}
               </p>
+              {pendingPayments > 0 && (
+                <p className="text-xs text-text-muted mt-2">
+                  💡 Check e-transfer for order number in message field
+                </p>
+              )}
             </div>
             <Link
               href="/admin/orders?status=awaiting_payment"

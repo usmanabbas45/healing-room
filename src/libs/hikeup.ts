@@ -229,6 +229,8 @@ function httpsRequest(
  */
 async function loadTokenFromDb(): Promise<typeof cache.token> {
   try {
+    console.log('🔍 Loading Hikeup tokens from database...');
+    
     const settings = await prisma.settings.findMany({
       where: {
         key: {
@@ -241,18 +243,90 @@ async function loadTokenFromDb(): Promise<typeof cache.token> {
     const refreshToken = settings.find(s => s.key === 'hikeup_refresh_token')?.value;
     const expiresAt = settings.find(s => s.key === 'hikeup_expires_at')?.value;
 
+    console.log('🔑 Token check:', {
+      hasAccessToken: !!accessToken,
+      hasRefreshToken: !!refreshToken,
+      hasExpiresAt: !!expiresAt,
+      expiresAtDate: expiresAt ? new Date(parseInt(expiresAt, 10)).toISOString() : null,
+    });
+
     if (accessToken && expiresAt) {
+      const expiresAtNum = parseInt(expiresAt, 10);
+      const isExpired = Date.now() > expiresAtNum;
+      
       cache.token = {
         accessToken,
         refreshToken: refreshToken || '',
-        expiresAt: parseInt(expiresAt, 10),
+        expiresAt: expiresAtNum,
       };
-      console.log('✅ Loaded Hikeup token from database');
+      
+      console.log(`✅ Loaded Hikeup token from database (${isExpired ? '⚠️ EXPIRED' : '✓ Valid'})`);
+      
+      // If token is expired but we have a refresh token, try to refresh immediately
+      if (isExpired && refreshToken) {
+        console.log('🔄 Token expired, attempting automatic refresh...');
+        try {
+          await refreshAccessToken();
+        } catch (e) {
+          console.error('⚠️ Auto-refresh failed, will try again on next API call');
+        }
+      }
+      
       return cache.token;
     }
+    
+    console.log('🔗 Hikeup: No token found in database - please connect via /admin');
     return null;
   } catch (error) {
     console.error('Error loading Hikeup token from DB:', error);
+    return null;
+  }
+}
+
+/**
+ * Refresh the access token using the refresh token
+ */
+async function refreshAccessToken(): Promise<string | null> {
+  const token = cache.token;
+  if (!token?.refreshToken) {
+    console.log('❌ Cannot refresh: No refresh token available');
+    return null;
+  }
+  
+  console.log('🔄 Refreshing Hikeup access token...');
+  
+  const refreshBody = new URLSearchParams({
+    grant_type: 'refresh_token',
+    client_id: process.env.HIKEUP_CLIENT_ID || '',
+    client_secret: process.env.HIKEUP_CLIENT_SECRET || '',
+    refresh_token: token.refreshToken,
+  }).toString();
+
+  try {
+    const response = await httpsRequest(
+      'https://api.hikeup.com/oauth/token',
+      'POST',
+      { 'Content-Type': 'application/x-www-form-urlencoded' },
+      refreshBody
+    );
+
+    if (response.status === 200) {
+      const data = JSON.parse(response.body);
+      const newRefreshToken = data.refresh_token || token.refreshToken;
+      const expiresIn = data.expires_in || 604800; // Default to 7 days
+      
+      await setHikeupToken(data.access_token, newRefreshToken, expiresIn);
+      
+      console.log('✅ Token refreshed successfully!');
+      console.log(`📅 New token expires in: ${Math.round(expiresIn / 3600)} hours`);
+      
+      return data.access_token;
+    } else {
+      console.error('❌ Token refresh failed:', response.status, response.body);
+      return null;
+    }
+  } catch (error) {
+    console.error('❌ Token refresh error:', error);
     return null;
   }
 }
@@ -467,7 +541,7 @@ async function getAccessToken(): Promise<string> {
 
   // Check if token is expired (with 5 min buffer)
   if (Date.now() >= token.expiresAt - 300000) {
-    console.log('🔄 Token expired, attempting refresh...');
+    console.log('🔄 Token expired or expiring soon, attempting refresh...');
     
     // If no refresh token, just try the existing access token anyway
     if (!token.refreshToken) {
@@ -475,60 +549,15 @@ async function getAccessToken(): Promise<string> {
       return token.accessToken;
     }
     
-    // Retry token refresh up to 3 times
-    let lastError: Error | null = null;
-    for (let attempt = 1; attempt <= 3; attempt++) {
-      try {
-        const body = new URLSearchParams({
-          grant_type: 'refresh_token',
-          client_id: process.env.HIKEUP_CLIENT_ID!,
-          client_secret: process.env.HIKEUP_CLIENT_SECRET!,
-          refresh_token: token.refreshToken,
-        }).toString();
-
-        const response = await httpsRequest(
-          'https://api.hikeup.com/oauth/token',
-          'POST',
-          { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body
-        );
-
-        if (response.status === 200) {
-          const data = JSON.parse(response.body);
-          // Use new refresh token if provided, otherwise keep the old one
-          const newRefreshToken = data.refresh_token || token.refreshToken;
-          // Set long expiry - default to 30 days if not provided
-          const expiresIn = data.expires_in || 2592000;
-          await setHikeupToken(data.access_token, newRefreshToken, expiresIn);
-          console.log('✅ Token refreshed successfully');
-          return data.access_token;
-        }
-        
-        console.error(`❌ Token refresh attempt ${attempt} failed (status ${response.status}):`, response.body);
-        lastError = new Error(`Token refresh failed: ${response.status} - ${response.body}`);
-        
-        // If it's an auth error (invalid refresh token), stop retrying
-        if (response.status === 400 || response.status === 401) {
-          console.error('🔴 Refresh token is invalid or expired.');
-          break;
-        }
-        
-        // Wait before retry (exponential backoff)
-        if (attempt < 3) {
-          await new Promise(resolve => setTimeout(resolve, attempt * 1000));
-        }
-      } catch (error) {
-        console.error(`❌ Token refresh attempt ${attempt} error:`, error);
-        lastError = error as Error;
-        if (attempt < 3) {
-          await new Promise(resolve => setTimeout(resolve, attempt * 1000));
-        }
-      }
+    // Try to refresh
+    const newAccessToken = await refreshAccessToken();
+    
+    if (newAccessToken) {
+      return newAccessToken;
     }
     
     // Refresh failed - but DON'T clear the token!
     // The existing access token might still work (servers are sometimes lenient)
-    // We'll only clear it if an actual API call returns 401
     console.log('⚠️ Token refresh failed, but keeping existing token to try anyway...');
     console.log('⚠️ If API calls fail with 401, please reconnect Hikeup via /admin');
     
@@ -1123,6 +1152,7 @@ async function hikeupPost<T>(endpoint: string, body: any): Promise<T> {
   const bodyString = JSON.stringify(body);
   
   console.log('🌐 Hikeup POST Request:', url);
+  console.log('📨 RAW Request Body:', bodyString);
   
   const response = await httpsRequest(url, 'POST', {
     'Authorization': `Bearer ${token}`,
@@ -1302,14 +1332,26 @@ export async function updateHikeupCustomer(
 
     console.log(`📝 Updating Hikeup customer ID: ${hikeupCustomerId}`);
     
-    // Build customer data for Hikeup API
+    // First, fetch the existing customer to see the current state
+    let existingCustomer: any = null;
+    try {
+      existingCustomer = await hikeupFetch<any>(`/customers/get/${hikeupCustomerId}`);
+      console.log('📥 Existing Hikeup customer data:', JSON.stringify(existingCustomer, null, 2));
+    } catch (fetchError) {
+      console.log('⚠️ Could not fetch existing customer:', fetchError);
+    }
+    
+    // Build customer data - ABSOLUTE MINIMUM (only required fields per API docs)
+    // Testing to find what Hikeup actually accepts
     const customerData: any = {
-      id: parseInt(hikeupCustomerId, 10),
-      first_name: data.firstName,
-      email: email,
-      isActive: true,
+      first_name: data.firstName,  // required
+      email: email,                // required
     };
     
+    // Add id for update (not create)
+    customerData.id = parseInt(hikeupCustomerId, 10);
+    
+    // Add optional fields one by one
     if (data.lastName) {
       customerData.last_name = data.lastName;
     }
@@ -1318,27 +1360,30 @@ export async function updateHikeupCustomer(
       customerData.phone = data.phone;
     }
     
-    // Add billing/shipping address if provided
-    if (data.address && (data.address.line1 || data.address.city)) {
-      const fullName = data.lastName 
-        ? `${data.firstName} ${data.lastName}` 
-        : data.firstName;
-      
-      const addressData = {
-        id: 0, // 0 to create new address, will be auto-assigned
-        address1: data.address.line1 || '',
-        address2: data.address.line2 || '',
-        city: data.address.city || '',
-        state: data.address.province || '',
-        postcode: data.address.postalCode || '',
-        country_code: 'CA',
-        country_name: data.address.country || 'Canada',
-        receiverName: fullName,
-        receiverPhone: data.phone || '',
-      };
-      
-      customerData.billing_address = addressData;
-      customerData.shipping_address = addressData;
+    // DON'T send address IDs - might be causing the issue
+    
+    console.log('📤 Hikeup customer UPDATE data:', JSON.stringify(customerData, null, 2));
+    
+    // Log comparison of what changed
+    if (existingCustomer) {
+      console.log('🔄 CHANGES DETECTED:');
+      if (existingCustomer.first_name !== customerData.first_name) {
+        console.log(`   first_name: "${existingCustomer.first_name}" → "${customerData.first_name}"`);
+      }
+      if (existingCustomer.last_name !== customerData.last_name) {
+        console.log(`   last_name: "${existingCustomer.last_name}" → "${customerData.last_name}"`);
+      }
+      if (existingCustomer.phone !== customerData.phone) {
+        console.log(`   phone: "${existingCustomer.phone}" → "${customerData.phone}"`);
+      }
+      if (existingCustomer.email !== customerData.email) {
+        console.log(`   email: "${existingCustomer.email}" → "${customerData.email}"`);
+      }
+      if (customerData.billing_address) {
+        console.log('   billing_address: updating');
+        console.log(`     address1: "${existingCustomer.billing_address?.address1}" → "${customerData.billing_address.address1}"`);
+        console.log(`     city: "${existingCustomer.billing_address?.city}" → "${customerData.billing_address.city}"`);
+      }
     }
     
     const response = await hikeupPost<HikeupCustomer>('/customers/createOrUpdate', customerData);
