@@ -58,14 +58,16 @@ export async function GET(request: NextRequest) {
 
   if (error) {
     console.error('Hikeup OAuth error:', error);
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || request.url;
     return NextResponse.redirect(
-      new URL(`/admin?error=hikeup_auth_failed&message=${error}`, request.url)
+      new URL(`/admin?error=hikeup_auth_failed&message=${error}`, baseUrl)
     );
   }
 
   if (!code) {
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || request.url;
     return NextResponse.redirect(
-      new URL('/admin?error=no_auth_code', request.url)
+      new URL('/admin?error=no_auth_code', baseUrl)
     );
   }
 
@@ -89,8 +91,9 @@ export async function GET(request: NextRequest) {
 
     if (response.status !== 200) {
       console.error('❌ Token exchange failed:', response.body);
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || request.url;
       return NextResponse.redirect(
-        new URL('/admin?error=token_exchange_failed', request.url)
+        new URL('/admin?error=token_exchange_failed', baseUrl)
       );
     }
 
@@ -120,14 +123,16 @@ export async function GET(request: NextRequest) {
     console.log('✅ Hikeup connected and token saved to database!');
     console.log(`📅 Token expires in: ${Math.round(expiresIn / 3600)} hours (${Math.round(expiresIn / 86400)} days)`);
 
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || request.url;
     return NextResponse.redirect(
-      new URL('/admin?success=hikeup_connected', request.url)
+      new URL('/admin?success=hikeup_connected', baseUrl)
     );
 
   } catch (error: any) {
     console.error('Hikeup callback error:', error);
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || request.url;
     return NextResponse.redirect(
-      new URL(`/admin?error=connection_failed`, request.url)
+      new URL(`/admin?error=connection_failed`, baseUrl)
     );
   }
 }
