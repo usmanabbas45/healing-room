@@ -39,6 +39,15 @@ export default function DeliveryAreaValidator({
     }
   }, [triggerValidation]);
   
+  // Reset validation state when address changes (user is typing)
+  useEffect(() => {
+    setDistance(null);
+    setDeliveryFee(null);
+    setError(null);
+    setCoords(null);
+    setShowMap(false);
+  }, [address.line1, address.city, address.province, address.postalCode]);
+  
   const validateDeliveryArea = async () => {
     setIsValidating(true);
     setError(null);
