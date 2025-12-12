@@ -24,6 +24,7 @@ export default async function AdminPage({
 
   const success = searchParams.success;
   const error = searchParams.error;
+  const errorMessage = searchParams.message;
   const connected = await isHikeupConnected();
   const tokenStatus = await getTokenStatus();
   
@@ -61,11 +62,34 @@ export default async function AdminPage({
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg mb-6">
           ❌ Error: {error.replace(/_/g, " ")}
+          {errorMessage && (
+            <p className="mt-2 text-sm font-mono bg-red-100 p-2 rounded">
+              Details: {errorMessage}
+            </p>
+          )}
           {error === 'ssl_error' && (
             <p className="mt-2 text-sm">
               This is an SSL compatibility issue with Hikeup&apos;s server. 
               Try running the server with: <code className="bg-red-100 px-1">NODE_TLS_REJECT_UNAUTHORIZED=0 npm run dev</code>
             </p>
+          )}
+          {error === 'hikeup_auth_failed' && errorMessage === 'invalid_request' && (
+            <div className="mt-3 text-sm">
+              <p className="font-semibold">This means Hikeup rejected your OAuth request.</p>
+              <p className="mt-2">Common causes:</p>
+              <ul className="list-disc ml-5 mt-1 space-y-1">
+                <li>Your redirect URI is not whitelisted in Hikeup app settings</li>
+                <li>The client ID or secret is incorrect</li>
+                <li>Your app is not approved/active in Hikeup</li>
+              </ul>
+              <p className="mt-2 font-semibold">Fix:</p>
+              <ol className="list-decimal ml-5 mt-1 space-y-1">
+                <li>Go to Hikeup Developer Dashboard</li>
+                <li>Find app: <code className="bg-red-100 px-1">healingroom-ced58b3a33</code></li>
+                <li>Add redirect URI: <code className="bg-red-100 px-1 break-all">https://resplendent-wonder-production.up.railway.app/api/hikeup/callback</code></li>
+                <li>Save and try again</li>
+              </ol>
+            </div>
           )}
         </div>
       )}
