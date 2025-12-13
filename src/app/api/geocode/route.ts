@@ -19,19 +19,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Geocode the address
-    const coords = await geocodeAddress({
+    // Geocode the address (country is hardcoded to Canada in geocodeAddress)
+    const result = await geocodeAddress({
       line1,
       city,
       province,
       postalCode,
-      country: country || "Canada",
     });
+
+    // Check if geocoding failed
+    if ('error' in result) {
+      return NextResponse.json(
+        { 
+          success: false,
+          error: result.message 
+        },
+        { status: 400 }
+      );
+    }
 
     // Calculate distance from store
     const distance = calculateDistance(
-      coords.lat,
-      coords.lng,
+      result.lat,
+      result.lng,
       STORE_LOCATION.lat,
       STORE_LOCATION.lng
     );
@@ -44,7 +54,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      coords,
+      coords: { lat: result.lat, lng: result.lng },
       distance,
       isValid,
       fee,
