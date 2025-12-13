@@ -61,15 +61,60 @@ export function generateOrderConfirmationEmail(data: OrderEmailData): { subject:
             </td>
           </tr>
           
-          <!-- Order Number -->
+          <!-- Invoice Header -->
           <tr>
             <td style="padding: 30px 30px 20px;">
               <table width="100%" style="background-color: #f8f5f0; border-radius: 8px; padding: 20px;">
                 <tr>
-                  <td>
-                    <p style="margin: 0; color: #666; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">Order Number</p>
+                  <td style="width: 50%;">
+                    <p style="margin: 0; color: #666; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">Invoice / Order Number</p>
                     <p style="margin: 5px 0 0; font-size: 24px; font-weight: 700; color: #D4842A; font-family: monospace;">${data.orderNumber}</p>
                   </td>
+                  <td style="width: 50%; text-align: right;">
+                    <p style="margin: 0; color: #666; font-size: 12px;">Invoice Date</p>
+                    <p style="margin: 5px 0 0; font-size: 14px; color: #2D2D2D;">${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                    <p style="margin: 10px 0 0; color: #666; font-size: 12px;">Amount Due</p>
+                    <p style="margin: 5px 0 0; font-size: 20px; font-weight: 700; color: #D4842A;">$${data.totalPrice.toFixed(2)}</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          
+          <!-- Bill To / Ship To -->
+          <tr>
+            <td style="padding: 0 30px 20px;">
+              <table width="100%">
+                <tr>
+                  <td style="width: 50%; vertical-align: top; padding-right: 10px;">
+                    <div style="background: #ffffff; border: 1px solid #eee; border-radius: 6px; padding: 15px;">
+                      <p style="margin: 0 0 10px; font-size: 12px; color: #666; text-transform: uppercase; letter-spacing: 1px;">Bill To</p>
+                      <p style="margin: 0; font-weight: 600; color: #2D2D2D;">${data.customerName}</p>
+                      <p style="margin: 5px 0 0; font-size: 14px; color: #666;">${data.customerEmail}</p>
+                    </div>
+                  </td>
+                  ${data.deliveryAddress ? `
+                  <td style="width: 50%; vertical-align: top; padding-left: 10px;">
+                    <div style="background: #ffffff; border: 1px solid #eee; border-radius: 6px; padding: 15px;">
+                      <p style="margin: 0 0 10px; font-size: 12px; color: #666; text-transform: uppercase; letter-spacing: 1px;">Ship To</p>
+                      <p style="margin: 0; font-size: 14px; color: #2D2D2D;">
+                        ${data.deliveryAddress.line1}<br>
+                        ${data.deliveryAddress.line2 ? data.deliveryAddress.line2 + '<br>' : ''}
+                        ${data.deliveryAddress.city}, ${data.deliveryAddress.province}<br>
+                        ${data.deliveryAddress.postalCode}
+                      </p>
+                    </div>
+                  </td>
+                  ` : `
+                  <td style="width: 50%; vertical-align: top; padding-left: 10px;">
+                    <div style="background: #fff8e6; border: 1px solid #ffeeba; border-radius: 6px; padding: 15px;">
+                      <p style="margin: 0 0 10px; font-size: 12px; color: #856404; text-transform: uppercase; letter-spacing: 1px;">🏪 Store Pickup</p>
+                      <p style="margin: 0; font-size: 14px; color: #856404;">
+                        ${STORE_LOCATION.address}
+                      </p>
+                    </div>
+                  </td>
+                  `}
                 </tr>
               </table>
             </td>
@@ -168,57 +213,91 @@ export function generateOrderConfirmationEmail(data: OrderEmailData): { subject:
             </td>
           </tr>
           
-          <!-- Order Items -->
+          <!-- Invoice Line Items -->
           <tr>
             <td style="padding: 0 30px 20px;">
-              <h3 style="margin: 0 0 15px; color: #2D2D2D; font-size: 16px; border-bottom: 1px solid #eee; padding-bottom: 10px;">Order Items</h3>
-              <table width="100%" cellpadding="0" cellspacing="0">
-                ${data.items.map(item => `
-                  <tr>
-                    <td style="padding: 10px 0; border-bottom: 1px solid #f0f0f0;">
-                      <span style="color: #2D2D2D; font-size: 14px;">${item.productName}</span><br>
-                      <span style="color: #888; font-size: 12px;">${item.size} × ${item.quantity}</span>
-                    </td>
-                    <td style="padding: 10px 0; border-bottom: 1px solid #f0f0f0; text-align: right; color: #2D2D2D; font-size: 14px;">
-                      $${(item.price * item.quantity).toFixed(2)}
-                    </td>
+              <h3 style="margin: 0 0 15px; color: #2D2D2D; font-size: 16px;">Invoice Line Items</h3>
+              <table width="100%" cellpadding="0" cellspacing="0" style="border: 1px solid #eee; border-radius: 6px; overflow: hidden;">
+                <thead>
+                  <tr style="background: #f8f5f0;">
+                    <th style="text-align: left; padding: 12px; font-size: 12px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Description</th>
+                    <th style="text-align: center; padding: 12px; font-size: 12px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; width: 80px;">Qty</th>
+                    <th style="text-align: right; padding: 12px; font-size: 12px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; width: 100px;">Price</th>
+                    <th style="text-align: right; padding: 12px; font-size: 12px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; width: 100px;">Total</th>
                   </tr>
-                `).join('')}
+                </thead>
+                <tbody>
+                  ${data.items.map((item, idx) => `
+                    <tr style="border-bottom: ${idx < data.items.length - 1 ? '1px solid #f0f0f0' : 'none'};">
+                      <td style="padding: 15px 12px;">
+                        <strong style="color: #2D2D2D; font-size: 14px; display: block; margin-bottom: 3px;">${item.productName}</strong>
+                        <span style="color: #999; font-size: 12px;">Size: ${item.size}</span>
+                      </td>
+                      <td style="text-align: center; color: #666; padding: 15px 12px; font-size: 14px;">${item.quantity}</td>
+                      <td style="text-align: right; color: #666; padding: 15px 12px; font-size: 14px;">$${item.price.toFixed(2)}</td>
+                      <td style="text-align: right; color: #2D2D2D; padding: 15px 12px; font-weight: 600; font-size: 14px;">$${(item.price * item.quantity).toFixed(2)}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
               </table>
             </td>
           </tr>
           
-          <!-- Order Total -->
+          <!-- Invoice Summary / Totals -->
           <tr>
             <td style="padding: 0 30px 30px;">
-              <table width="100%" style="background-color: #f8f5f0; border-radius: 8px; padding: 15px;">
+              <table width="100%" style="background-color: #f8f5f0; border-radius: 8px; padding: 20px;">
                 <tr>
-                  <td style="padding: 5px 0;">
-                    <span style="color: #666; font-size: 14px;">Subtotal</span>
+                  <td style="padding: 8px 0; text-align: right;">
+                    <span style="color: #666; font-size: 14px;">Subtotal:</span>
                   </td>
-                  <td style="padding: 5px 0; text-align: right;">
-                    <span style="color: #2D2D2D; font-size: 14px;">$${data.subtotal.toFixed(2)}</span>
+                  <td style="padding: 8px 0 8px 20px; text-align: right; width: 120px;">
+                    <span style="color: #2D2D2D; font-size: 14px; font-weight: 600;">$${data.subtotal.toFixed(2)}</span>
                   </td>
                 </tr>
+                ${data.deliveryFee > 0 ? `
                 <tr>
-                  <td style="padding: 5px 0;">
-                    <span style="color: #666; font-size: 14px;">${data.fulfillmentMethod === 'pickup' ? 'Pickup' : data.fulfillmentMethod === 'delivery' ? 'Delivery' : 'Shipping'}</span>
+                  <td style="padding: 8px 0; text-align: right;">
+                    <span style="color: #666; font-size: 14px;">${data.fulfillmentMethod === 'delivery' ? `Delivery Fee${data.deliveryDistance ? ' (' + data.deliveryDistance.toFixed(1) + ' km)' : ''}` : 'Shipping'}:</span>
                   </td>
-                  <td style="padding: 5px 0; text-align: right;">
-                    <span style="${data.deliveryFee === 0 ? 'color: #28a745;' : 'color: #2D2D2D;'} font-size: 14px;">
-                      ${data.deliveryFee === 0 ? 'FREE' : '$' + data.deliveryFee.toFixed(2)}
-                    </span>
+                  <td style="padding: 8px 0 8px 20px; text-align: right;">
+                    <span style="color: #2D2D2D; font-size: 14px; font-weight: 600;">$${data.deliveryFee.toFixed(2)}</span>
                   </td>
                 </tr>
+                ` : ''}
                 <tr>
-                  <td style="padding: 15px 0 5px; border-top: 1px solid #ddd;">
-                    <span style="color: #2D2D2D; font-size: 16px; font-weight: 600;">Total</span>
+                  <td style="padding: 8px 0; text-align: right;">
+                    <span style="color: #666; font-size: 14px;">Tax:</span>
                   </td>
-                  <td style="padding: 15px 0 5px; border-top: 1px solid #ddd; text-align: right;">
-                    <span style="color: #D4842A; font-size: 20px; font-weight: 700;">$${data.totalPrice.toFixed(2)}</span>
+                  <td style="padding: 8px 0 8px 20px; text-align: right;">
+                    <span style="color: #2D2D2D; font-size: 14px; font-weight: 600;">Included</span>
+                  </td>
+                </tr>
+                <tr style="border-top: 2px solid #D4842A;">
+                  <td style="padding: 15px 0 0; text-align: right;">
+                    <span style="color: #2D2D2D; font-size: 18px; font-weight: 700;">Total Amount Due:</span>
+                  </td>
+                  <td style="padding: 15px 0 0 20px; text-align: right;">
+                    <span style="color: #D4842A; font-size: 24px; font-weight: 700;">$${data.totalPrice.toFixed(2)}</span>
                   </td>
                 </tr>
               </table>
+            </td>
+          </tr>
+          
+          <!-- Invoice Terms -->
+          <tr>
+            <td style="padding: 0 30px 30px;">
+              <div style="background: #fff8e6; border-left: 4px solid #D4842A; padding: 15px; border-radius: 4px;">
+                <p style="margin: 0 0 5px; font-size: 12px; color: #856404; font-weight: 600;">Invoice Terms & Conditions:</p>
+                <ul style="margin: 5px 0 0; padding-left: 20px; color: #856404; font-size: 11px; line-height: 1.6;">
+                  <li>Payment is due upon receipt of this invoice</li>
+                  <li>E-Transfer payment must include order number in message field</li>
+                  <li>Orders unpaid after 24 hours may be cancelled</li>
+                  <li>Valid ID required for all deliveries (19+ only)</li>
+                  <li>No cash accepted at delivery</li>
+                </ul>
+              </div>
             </td>
           </tr>
           
