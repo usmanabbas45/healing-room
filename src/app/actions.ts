@@ -14,6 +14,7 @@ import {
   transformHikeupProduct,
   getCachedTotalCount,
 } from "@/libs/hikeup";
+import { applyPriceMarkup } from "@/libs/pricing";
 
 // Transform Prisma product to EnrichedProducts format
 function transformProduct(product: any) {
@@ -23,7 +24,7 @@ function transformProduct(product: any) {
     productId: product.id,
     name: product.name,
     description: product.description,
-    price: product.price,
+    price: applyPriceMarkup(product.price), // Apply 15% markup
     category: product.category,
     sizes: product.sizes,
     image: product.images,

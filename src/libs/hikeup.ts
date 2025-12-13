@@ -10,6 +10,7 @@
 import prisma from "@/libs/prisma";
 import https from "https";
 import tls from "tls";
+import { applyPriceMarkup } from "@/libs/pricing";
 
 const HIKEUP_API_BASE = 'https://api.hikeup.com/api/v1';
 
@@ -1100,7 +1101,8 @@ export function transformHikeupProduct(product: any) {
   // ===== EXTRACT PRICE & INVENTORY FROM product_outlets =====
   // Hikeup stores pricing/inventory per outlet, we use the first outlet
   const outlet = product.product_outlets?.[0];
-  const price = outlet?.price_inc_tax || outlet?.price_ex_tax || 0;
+  const basePrice = outlet?.price_inc_tax || outlet?.price_ex_tax || 0;
+  const price = applyPriceMarkup(basePrice); // Apply 15% markup
   const inventory = outlet?.available_inventory || outlet?.on_hand_inventory || 0;
   const costPrice = outlet?.cost_price || 0;
   
@@ -1139,13 +1141,14 @@ export function transformHikeupProduct(product: any) {
                        'Default';
     
     // Get variant price - try multiple sources
-    const variantPrice = variantOutlet?.price_inc_tax || 
-                         variantOutlet?.price_ex_tax || 
-                         v.price_inc_tax ||
-                         v.price_ex_tax ||
-                         v.price ||
-                         v.retail_price ||
-                         price;
+    const baseVariantPrice = variantOutlet?.price_inc_tax || 
+                             variantOutlet?.price_ex_tax || 
+                             v.price_inc_tax ||
+                             v.price_ex_tax ||
+                             v.price ||
+                             v.retail_price ||
+                             basePrice; // Use basePrice before markup
+    const variantPrice = applyPriceMarkup(baseVariantPrice); // Apply 15% markup
     
     // Debug log for each variant
     if (product.product_variants?.length > 1) {
