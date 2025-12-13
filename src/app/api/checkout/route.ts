@@ -5,6 +5,7 @@ import prisma from "@/libs/prisma";
 import { generateOrderNumber } from "@/libs/delivery-config";
 import { rateLimit, rateLimitedResponse } from "@/libs/rate-limit";
 import { generateOrderConfirmationEmail } from "@/libs/email-templates";
+import { createHikeupInvoice } from "@/libs/hikeup-invoice";
 import nodemailer from "nodemailer";
 
 export async function POST(request: NextRequest) {
@@ -140,6 +141,45 @@ export async function POST(request: NextRequest) {
     });
     
     console.log(`✅ Order created: ${orderNumber} for ${session.user.email}`);
+    
+    // Create invoice in Hikeup POS (non-blocking)
+    try {
+      const hikeupResult = await createHikeupInvoice({
+        orderNumber: order.orderNumber,
+        customerName: contactInfo.name,
+        customerEmail: contactInfo.email,
+        customerPhone: contactInfo.phone || undefined,
+        items: order.items.map(item => ({
+          productId: item.productId,
+          productName: item.productName,
+          quantity: item.quantity,
+          price: item.price,
+        })),
+        subtotal: order.subtotal,
+        deliveryFee: order.deliveryFee,
+        total: order.totalPrice,
+        paymentMethod: order.paymentMethod,
+        paymentStatus: order.paymentStatus,
+        transactionDate: order.createdAt,
+        notes: `Online order - ${fulfillmentMethod}${deliveryInstructions ? ` - ${deliveryInstructions}` : ''}`,
+      });
+
+      if (hikeupResult.success) {
+        console.log(`📄 Hikeup invoice created: ID ${hikeupResult.hikeupInvoiceId}`);
+        // Optionally store the Hikeup invoice ID in the order notes
+        await prisma.order.update({
+          where: { id: order.id },
+          data: {
+            notes: `Hikeup Invoice ID: ${hikeupResult.hikeupInvoiceId}`,
+          },
+        });
+      } else {
+        console.warn(`⚠️ Failed to create Hikeup invoice: ${hikeupResult.error}`);
+      }
+    } catch (hikeupError) {
+      // Don't fail the order if Hikeup invoice creation fails
+      console.error("Failed to create Hikeup invoice:", hikeupError);
+    }
     
     // Send confirmation email
     try {

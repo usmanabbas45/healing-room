@@ -1242,7 +1242,7 @@ export interface HikeupCustomer {
 /**
  * POST request to Hikeup API
  */
-async function hikeupPost<T>(endpoint: string, body: any): Promise<T> {
+export async function hikeupPost<T>(endpoint: string, body: any): Promise<T> {
   const token = await getAccessToken();
   
   const url = endpoint.startsWith('http') ? endpoint : `${HIKEUP_API_BASE}${endpoint}`;
