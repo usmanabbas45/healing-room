@@ -1514,8 +1514,15 @@ export async function updateHikeupCustomer(
     }
     
     // Only if user is explicitly updating address, send the address objects
-    if (data.address && Object.keys(data.address).length > 0) {
-      console.log('⚠️ User updating address - sending address objects (this might fail)');
+    // Check if address object exists AND has actual data (not just undefined values)
+    const hasAddressData = data.address && (
+      data.address.line1 || 
+      data.address.city || 
+      data.address.postalCode
+    );
+    
+    if (hasAddressData) {
+      console.log('⚠️ User updating address - sending address objects');
       // User is updating address - send id: 0 to create new OR existing ID to update
       customerData.billing_address_id = 0; // 0 means create/update
       customerData.delivery_address_id = 0;
@@ -1534,6 +1541,8 @@ export async function updateHikeupCustomer(
       };
       
       customerData.shipping_address = { ...customerData.billing_address };
+    } else {
+      console.log('✅ No address update - keeping existing address IDs only');
     }
     
     console.log('✅ Built clean payload with only API-documented fields');

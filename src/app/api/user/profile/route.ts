@@ -111,23 +111,31 @@ export async function PUT(request: NextRequest) {
     if (hikeupConnected && currentUser.hikeupCustomerId) {
       try {
         console.log(`📤 Attempting to update Hikeup customer: ${currentUser.hikeupCustomerId}`);
+        
+        // Build update data - only include address if provided
+        const updateData: any = {
+          firstName,
+          lastName,
+          phone: phone || undefined,
+        };
+        
+        // Only include address if user actually provided address fields
+        if (addressLine1 || city || postalCode) {
+          updateData.address = {
+            line1: addressLine1 || undefined,
+            line2: addressLine2 || undefined,
+            city: city || undefined,
+            province: province || undefined,
+            postalCode: postalCode || undefined,
+            country: country || 'Canada',
+          };
+        }
+        
         // Update Hikeup customer
         await updateHikeupCustomer(
           currentUser.hikeupCustomerId,
           currentUser.email,
-          {
-            firstName,
-            lastName,
-            phone: phone || undefined,
-            address: {
-              line1: addressLine1 || undefined,
-              line2: addressLine2 || undefined,
-              city: city || undefined,
-              province: province || undefined,
-              postalCode: postalCode || undefined,
-              country: country || 'Canada',
-            },
-          }
+          updateData
         );
         console.log(`✅ Hikeup customer updated for user: ${currentUser.email}`);
       } catch (error: any) {
