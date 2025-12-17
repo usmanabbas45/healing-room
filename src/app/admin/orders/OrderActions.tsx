@@ -80,9 +80,21 @@ export function OrderActions({ order }: { order: Order }) {
     // If marking as paid, prompt for payment reference
     if (newStatus === "paid" && order.paymentStatus !== "confirmed") {
       const ref = window.prompt(`Enter e-Transfer reference/confirmation number:\n\nTIP: Check if customer included order number "${order.orderNumber}" in e-transfer message (REQUIRED for order confirmation)`);
+      
+      // If admin cancels the prompt, don't proceed
+      if (ref === null) {
+        return; // User cancelled
+      }
+      
+      // If admin provides empty string, require actual input
+      if (!ref.trim()) {
+        toast.error("E-Transfer confirmation/reference is required to mark as paid.");
+        return;
+      }
+      
       await updateOrder(newStatus, { 
         paymentStatus: "confirmed", 
-        paymentReference: ref || `Order ${order.orderNumber}`,
+        paymentReference: ref.trim(),
         paidAt: new Date().toISOString(),
       });
     } else if (newStatus === "cancelled" || newStatus === "refunded") {
