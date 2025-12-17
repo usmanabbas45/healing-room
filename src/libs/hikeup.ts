@@ -1504,53 +1504,36 @@ export async function updateHikeupCustomer(
       customerData.accepts_marketing = existingCustomer.accepts_marketing;
     }
     
-    // Handle addresses - build clean address objects without internal IDs
+    // TESTING: DON'T send addresses at all - might be causing the 500 error
+    // Just reference existing addresses by ID
+    if (existingCustomer.billing_address_id) {
+      customerData.billing_address_id = existingCustomer.billing_address_id;
+    }
+    if (existingCustomer.delivery_address_id) {
+      customerData.delivery_address_id = existingCustomer.delivery_address_id;
+    }
+    
+    // Only if user is explicitly updating address, send the address objects
     if (data.address && Object.keys(data.address).length > 0) {
-      // User is updating address - send updated billing address
+      console.log('⚠️ User updating address - sending address objects (this might fail)');
+      // User is updating address - send id: 0 to create new OR existing ID to update
+      customerData.billing_address_id = 0; // 0 means create/update
+      customerData.delivery_address_id = 0;
+      
       customerData.billing_address = {
-        address1: data.address.line1 || existingCustomer.billing_address?.address1 || '',
-        address2: data.address.line2 || existingCustomer.billing_address?.address2 || '',
-        city: data.address.city || existingCustomer.billing_address?.city || '',
-        state: data.address.province || existingCustomer.billing_address?.state || '',
+        id: 0, // Tell Hikeup to create/update
+        address1: data.address.line1 || '',
+        address2: data.address.line2 || '',
+        city: data.address.city || '',
+        state: data.address.province || '',
         country_code: 'CA',
         country_name: data.address.country || 'Canada',
-        postcode: data.address.postalCode || existingCustomer.billing_address?.postcode || '',
+        postcode: data.address.postalCode || '',
         receiverName: data.firstName + (data.lastName ? ' ' + data.lastName : ''),
         receiverPhone: data.phone || existingCustomer.phone || '',
       };
       
-      // Set shipping address same as billing by default
       customerData.shipping_address = { ...customerData.billing_address };
-    } else if (existingCustomer.billing_address) {
-      // Keep existing addresses but clean them
-      customerData.billing_address = {
-        address1: existingCustomer.billing_address.address1 || '',
-        address2: existingCustomer.billing_address.address2 || '',
-        city: existingCustomer.billing_address.city || '',
-        state: existingCustomer.billing_address.state || '',
-        country_code: existingCustomer.billing_address.country_code || 'CA',
-        country_name: existingCustomer.billing_address.country_name || 'Canada',
-        postcode: existingCustomer.billing_address.postcode || '',
-        receiverName: existingCustomer.billing_address.receiverName || data.firstName,
-        receiverPhone: existingCustomer.billing_address.receiverPhone || data.phone || '',
-      };
-    }
-    
-    if (existingCustomer.shipping_address) {
-      // Only send shipping address if it exists and we haven't updated it above
-      if (!customerData.shipping_address) {
-        customerData.shipping_address = {
-          address1: existingCustomer.shipping_address.address1 || '',
-          address2: existingCustomer.shipping_address.address2 || '',
-          city: existingCustomer.shipping_address.city || '',
-          state: existingCustomer.shipping_address.state || '',
-          country_code: existingCustomer.shipping_address.country_code || 'CA',
-          country_name: existingCustomer.shipping_address.country_name || 'Canada',
-          postcode: existingCustomer.shipping_address.postcode || '',
-          receiverName: existingCustomer.shipping_address.receiverName || data.firstName,
-          receiverPhone: existingCustomer.shipping_address.receiverPhone || data.phone || '',
-        };
-      }
     }
     
     console.log('✅ Built clean payload with only API-documented fields');
