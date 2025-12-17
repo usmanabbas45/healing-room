@@ -101,8 +101,16 @@ export async function PUT(request: NextRequest) {
     let hikeupUpdateSuccess = true;
     let hikeupError: string | null = null;
 
+    console.log(`🔍 Profile update - Hikeup sync check:`, {
+      hikeupConnected,
+      hasHikeupCustomerId: !!currentUser.hikeupCustomerId,
+      hikeupCustomerId: currentUser.hikeupCustomerId,
+      userEmail: currentUser.email,
+    });
+
     if (hikeupConnected && currentUser.hikeupCustomerId) {
       try {
+        console.log(`📤 Attempting to update Hikeup customer: ${currentUser.hikeupCustomerId}`);
         // Update Hikeup customer
         await updateHikeupCustomer(
           currentUser.hikeupCustomerId,
@@ -127,6 +135,49 @@ export async function PUT(request: NextRequest) {
         hikeupUpdateSuccess = false;
         hikeupError = error.message || 'Failed to sync with POS';
         // Don't throw - we'll still update local DB but warn the user
+      }
+    } else {
+      if (!hikeupConnected) {
+        console.log(`⚠️ Skipping Hikeup update - Not connected`);
+      } else if (!currentUser.hikeupCustomerId) {
+        console.log(`⚠️ User has no hikeupCustomerId - attempting to create/link customer in Hikeup`);
+        try {
+          // Try to create or find the customer in Hikeup
+          const { ensureHikeupCustomer } = await import('@/libs/hikeup');
+          const result = await ensureHikeupCustomer(currentUser.email, name.trim());
+          
+          if (result.customer?.id) {
+            // Save the Hikeup customer ID to our database
+            await prisma.user.update({
+              where: { id: currentUser.id },
+              data: { hikeupCustomerId: result.customer.id.toString() },
+            });
+            console.log(`✅ Linked user to Hikeup customer ID: ${result.customer.id}`);
+            
+            // Now try to update with the new info
+            await updateHikeupCustomer(
+              result.customer.id.toString(),
+              currentUser.email,
+              {
+                firstName,
+                lastName,
+                phone: phone || undefined,
+                address: {
+                  line1: addressLine1 || undefined,
+                  line2: addressLine2 || undefined,
+                  city: city || undefined,
+                  province: province || undefined,
+                  postalCode: postalCode || undefined,
+                  country: country || 'Canada',
+                },
+              }
+            );
+            console.log(`✅ Hikeup customer created and updated`);
+          }
+        } catch (error: any) {
+          console.error('❌ Failed to create/link Hikeup customer:', error);
+          // Don't fail the whole update, just log it
+        }
       }
     }
 

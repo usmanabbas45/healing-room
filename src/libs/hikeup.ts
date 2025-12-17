@@ -1475,10 +1475,10 @@ export async function updateHikeupCustomer(
       throw new Error('No existing customer data found in Hikeup');
     }
     
-    // Use the existing customer payload as the base
-    // Only modify the specific fields we want to update
+    // Use the existing customer payload as the base, but strip out read-only fields
+    // Hikeup returns nested objects that should not be sent back (only IDs)
     const customerData: any = {
-      ...existingCustomer, // Start with the complete existing payload
+      ...existingCustomer,
       first_name: data.firstName,  // Update first name
       email: email,                // Update email
     };
@@ -1501,10 +1501,37 @@ export async function updateHikeupCustomer(
         ...(data.address.line2 && { address2: data.address.line2 }),
         ...(data.address.city && { city: data.address.city }),
         ...(data.address.province && { state: data.address.province }),
-        ...(data.address.postalCode && { zip: data.address.postalCode }),
-        ...(data.address.country && { country: data.address.country }),
+        ...(data.address.postalCode && { postcode: data.address.postalCode }),
+        ...(data.address.country && { country_code: 'CA', country_name: data.address.country }),
       };
     }
+    
+    // CRITICAL: Remove read-only/computed fields that cause 500 errors
+    // Hikeup says "use same payload" but they don't want EVERYTHING back
+    delete customerData.customer_group;       // Only send customer_group_id, not the full object
+    delete customerData.created_date;         // System-generated, read-only
+    delete customerData.last_modified;        // System-generated, read-only
+    delete customerData.loyalty_balance;      // Computed field
+    delete customerData.reward_points_used;   // Computed field
+    delete customerData.account_balance;      // Computed field
+    delete customerData.credit_balance;       // Computed field
+    delete customerData.billing_address_id;   // Causes conflict with billing_address object
+    delete customerData.delivery_address_id;  // Causes conflict with shipping_address object
+    delete customerData.delivery_address;     // We use shipping_address instead
+    
+    // Clean up nested address objects - remove ID fields that cause conflicts
+    if (customerData.billing_address) {
+      delete customerData.billing_address.id;
+      // Remove redundant 'country' field if we have country_code
+      if (customerData.billing_address.country_code) {
+        delete customerData.billing_address.country;
+      }
+    }
+    if (customerData.shipping_address) {
+      delete customerData.shipping_address.id;
+    }
+    
+    console.log('🧹 Cleaned payload - removed read-only fields');
     
     console.log('🔄 CHANGES BEING APPLIED:');
     if (existingCustomer.first_name !== customerData.first_name) {
