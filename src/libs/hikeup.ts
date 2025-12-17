@@ -1475,63 +1475,85 @@ export async function updateHikeupCustomer(
       throw new Error('No existing customer data found in Hikeup');
     }
     
-    // Use the existing customer payload as the base, but strip out read-only fields
-    // Hikeup returns nested objects that should not be sent back (only IDs)
+    // Build a clean payload with ONLY fields from the API docs
+    // Don't use the full GET response - too many fields cause conflicts
     const customerData: any = {
-      ...existingCustomer,
-      first_name: data.firstName,  // Update first name
-      email: email,                // Update email
+      id: existingCustomer.id,              // Required for update
+      first_name: data.firstName,           // Required
+      email: email,                         // Required
+      last_name: data.lastName || existingCustomer.last_name || '',
+      phone: data.phone || existingCustomer.phone || '',
+      customer_group_id: existingCustomer.customer_group_id || 1,
+      isActive: existingCustomer.isActive ?? true,
     };
     
-    // Update optional fields only if provided
-    if (data.lastName) {
-      customerData.last_name = data.lastName;
+    // Only include optional fields if they exist
+    if (existingCustomer.company_name) {
+      customerData.company_name = existingCustomer.company_name;
+    }
+    if (existingCustomer.customer_code) {
+      customerData.customer_code = existingCustomer.customer_code;
+    }
+    if (existingCustomer.notes) {
+      customerData.notes = existingCustomer.notes;
+    }
+    if (existingCustomer.loyalty_rewards_status !== undefined) {
+      customerData.loyalty_rewards_status = existingCustomer.loyalty_rewards_status;
+    }
+    if (existingCustomer.accepts_marketing !== undefined) {
+      customerData.accepts_marketing = existingCustomer.accepts_marketing;
     }
     
-    if (data.phone) {
-      customerData.phone = data.phone;
-    }
-    
-    // Update address if provided
+    // Handle addresses - build clean address objects without internal IDs
     if (data.address && Object.keys(data.address).length > 0) {
-      // Merge address updates into existing billing_address structure
+      // User is updating address - send updated billing address
       customerData.billing_address = {
-        ...(existingCustomer.billing_address || {}),
-        ...(data.address.line1 && { address1: data.address.line1 }),
-        ...(data.address.line2 && { address2: data.address.line2 }),
-        ...(data.address.city && { city: data.address.city }),
-        ...(data.address.province && { state: data.address.province }),
-        ...(data.address.postalCode && { postcode: data.address.postalCode }),
-        ...(data.address.country && { country_code: 'CA', country_name: data.address.country }),
+        address1: data.address.line1 || existingCustomer.billing_address?.address1 || '',
+        address2: data.address.line2 || existingCustomer.billing_address?.address2 || '',
+        city: data.address.city || existingCustomer.billing_address?.city || '',
+        state: data.address.province || existingCustomer.billing_address?.state || '',
+        country_code: 'CA',
+        country_name: data.address.country || 'Canada',
+        postcode: data.address.postalCode || existingCustomer.billing_address?.postcode || '',
+        receiverName: data.firstName + (data.lastName ? ' ' + data.lastName : ''),
+        receiverPhone: data.phone || existingCustomer.phone || '',
+      };
+      
+      // Set shipping address same as billing by default
+      customerData.shipping_address = { ...customerData.billing_address };
+    } else if (existingCustomer.billing_address) {
+      // Keep existing addresses but clean them
+      customerData.billing_address = {
+        address1: existingCustomer.billing_address.address1 || '',
+        address2: existingCustomer.billing_address.address2 || '',
+        city: existingCustomer.billing_address.city || '',
+        state: existingCustomer.billing_address.state || '',
+        country_code: existingCustomer.billing_address.country_code || 'CA',
+        country_name: existingCustomer.billing_address.country_name || 'Canada',
+        postcode: existingCustomer.billing_address.postcode || '',
+        receiverName: existingCustomer.billing_address.receiverName || data.firstName,
+        receiverPhone: existingCustomer.billing_address.receiverPhone || data.phone || '',
       };
     }
     
-    // CRITICAL: Remove read-only/computed fields that cause 500 errors
-    // Hikeup says "use same payload" but they don't want EVERYTHING back
-    delete customerData.customer_group;       // Only send customer_group_id, not the full object
-    delete customerData.created_date;         // System-generated, read-only
-    delete customerData.last_modified;        // System-generated, read-only
-    delete customerData.loyalty_balance;      // Computed field
-    delete customerData.reward_points_used;   // Computed field
-    delete customerData.account_balance;      // Computed field
-    delete customerData.credit_balance;       // Computed field
-    delete customerData.billing_address_id;   // Causes conflict with billing_address object
-    delete customerData.delivery_address_id;  // Causes conflict with shipping_address object
-    delete customerData.delivery_address;     // We use shipping_address instead
-    
-    // Clean up nested address objects - remove ID fields that cause conflicts
-    if (customerData.billing_address) {
-      delete customerData.billing_address.id;
-      // Remove redundant 'country' field if we have country_code
-      if (customerData.billing_address.country_code) {
-        delete customerData.billing_address.country;
+    if (existingCustomer.shipping_address) {
+      // Only send shipping address if it exists and we haven't updated it above
+      if (!customerData.shipping_address) {
+        customerData.shipping_address = {
+          address1: existingCustomer.shipping_address.address1 || '',
+          address2: existingCustomer.shipping_address.address2 || '',
+          city: existingCustomer.shipping_address.city || '',
+          state: existingCustomer.shipping_address.state || '',
+          country_code: existingCustomer.shipping_address.country_code || 'CA',
+          country_name: existingCustomer.shipping_address.country_name || 'Canada',
+          postcode: existingCustomer.shipping_address.postcode || '',
+          receiverName: existingCustomer.shipping_address.receiverName || data.firstName,
+          receiverPhone: existingCustomer.shipping_address.receiverPhone || data.phone || '',
+        };
       }
     }
-    if (customerData.shipping_address) {
-      delete customerData.shipping_address.id;
-    }
     
-    console.log('🧹 Cleaned payload - removed read-only fields');
+    console.log('✅ Built clean payload with only API-documented fields');
     
     console.log('🔄 CHANGES BEING APPLIED:');
     if (existingCustomer.first_name !== customerData.first_name) {
