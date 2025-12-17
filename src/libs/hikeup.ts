@@ -1460,26 +1460,30 @@ export async function updateHikeupCustomer(
 
     console.log(`📝 Updating Hikeup customer ID: ${hikeupCustomerId}`);
     
-    // First, fetch the existing customer to see the current state
+    // CRITICAL: Fetch the existing customer data from Hikeup first
+    // As per Hikeup support: "use the same payload that you receive from the GET API"
     let existingCustomer: any = null;
     try {
       existingCustomer = await hikeupFetch<any>(`/customers/get/${hikeupCustomerId}`);
-      console.log('📥 Existing Hikeup customer data:', JSON.stringify(existingCustomer, null, 2));
+      console.log('📥 Fetched existing Hikeup customer for update');
     } catch (fetchError) {
-      console.log('⚠️ Could not fetch existing customer:', fetchError);
+      console.error('❌ Could not fetch existing customer:', fetchError);
+      throw new Error('Failed to fetch existing customer data from Hikeup');
     }
     
-    // Build customer data - ABSOLUTE MINIMUM (only required fields per API docs)
-    // Testing to find what Hikeup actually accepts
+    if (!existingCustomer) {
+      throw new Error('No existing customer data found in Hikeup');
+    }
+    
+    // Use the existing customer payload as the base
+    // Only modify the specific fields we want to update
     const customerData: any = {
-      first_name: data.firstName,  // required
-      email: email,                // required
+      ...existingCustomer, // Start with the complete existing payload
+      first_name: data.firstName,  // Update first name
+      email: email,                // Update email
     };
     
-    // Add id for update (not create)
-    customerData.id = parseInt(hikeupCustomerId, 10);
-    
-    // Add optional fields one by one
+    // Update optional fields only if provided
     if (data.lastName) {
       customerData.last_name = data.lastName;
     }
@@ -1488,30 +1492,32 @@ export async function updateHikeupCustomer(
       customerData.phone = data.phone;
     }
     
-    // DON'T send address IDs - might be causing the issue
+    // Update address if provided
+    if (data.address && Object.keys(data.address).length > 0) {
+      // Merge address updates into existing billing_address structure
+      customerData.billing_address = {
+        ...(existingCustomer.billing_address || {}),
+        ...(data.address.line1 && { address1: data.address.line1 }),
+        ...(data.address.line2 && { address2: data.address.line2 }),
+        ...(data.address.city && { city: data.address.city }),
+        ...(data.address.province && { state: data.address.province }),
+        ...(data.address.postalCode && { zip: data.address.postalCode }),
+        ...(data.address.country && { country: data.address.country }),
+      };
+    }
     
-    console.log('📤 Hikeup customer UPDATE data:', JSON.stringify(customerData, null, 2));
-    
-    // Log comparison of what changed
-    if (existingCustomer) {
-      console.log('🔄 CHANGES DETECTED:');
-      if (existingCustomer.first_name !== customerData.first_name) {
-        console.log(`   first_name: "${existingCustomer.first_name}" → "${customerData.first_name}"`);
-      }
-      if (existingCustomer.last_name !== customerData.last_name) {
-        console.log(`   last_name: "${existingCustomer.last_name}" → "${customerData.last_name}"`);
-      }
-      if (existingCustomer.phone !== customerData.phone) {
-        console.log(`   phone: "${existingCustomer.phone}" → "${customerData.phone}"`);
-      }
-      if (existingCustomer.email !== customerData.email) {
-        console.log(`   email: "${existingCustomer.email}" → "${customerData.email}"`);
-      }
-      if (customerData.billing_address) {
-        console.log('   billing_address: updating');
-        console.log(`     address1: "${existingCustomer.billing_address?.address1}" → "${customerData.billing_address.address1}"`);
-        console.log(`     city: "${existingCustomer.billing_address?.city}" → "${customerData.billing_address.city}"`);
-      }
+    console.log('🔄 CHANGES BEING APPLIED:');
+    if (existingCustomer.first_name !== customerData.first_name) {
+      console.log(`   first_name: "${existingCustomer.first_name}" → "${customerData.first_name}"`);
+    }
+    if (existingCustomer.last_name !== customerData.last_name) {
+      console.log(`   last_name: "${existingCustomer.last_name}" → "${customerData.last_name}"`);
+    }
+    if (existingCustomer.phone !== customerData.phone) {
+      console.log(`   phone: "${existingCustomer.phone}" → "${customerData.phone}"`);
+    }
+    if (existingCustomer.email !== customerData.email) {
+      console.log(`   email: "${existingCustomer.email}" → "${customerData.email}"`);
     }
     
     const response = await hikeupPost<HikeupCustomer>('/customers/createOrUpdate', customerData);
