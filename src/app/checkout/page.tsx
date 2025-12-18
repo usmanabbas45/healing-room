@@ -87,7 +87,7 @@ export default function CheckoutPage() {
   const deliveryFee = fulfillmentMethod === "pickup" ? 0 :
     fulfillmentMethod === "delivery" ? 
       (calculatedDeliveryFee !== null ? calculatedDeliveryFee : 0) : // Use calculated fee for delivery
-      (subtotal >= SHIPPING_FEES.freeShippingMinimum ? 0 : SHIPPING_FEES.standard);
+      SHIPPING_FEES.xpresspost; // Flat $25 Xpresspost rate
   const total = subtotal + deliveryFee;
   
   // Load cart and user data
@@ -400,23 +400,16 @@ export default function CheckoutPage() {
                       />
                       <div className="ml-3 flex-1">
                         <div className="flex items-center justify-between">
-                          <span className="font-medium text-text-primary">Shipping</span>
+                          <span className="font-medium text-text-primary">Canada Post Xpresspost</span>
                           <span className="text-text-primary font-medium">
-                            {subtotal >= SHIPPING_FEES.freeShippingMinimum ? (
-                              <span className="text-green-600">FREE</span>
-                            ) : (
-                              `$${SHIPPING_FEES.standard.toFixed(2)}`
-                            )}
+                            ${SHIPPING_FEES.xpresspost.toFixed(2)}
                           </span>
                         </div>
                         <p className="text-sm text-text-muted mt-1">
-                          Canada-wide shipping
+                          Shipping anywhere in Canada
                         </p>
                         <p className="text-xs text-text-muted mt-1">
-                          2-5 business days
-                          {subtotal < SHIPPING_FEES.freeShippingMinimum && (
-                            <> • Free shipping on orders over ${SHIPPING_FEES.freeShippingMinimum}</>
-                          )}
+                          2-5 business days • Includes tracking
                         </p>
                       </div>
                     </label>
@@ -613,7 +606,7 @@ export default function CheckoutPage() {
                   ) : (
                     <>
                   <h2 className="text-lg lg:text-xl font-semibold text-text-primary">
-                        Shipping Speed
+                        Shipping Method
                   </h2>
                   
                     <div className="space-y-3">
@@ -623,16 +616,12 @@ export default function CheckoutPage() {
                         <input type="radio" checked readOnly className="mt-1 text-primary" />
                         <div className="ml-3 flex-1">
                           <div className="flex items-center justify-between">
-                            <span className="font-medium text-text-primary">Standard Shipping</span>
+                            <span className="font-medium text-text-primary">Canada Post Xpresspost</span>
                             <span className="font-medium text-text-primary">
-                              {subtotal >= SHIPPING_FEES.freeShippingMinimum ? (
-                                <span className="text-green-600">FREE</span>
-                              ) : (
-                                `$${SHIPPING_FEES.standard.toFixed(2)}`
-                              )}
+                              ${SHIPPING_FEES.xpresspost.toFixed(2)}
                             </span>
                           </div>
-                          <p className="text-sm text-text-muted mt-1">2-5 business days</p>
+                          <p className="text-sm text-text-muted mt-1">2-5 business days • Includes tracking</p>
                         </div>
                       </label>
                     </div>

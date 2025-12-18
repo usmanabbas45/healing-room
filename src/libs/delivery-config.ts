@@ -32,11 +32,10 @@ export const DELIVERY_FEES = {
   freeDeliveryMinimum: 100, // Free delivery for orders over $100
 };
 
-// Shipping fees (for orders outside delivery radius)
+// Shipping fees - Canada Post Xpresspost
 export const SHIPPING_FEES = {
-  standard: 15.00, // Flat rate shipping
-  express: 25.00, // Express shipping
-  freeShippingMinimum: 150, // Free shipping for orders over $150
+  xpresspost: 25.00, // Flat rate Xpresspost with tracking (Canada-wide)
+  freeShippingMinimum: null, // No free shipping threshold - always $25
 };
 
 // Available delivery time slots
@@ -74,12 +73,10 @@ export function calculateDeliveryFee(distanceKm: number, orderTotal: number): nu
   return -1; // Indicates delivery not available
 }
 
-// Calculate shipping fee based on order total
-export function calculateShippingFee(orderTotal: number, express: boolean = false): number {
-  if (orderTotal >= SHIPPING_FEES.freeShippingMinimum) {
-    return 0;
-  }
-  return express ? SHIPPING_FEES.express : SHIPPING_FEES.standard;
+// Calculate shipping fee - flat $25 Xpresspost rate for all Canadian addresses
+export function calculateShippingFee(orderTotal: number): number {
+  // Always $25 - no free shipping threshold
+  return SHIPPING_FEES.xpresspost;
 }
 
 // Check if same-day delivery is available

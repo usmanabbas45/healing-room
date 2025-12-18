@@ -1521,7 +1521,7 @@ export async function updateHikeupCustomer(
       data.address.postalCode
     );
     
-    if (hasAddressData) {
+    if (hasAddressData && data.address) {
       console.log('⚠️ User updating address - sending address objects');
       // User is updating address - send id: 0 to create new OR existing ID to update
       customerData.billing_address_id = 0; // 0 means create/update
