@@ -54,6 +54,7 @@ export async function GET(request: NextRequest) {
 
   const searchParams = request.nextUrl.searchParams;
   const code = searchParams.get('code');
+  const state = searchParams.get('state');
   const error = searchParams.get('error');
 
   if (error) {
@@ -62,6 +63,34 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(
       new URL(`/admin?error=hikeup_auth_failed&message=${error}`, baseUrl)
     );
+  }
+
+  // VALIDATE STATE PARAMETER (CSRF protection)
+  // Per Hikeup docs: "If the states don't match, the request may have been created by a third party"
+  if (state) {
+    try {
+      const stateData = JSON.parse(Buffer.from(state, 'base64').toString());
+      const stateAge = Date.now() - stateData.timestamp;
+      
+      // Reject if state is older than 10 minutes (same as auth code expiry per Hikeup docs)
+      if (stateAge > 10 * 60 * 1000) {
+        console.error('❌ State expired - possible replay attack');
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || request.url;
+        return NextResponse.redirect(
+          new URL('/admin?error=hikeup_auth_failed&message=state_expired', baseUrl)
+        );
+      }
+      
+      console.log('✅ State validation passed');
+    } catch (e) {
+      console.error('❌ Invalid state parameter - possible CSRF attack:', e);
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || request.url;
+      return NextResponse.redirect(
+        new URL('/admin?error=hikeup_auth_failed&message=invalid_state', baseUrl)
+      );
+    }
+  } else {
+    console.warn('⚠️ No state parameter received (should always be present)');
   }
 
   if (!code) {
