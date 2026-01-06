@@ -3,7 +3,7 @@
  */
 export const PRODUCT_TYPES = [
   { id: 'all', name: 'All Products' },
-  { id: 'cannabis', name: 'Cannabis' },
+  { id: 'cannabis', name: 'All Cannabis' },
   { id: 'cannabis-flower', name: 'Cannabis Flower' },
   { id: 'indica', name: 'Indica' },
   { id: 'sativa', name: 'Sativa' },

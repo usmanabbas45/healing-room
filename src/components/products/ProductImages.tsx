@@ -25,7 +25,7 @@ export const ProductImages = ({ name, selectedVariant }: ProductImages) => {
     <>
       <div className="flex lg:hidden">
         <Carousel
-          className="w-full min-w-[250px] rounded-md overflow-hidden"
+          className="w-full min-w-[250px] overflow-hidden"
           opts={{
             align: "start",
             loop: true,
@@ -51,24 +51,15 @@ export const ProductImages = ({ name, selectedVariant }: ProductImages) => {
         </Carousel>
       </div>
 
-      <div className="lg:grid hidden grid-cols-2 gap-0.5 min-w-grid-img">
-        {selectedVariant.images.map((image: string, index: number) => (
-          <div
-            className="inline-block w-full max-w-2xl mx-auto overflow-hidden rounded"
-            key={index}
-          >
-            <Images
-              image={[image]}
-              name={`${name} ${selectedVariant.color} - Image ${index + 1}`}
-              width={850}
-              height={1275}
-              priority={true}
-              sizes="(max-width: 1024px) 100vw,
-              (max-width: 1300px) 50vw,
-              (max-width: 1536px) 33vw"
-            />
-          </div>
-        ))}
+      <div className="lg:block hidden">
+        <Images
+          image={selectedVariant.images}
+          name={name}
+          width={400}
+          height={600}
+          priority={true}
+          sizes="(max-width: 1024px) 100vw, 33vw"
+        />
       </div>
     </>
   );

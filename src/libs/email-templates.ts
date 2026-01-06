@@ -236,8 +236,8 @@ export function generateOrderConfirmationEmail(data: OrderEmailData): { subject:
                       <td style="text-align: center; color: #666; padding: 15px 12px; font-size: 14px;">${item.quantity}</td>
                       <td style="text-align: right; color: #666; padding: 15px 12px; font-size: 14px;">$${item.price.toFixed(2)}</td>
                       <td style="text-align: right; color: #2D2D2D; padding: 15px 12px; font-weight: 600; font-size: 14px;">$${(item.price * item.quantity).toFixed(2)}</td>
-                    </tr>
-                  `).join('')}
+                  </tr>
+                `).join('')}
                 </tbody>
               </table>
             </td>

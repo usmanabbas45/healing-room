@@ -398,10 +398,10 @@ export function ContactDialog({ open, onOpenChange }: ContactDialogProps) {
                     Try Again
                   </button>
                   <a
-                    href="tel:+13653367919"
+                    href="mailto:info@healingroomsixnations.ca"
                     className="px-6 py-3 bg-primary text-white rounded-lg font-medium hover:bg-primary-dark transition-colors"
                   >
-                    Call Us
+                    Email Us
                   </a>
                 </div>
               </div>

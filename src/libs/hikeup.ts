@@ -65,6 +65,7 @@ function isAllProductsCacheValid(): boolean {
 }
 
 function clearAllCaches() {
+  console.log('🧹 Clearing all Hikeup caches...');
   cache.products = [];
   cache.totalCount = 0;
   cache.timestamp = 0;
@@ -72,6 +73,12 @@ function clearAllCaches() {
   cache.productTypes = null;
   cache.productById.clear();
   cache.search.clear();
+  console.log('✅ All caches cleared');
+}
+
+// Export for manual cache clearing if needed
+export function clearHikeupCache() {
+  clearAllCaches();
 }
 
 /**
@@ -154,13 +161,41 @@ async function loadAllProductsIntoCache(): Promise<void> {
       }
     }
     
-    // Update global cache
-    cache.products = allProducts;
-    cache.totalCount = allProducts.length;
+    // DEDUPLICATE: Remove variant products before caching
+    // Hikeup returns both parent products (with product_variants) AND separate variant products
+    console.log(`🔍 Deduplicating ${allProducts.length} products...`);
+    
+    const productGroups = new Map<string, any[]>();
+    
+    allProducts.forEach((product: any) => {
+      const productName = product.product_name || product.name || '';
+      const baseName = productName.split(' / ')[0].trim().toLowerCase();
+      
+      if (!productGroups.has(baseName)) {
+        productGroups.set(baseName, []);
+      }
+      productGroups.get(baseName)!.push(product);
+    });
+    
+    const deduplicatedProducts = Array.from(productGroups.values()).map(group => {
+      if (group.length === 1) {
+        return group[0];
+      }
+      
+      // Pick parent product (one with product_variants array)
+      const parent = group.find(p => p.product_variants && p.product_variants.length > 0);
+      return parent || group[0];
+    });
+    
+    console.log(`✅ Deduplicated to ${deduplicatedProducts.length} unique products`);
+    
+    // Update global cache with deduplicated products
+    cache.products = deduplicatedProducts;
+    cache.totalCount = deduplicatedProducts.length;
     cache.timestamp = Date.now();
     cache.isLoading = false;
     
-    console.log(`✅ Server cache loaded: ${allProducts.length} products (valid for ${CACHE_TTL / 60000} minutes)`);
+    console.log(`✅ Server cache loaded: ${deduplicatedProducts.length} products (valid for ${CACHE_TTL / 60000} minutes)`);
     
   } catch (error) {
     console.error('❌ Error loading products into cache:', error);
@@ -1047,8 +1082,52 @@ export async function searchHikeupProducts(query: string): Promise<HikeupProduct
            brand.includes(searchKey);
   });
   
-  // Cache results
-  cache.search.set(searchKey, { results, timestamp: Date.now() });
+  console.log(`🔍 Raw search results: ${results.length} products`);
+  console.log(`🔍 Product names:`, results.map(p => p.name || p.product_name).slice(0, 10));
+  
+  // DEDUPLICATE: Group by base product name and keep only parent products
+  // Hikeup returns both parent products (with product_variants array) AND separate variant products
+  // Strategy: Group by base name, prefer products with product_variants array
+  const productGroups = new Map<string, any[]>();
+  
+  results.forEach((product: any) => {
+    const productName = product.product_name || product.name || '';
+    // Extract base name (remove " / variant" suffix if present)
+    const baseName = productName.split(' / ')[0].trim().toLowerCase();
+    
+    if (!productGroups.has(baseName)) {
+      productGroups.set(baseName, []);
+    }
+    productGroups.get(baseName)!.push(product);
+  });
+  
+  // For each group, pick the best representative (parent product)
+  const deduplicated = Array.from(productGroups.values()).map(group => {
+    if (group.length === 1) {
+      return group[0]; // Only one product, keep it
+    }
+    
+    // Multiple products with same base name - pick parent (one with product_variants)
+    const parent = group.find(p => p.product_variants && p.product_variants.length > 0);
+    
+    if (parent) {
+      console.log(`✅ Keeping parent product: "${parent.name}" (${parent.product_variants.length} variants)`);
+      group.forEach(p => {
+        if (p.id !== parent.id) {
+          console.log(`❌ Filtering out duplicate: "${p.name}"`);
+        }
+      });
+      return parent;
+    }
+    
+    // No parent found, just keep the first one
+    return group[0];
+  });
+  
+  console.log(`✅ After deduplication: ${deduplicated.length} unique parent products (from ${results.length} raw results)`);
+  
+  // Cache deduplicated results
+  cache.search.set(searchKey, { results: deduplicated, timestamp: Date.now() });
   
   // Clean old cache entries (keep only last 20 searches)
   if (cache.search.size > 20) {
@@ -1056,8 +1135,8 @@ export async function searchHikeupProducts(query: string): Promise<HikeupProduct
     if (oldestKey) cache.search.delete(oldestKey);
   }
   
-  console.log(`🔍 Search complete: ${results.length} results (from ${allProducts.length} cached products)`);
-  return results;
+  console.log(`🔍 Search complete: ${deduplicated.length} results (from ${allProducts.length} cached products)`);
+  return deduplicated;
 }
 
 /**

@@ -28,7 +28,7 @@ const faqs = [
   },
   {
     question: "Do you offer delivery?",
-    answer: "Please contact us at (365) 336-7919 or email info@healingroomsixnations.ca to inquire about delivery options.",
+    answer: "Please email us at info@healingroomsixnations.ca or use our AI chat assistant to inquire about delivery options.",
   },
   {
     question: "What payment methods do you accept?",
@@ -316,7 +316,7 @@ export default function Home() {
                 />
               </div>
               <div className="p-4 text-center bg-gradient-to-br from-[#f0ece6] via-[#e8e4dd] to-[#ddd8cf] flex-1 flex flex-col justify-center">
-                <h3 className="font-semibold text-text-primary text-sm md:text-base">Cannabis</h3>
+                <h3 className="font-semibold text-text-primary text-sm md:text-base">All Cannabis</h3>
                 <p className="text-xs text-text-muted mt-1">All Products</p>
               </div>
             </Link>
@@ -710,6 +710,102 @@ export default function Home() {
           </div>
         </div>
     </section>
+
+      {/* FAQ Section */}
+      <section className="relative py-20 md:py-28 bg-white overflow-hidden">
+        {/* Decorative Background Elements */}
+        <div className="absolute inset-0">
+          <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/5 rounded-full blur-3xl" />
+          <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-primary/5 rounded-full blur-3xl" />
+        </div>
+        
+        {/* Subtle pattern */}
+        <div className="absolute inset-0 opacity-30" style={{
+          backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(212, 132, 42, 0.1) 1px, transparent 0)',
+          backgroundSize: '40px 40px'
+        }} />
+
+        {/* Top decorative element */}
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
+
+        <div className="container mx-auto px-6 relative z-10">
+          <div className="text-center mb-16">
+            <div className="inline-flex items-center gap-2 bg-primary/10 border border-primary/30 rounded-full px-4 py-2 mb-6">
+              <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span className="text-xs tracking-widest text-primary uppercase font-medium">Common Questions</span>
+            </div>
+            <h2 className="text-3xl md:text-5xl font-light text-text-primary mb-6">
+              Frequently Asked Questions
+            </h2>
+            <p className="text-text-light max-w-2xl mx-auto text-lg">
+              Find answers to the most common questions about our products, services, and policies.
+            </p>
+          </div>
+
+          <div className="max-w-4xl mx-auto space-y-3">
+            {faqs.map((faq, index) => (
+              <details
+                key={index}
+                className="group bg-gradient-to-br from-white to-[#fdfcfa] border border-border-primary rounded-2xl overflow-hidden hover:shadow-xl hover:border-primary/40 transition-all duration-300"
+              >
+                <summary className="flex items-center justify-between p-6 cursor-pointer list-none hover:bg-primary/5">
+                  <div className="flex items-center gap-4 flex-1 pr-4">
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/30 flex items-center justify-center flex-shrink-0">
+                      <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <span className="font-medium text-text-primary text-left">
+                      {faq.question}
+                    </span>
+                  </div>
+                  <svg
+                    className="w-5 h-5 text-primary flex-shrink-0 transition-transform duration-300 group-open:rotate-180"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </summary>
+                <div className="px-6 pb-6 text-text-light leading-relaxed border-t border-border-primary pt-6 ml-12">
+                  {faq.answer}
+                </div>
+              </details>
+            ))}
+          </div>
+
+          {/* CTA after FAQs */}
+          <div className="text-center mt-16">
+            <div className="inline-flex flex-col items-center bg-gradient-to-br from-[#f8f5f0] to-white border border-border-primary rounded-2xl p-8 max-w-2xl mx-auto shadow-lg">
+              <div className="w-12 h-12 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center mb-4">
+                <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-medium text-text-primary mb-2">Still have questions?</h3>
+              <p className="text-text-muted mb-6 text-sm">Our team is here to help you find what you need</p>
+              <div className="flex flex-col sm:flex-row justify-center gap-3 w-full sm:w-auto">
+                <ContactButton className="bg-primary text-white hover:bg-primary-dark rounded-full px-6 py-3 text-sm font-medium justify-center transition-all hover:scale-105" />
+                <Link
+                  href="/shop"
+                  className="inline-flex items-center justify-center gap-2 bg-white border border-border-primary text-text-primary px-6 py-3 rounded-full text-sm font-medium hover:bg-bg-alt hover:border-primary/40 transition-all hover:scale-105"
+                >
+                  Browse Products
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                  </svg>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom decorative element */}
+        <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
+      </section>
 
       {/* Connect Section - Prominent but Clean */}
       <section className="py-20 md:py-28 bg-[#2D2D2D] relative overflow-hidden">

@@ -77,10 +77,10 @@ export const Footer = () => {
             Ontario, Canada
           </p>
           <a 
-            href="tel:+13653367919" 
+            href="mailto:info@healingroomsixnations.ca" 
             className={linkStyles}
           >
-            (365) 336-7919
+            info@healingroomsixnations.ca
           </a>
           <div className="mt-3">
             <a

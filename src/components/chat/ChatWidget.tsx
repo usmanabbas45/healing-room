@@ -88,7 +88,7 @@ export default function ChatWidget() {
       console.error("Chat error:", error);
       setMessages([...newMessages, {
         role: "assistant",
-        content: "I'm sorry, I'm having trouble connecting right now. Please try again in a moment, or feel free to call us at (365) 336-7919 for immediate assistance.",
+        content: "I'm sorry, I'm having trouble connecting right now. Please try again in a moment, or email us at info@healingroomsixnations.ca for immediate assistance.",
       }]);
     } finally {
       setIsLoading(false);

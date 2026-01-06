@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
           <p style="color: #2D2D2D;">
             <strong>7147 Indian Line Rd</strong><br>
             Norfolk County, ON N0E 1Z0<br>
-            <a href="tel:+13653367919" style="color: #D4842A;">(365) 336-7919</a>
+            <a href="mailto:info@healingroomsixnations.ca" style="color: #D4842A;">info@healingroomsixnations.ca</a>
           </p>
           
           <p>We're open 7 days a week, 9 AM - 10 PM.</p>

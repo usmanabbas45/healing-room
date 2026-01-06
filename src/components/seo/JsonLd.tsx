@@ -11,7 +11,7 @@ export function LocalBusinessJsonLd() {
     url: 'https://healingroomsixnations.ca',
     logo: 'https://healingroomsixnations.ca/logo.png',
     image: 'https://healingroomsixnations.ca/og-image.png',
-    telephone: '+1-365-336-7919',
+    email: 'info@healingroomsixnations.ca',
     email: 'info@healingroomsixnations.ca',
     priceRange: '$$',
     currenciesAccepted: 'CAD',
@@ -249,7 +249,7 @@ export function OrganizationJsonLd() {
     },
     contactPoint: {
       '@type': 'ContactPoint',
-      telephone: '+1-365-336-7919',
+      email: 'info@healingroomsixnations.ca',
       contactType: 'customer service',
       email: 'info@healingroomsixnations.ca',
       availableLanguage: ['English'],

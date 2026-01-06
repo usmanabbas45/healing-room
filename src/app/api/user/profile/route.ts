@@ -165,24 +165,24 @@ export async function PUT(request: NextRequest) {
             // Now try to update with the new info
             await updateHikeupCustomer(
               result.customer.id.toString(),
-              currentUser.email,
-              {
-                firstName,
-                lastName,
-                phone: phone || undefined,
-                address: {
-                  line1: addressLine1 || undefined,
-                  line2: addressLine2 || undefined,
-                  city: city || undefined,
-                  province: province || undefined,
-                  postalCode: postalCode || undefined,
-                  country: country || 'Canada',
-                },
-              }
-            );
+          currentUser.email,
+          {
+            firstName,
+            lastName,
+            phone: phone || undefined,
+            address: {
+              line1: addressLine1 || undefined,
+              line2: addressLine2 || undefined,
+              city: city || undefined,
+              province: province || undefined,
+              postalCode: postalCode || undefined,
+              country: country || 'Canada',
+            },
+          }
+        );
             console.log(`✅ Hikeup customer created and updated`);
           }
-        } catch (error: any) {
+      } catch (error: any) {
           console.error('❌ Failed to create/link Hikeup customer:', error);
           // Don't fail the whole update, just log it
         }

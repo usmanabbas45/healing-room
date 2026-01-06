@@ -142,7 +142,7 @@ const OrderDetails = async ({ params }: { params: { id: string } }) => {
             <div className="mt-6 pt-4 border-t border-border-primary">
               <h3 className="text-sm font-medium text-text-primary mb-2">Questions?</h3>
               <p className="text-sm text-text-muted">
-                Call us at <a href="tel:+13653367919" className="text-primary hover:underline">(365) 336-7919</a>
+                Email us at <a href="mailto:info@healingroomsixnations.ca" className="text-primary hover:underline">info@healingroomsixnations.ca</a> or use our AI chat assistant
               </p>
             </div>
           </div>
