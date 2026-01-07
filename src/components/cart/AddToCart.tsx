@@ -63,7 +63,11 @@ export default function AddToCart({
         selectedVariant.priceId,
         selectedVariant.price || product.price,
         product.name,
-        product.images?.[0] || product.image?.[0] || '/logo.png'
+        product.images?.[0] || product.image?.[0] || '/logo.png',
+        (product as any).originalPrice,
+        (product as any).discountPercentage,
+        (product as any).discountAmount,
+        (product as any).offerName
       );
       
       if (result.success) {

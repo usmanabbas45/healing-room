@@ -61,15 +61,55 @@ export const SingleProduct = ({ product, session }: SingleProduct) => {
             {productPlainObject.name}
           </h1>
           
-          {/* Price */}
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-primary">
-              ${(selectedVariant?.price || productPlainObject.price).toFixed(2)}
-            </span>
-            {productPlainObject.variants.length > 1 && (
-              <span className="text-sm text-text-muted">
-                ({selectedVariant?.color || selectedVariant?.name || 'Select option'})
-              </span>
+          {/* Price and Discount */}
+          <div className="space-y-2">
+            {(productPlainObject as any).originalPrice && (productPlainObject as any).originalPrice > productPlainObject.price ? (
+              <>
+                {/* Discount Badge */}
+                {(productPlainObject as any).discountPercentage && (
+                  <div className="inline-block bg-red-600 text-white text-sm font-bold px-3 py-1.5 rounded-md shadow-md">
+                    {(productPlainObject as any).discountPercentage}% OFF SALE!
+                  </div>
+                )}
+                
+                {/* Offer Name */}
+                {(productPlainObject as any).offerName && (
+                  <div className="text-sm font-medium text-green-600">
+                    🎉 {(productPlainObject as any).offerName}
+                  </div>
+                )}
+                
+                {/* Pricing */}
+                <div className="flex items-baseline gap-3">
+                  <span className="text-3xl font-bold text-red-600">
+                    ${(selectedVariant?.price || productPlainObject.price).toFixed(2)}
+                  </span>
+                  <span className="text-xl text-text-muted line-through">
+                    ${((selectedVariant as any)?.originalPrice || (productPlainObject as any).originalPrice).toFixed(2)}
+                  </span>
+                  {productPlainObject.variants.length > 1 && (
+                    <span className="text-sm text-text-muted">
+                      ({selectedVariant?.color || selectedVariant?.name || 'Select option'})
+                    </span>
+                  )}
+                </div>
+                
+                {/* Savings */}
+                <div className="text-sm font-medium text-green-700">
+                  You save: ${(((selectedVariant as any)?.originalPrice || (productPlainObject as any).originalPrice) - (selectedVariant?.price || productPlainObject.price)).toFixed(2)}
+                </div>
+              </>
+            ) : (
+              <div className="flex items-baseline gap-2">
+                <span className="text-2xl font-bold text-primary">
+                  ${(selectedVariant?.price || productPlainObject.price).toFixed(2)}
+                </span>
+                {productPlainObject.variants.length > 1 && (
+                  <span className="text-sm text-text-muted">
+                    ({selectedVariant?.color || selectedVariant?.name || 'Select option'})
+                  </span>
+                )}
+              </div>
             )}
           </div>
           

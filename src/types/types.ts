@@ -22,6 +22,10 @@ export interface EnrichedProducts {
   category: string;
   image: string[];
   price: number;
+  originalPrice?: number; // Price before discount
+  discountPercentage?: number;
+  discountAmount?: number;
+  offerName?: string;
   purchased: boolean;
   color: string;
   size: string;

@@ -62,9 +62,17 @@ export const Products = async ({
           .filter(Boolean)
           .join(" ");
 
+        const hasDiscount = product.originalPrice && product.originalPrice > price;
+        
         return (
           <div className={containerClassname} key={index}>
-            <Link href={productLink} className={linkClassname}>
+            <Link href={productLink} className={`${linkClassname} relative`}>
+              {/* Discount Badge */}
+              {hasDiscount && product.discountPercentage && (
+                <div className="absolute top-2 right-2 z-10 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded-md shadow-lg">
+                  {product.discountPercentage}% OFF
+                </div>
+              )}
               <Images
                 image={image}
                 name={name}
@@ -98,8 +106,28 @@ export const Products = async ({
                 )}
               </div>
               {!purchased && (
-                <div className="text-sm font-medium text-primary">
-                  ${quantity ? (price * quantity).toFixed(2) : price}
+                <div className="flex flex-col gap-1">
+                  {hasDiscount && product.originalPrice ? (
+                    <>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-bold text-red-600">
+                          ${quantity ? (price * quantity).toFixed(2) : price.toFixed(2)}
+                        </span>
+                        <span className="text-xs text-text-muted line-through">
+                          ${quantity ? (product.originalPrice * quantity).toFixed(2) : product.originalPrice.toFixed(2)}
+                        </span>
+                      </div>
+                      {product.offerName && (
+                        <span className="text-xs text-green-600 font-medium">
+                          {product.offerName}
+                        </span>
+                      )}
+                    </>
+                  ) : (
+                    <div className="text-sm font-medium text-primary">
+                      ${quantity ? (price * quantity).toFixed(2) : price.toFixed(2)}
+                    </div>
+                  )}
                 </div>
               )}
               {quantity > 0 && <ProductCartInfo product={product} />}

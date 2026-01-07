@@ -71,18 +71,23 @@ model Cart {
 // CartItem stores product info directly (no foreign key to Product)
 // This allows adding Hikeup products that aren't in our local DB
 model CartItem {
-  id          String  @id @default(cuid())
-  cartId      String
-  cart        Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
-  productId   String  // Hikeup product ID (stored as string, not a foreign key)
-  variantId   String?
-  size        String
-  quantity    Int
-  price       Float
+  id                  String  @id @default(cuid())
+  cartId              String
+  cart                Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  productId           String  // Hikeup product ID (stored as string, not a foreign key)
+  variantId           String?
+  size                String
+  quantity            Int
+  price               Float   // Final price after discount
+  // Discount information (if applicable)
+  originalPrice       Float?  // Price before discount
+  discountPercentage  Float?  // Discount percentage (e.g., 15.0 for 15%)
+  discountAmount      Float?  // Fixed discount amount
+  offerName           String? // Name of the offer/deal
   // Store product info for display
-  productName String  @default("")
-  category    String  @default("")
-  image       String? // Product image URL
+  productName         String  @default("")
+  category            String  @default("")
+  image               String? // Product image URL
 }
 
 model Wishlist {

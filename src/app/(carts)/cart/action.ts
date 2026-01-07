@@ -25,6 +25,10 @@ export type EnrichedCartItem = {
   category: string;
   image: string[];
   price: number;
+  originalPrice?: number;
+  discountPercentage?: number;
+  discountAmount?: number;
+  offerName?: string;
   color: string;
   size: string;
   quantity: number;
@@ -59,6 +63,10 @@ export async function getItems(userId: string): Promise<EnrichedCartItem[] | und
     category: item.category || 'uncategorized',
     image: item.image ? [item.image] : ['/logo.png'],
     price: item.price,
+    originalPrice: (item as any).originalPrice || undefined,
+    discountPercentage: (item as any).discountPercentage || undefined,
+    discountAmount: (item as any).discountAmount || undefined,
+    offerName: (item as any).offerName || undefined,
     color: item.size, // Using size as color for Hikeup products
     size: item.size,
     quantity: item.quantity,
@@ -93,6 +101,10 @@ export async function addItem(
   price: number,
   productName?: string,
   image?: string,
+  originalPrice?: number,
+  discountPercentage?: number,
+  discountAmount?: number,
+  offerName?: string,
 ): Promise<AddItemResult> {
   const session: Session | null = await getServerSession(authOptions);
 
@@ -169,6 +181,10 @@ export async function addItem(
             productName: productName || '',
             category: category || '',
             image: image || null,
+            originalPrice: originalPrice || null,
+            discountPercentage: discountPercentage || null,
+            discountAmount: discountAmount || null,
+            offerName: offerName || null,
           },
         },
       },
@@ -186,7 +202,15 @@ export async function addItem(
     if (existingItem) {
       await prisma.cartItem.update({
         where: { id: existingItem.id },
-        data: { quantity: existingItem.quantity + 1 },
+        data: { 
+          quantity: existingItem.quantity + 1,
+          // Update price and discount info in case they changed
+          price,
+          originalPrice: originalPrice || null,
+          discountPercentage: discountPercentage || null,
+          discountAmount: discountAmount || null,
+          offerName: offerName || null,
+        },
       });
     } else {
       await prisma.cartItem.create({
@@ -200,6 +224,10 @@ export async function addItem(
           productName: productName || '',
           category: category || '',
           image: image || null,
+          originalPrice: originalPrice || null,
+          discountPercentage: discountPercentage || null,
+          discountAmount: discountAmount || null,
+          offerName: offerName || null,
         },
       });
     }

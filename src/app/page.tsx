@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ContactButton } from "@/components/contact/ContactButton";
 import InteractiveMap from "@/components/map/InteractiveMap";
 import { FAQJsonLd } from "@/components/seo/JsonLd";
+import SpecialDeals from "@/components/deals/SpecialDeals";
 
 // FAQ data for SEO
 const faqs = [
@@ -689,6 +690,9 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* Special Deals Section */}
+      <SpecialDeals />
 
       {/* Visit Section - Enhanced with map */}
       <section className="pt-12 pb-24 md:pt-16 md:pb-32 bg-white overflow-hidden border-t border-border-primary/30">

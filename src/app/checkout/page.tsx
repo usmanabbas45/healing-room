@@ -30,6 +30,10 @@ interface CartItem {
   size: string;
   quantity: number;
   price: number;
+  originalPrice?: number;
+  discountPercentage?: number;
+  discountAmount?: number;
+  offerName?: string;
   image?: string;
 }
 
@@ -84,6 +88,12 @@ export default function CheckoutPage() {
   
   // Calculated values
   const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const totalSavings = cartItems.reduce((sum, item) => {
+    if (item.originalPrice && item.originalPrice > item.price) {
+      return sum + (item.originalPrice - item.price) * item.quantity;
+    }
+    return sum;
+  }, 0);
   const deliveryFee = fulfillmentMethod === "pickup" ? 0 :
     fulfillmentMethod === "delivery" ? 
       (calculatedDeliveryFee !== null ? calculatedDeliveryFee : 0) : // Use calculated fee for delivery
@@ -251,6 +261,48 @@ export default function CheckoutPage() {
     setIsSubmitting(true);
     
     try {
+      // Validate discounts are still active before submitting
+      const itemsWithActiveDiscounts = [];
+      let discountsChanged = false;
+      
+      for (const item of cartItems) {
+        if (item.originalPrice && item.originalPrice > item.price) {
+          // Item has a discount, validate it's still active
+          const response = await fetch(`/api/validate-discount`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ productId: item.productId }),
+          });
+          
+          const validationResult = await response.json();
+          
+          if (!validationResult.isValid) {
+            discountsChanged = true;
+            toast.warning(`Discount for ${item.productName} is no longer available. Price updated.`);
+            itemsWithActiveDiscounts.push({
+              ...item,
+              price: validationResult.currentPrice || item.originalPrice || item.price,
+              originalPrice: undefined,
+              discountPercentage: undefined,
+              discountAmount: undefined,
+              offerName: undefined,
+            });
+          } else {
+            itemsWithActiveDiscounts.push(item);
+          }
+        } else {
+          itemsWithActiveDiscounts.push(item);
+        }
+      }
+      
+      if (discountsChanged) {
+        // Refresh cart items with updated prices
+        setCartItems(itemsWithActiveDiscounts);
+        toast.info("Please review your order with updated prices.");
+        setIsSubmitting(false);
+        return;
+      }
+      
       const orderData = {
         fulfillmentMethod,
         contactInfo,
@@ -713,8 +765,20 @@ export default function CheckoutPage() {
                           <div className="flex-1 min-w-0">
                             <p className="font-medium text-text-primary text-sm lg:text-base truncate">{item.productName}</p>
                             <p className="text-xs lg:text-sm text-text-muted">{item.size} × {item.quantity}</p>
+                            {item.offerName && (
+                              <p className="text-xs text-green-600 font-medium mt-1">🎉 {item.offerName}</p>
+                            )}
                           </div>
-                          <p className="font-medium text-text-primary text-sm lg:text-base">${(item.price * item.quantity).toFixed(2)}</p>
+                          <div className="text-right">
+                            {item.originalPrice && item.originalPrice > item.price ? (
+                              <>
+                                <p className="font-bold text-red-600 text-sm lg:text-base">${(item.price * item.quantity).toFixed(2)}</p>
+                                <p className="text-xs text-text-muted line-through">${(item.originalPrice * item.quantity).toFixed(2)}</p>
+                              </>
+                            ) : (
+                              <p className="font-medium text-text-primary text-sm lg:text-base">${(item.price * item.quantity).toFixed(2)}</p>
+                            )}
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -840,8 +904,20 @@ export default function CheckoutPage() {
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-text-primary truncate">{item.productName}</p>
                       <p className="text-xs text-text-muted">{item.size} × {item.quantity}</p>
+                      {item.offerName && (
+                        <p className="text-xs text-green-600 font-medium">🎉 {item.offerName}</p>
+                      )}
                     </div>
-                    <p className="text-sm font-medium text-text-primary">${(item.price * item.quantity).toFixed(2)}</p>
+                    <div className="text-right">
+                      {item.originalPrice && item.originalPrice > item.price ? (
+                        <>
+                          <p className="text-sm font-bold text-red-600">${(item.price * item.quantity).toFixed(2)}</p>
+                          <p className="text-xs text-text-muted line-through">${(item.originalPrice * item.quantity).toFixed(2)}</p>
+                        </>
+                      ) : (
+                        <p className="text-sm font-medium text-text-primary">${(item.price * item.quantity).toFixed(2)}</p>
+                      )}
+                    </div>
                   </div>
                 ))}
                 {cartItems.length > 3 && (
@@ -854,6 +930,12 @@ export default function CheckoutPage() {
                   <span className="text-text-muted">Subtotal</span>
                   <span className="text-text-primary">${subtotal.toFixed(2)}</span>
                 </div>
+                {totalSavings > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-green-600 font-medium">Savings</span>
+                    <span className="text-green-600 font-medium">-${totalSavings.toFixed(2)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-sm">
                   <span className="text-text-muted">
                     {fulfillmentMethod === "pickup" ? "Pickup" :
@@ -867,6 +949,11 @@ export default function CheckoutPage() {
                   <span className="text-text-primary">Total</span>
                   <span className="text-primary">${total.toFixed(2)}</span>
                 </div>
+                {totalSavings > 0 && (
+                  <div className="text-xs text-center text-green-600 font-medium">
+                    You saved ${totalSavings.toFixed(2)} with active deals!
+                  </div>
+                )}
               </div>
             </div>
           </div>

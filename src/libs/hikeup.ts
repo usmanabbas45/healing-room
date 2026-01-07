@@ -1650,3 +1650,219 @@ export async function updateHikeupCustomer(
     throw error; // Re-throw so the transaction can be rolled back
   }
 }
+
+// ============ OFFERS / SPECIAL DEALS ============
+
+export interface HikeupOfferItem {
+  offerOn: number; // 1=product, 5=category, etc
+  offerOnId: number;
+  name: string | null;
+  compositeQty: number;
+  fixedPrice: number;
+  buyAndGetType: number;
+  isActive: boolean;
+  id: number;
+}
+
+export interface HikeupOffer {
+  id: number;
+  name: string;
+  description: string | null;
+  offerType: number;
+  isPercentage: boolean;
+  offerValue: number;
+  offerAmount: number;
+  validFrom: string;
+  validTo: string;
+  isActive: boolean;
+  offerImage: string | null;
+  offerItems?: HikeupOfferItem[];
+  offerOutlets?: any[];
+  offerCustomerGroups?: any[];
+  // Enriched data (added by our system)
+  applicableProducts?: { id: number; name: string; image?: string }[];
+  applicableCategories?: string[];
+}
+
+// Cache for offers
+let offersCache: {
+  offers: HikeupOffer[];
+  timestamp: number;
+} | null = null;
+
+const OFFERS_CACHE_TTL = 15 * 60 * 1000; // 15 minutes
+
+/**
+ * Get all active offers from Hikeup
+ */
+export async function getHikeupOffers(): Promise<HikeupOffer[]> {
+  try {
+    // Check cache first
+    if (offersCache && Date.now() - offersCache.timestamp < OFFERS_CACHE_TTL) {
+      console.log(`📦 Using cached offers (${offersCache.offers.length} offers)`);
+      return offersCache.offers;
+    }
+
+    console.log('🎁 Fetching offers from Hikeup...');
+    
+    const params = new URLSearchParams({
+      page_size: '100',
+      Skip_count: '0',
+    });
+
+    const response = await hikeupFetch<any>(`/offers/get_all?${params.toString()}`);
+    
+    console.log('📦 RAW HIKEUP OFFERS RESPONSE:');
+    console.log('Response type:', typeof response);
+    console.log('Is array?', Array.isArray(response));
+    console.log('Response keys:', response ? Object.keys(response) : 'null');
+    console.log('Full response:', JSON.stringify(response, null, 2));
+    
+    let offers: HikeupOffer[] = [];
+    if (Array.isArray(response)) {
+      offers = response;
+      console.log('✅ Found offers in array format');
+    } else if (response?.items) {
+      offers = response.items;
+      console.log('✅ Found offers in response.items');
+    } else if (response?.data) {
+      offers = response.data;
+      console.log('✅ Found offers in response.data');
+    } else {
+      console.log('⚠️ No offers found in expected response structure');
+    }
+
+    console.log(`📊 Total offers found: ${offers.length}`);
+    
+    if (offers.length > 0) {
+      console.log('📋 Sample offer:', JSON.stringify(offers[0], null, 2));
+    }
+
+    // Filter only active offers
+    const activeOffers = offers.filter(offer => offer.isActive === true);
+    const inactiveCount = offers.length - activeOffers.length;
+    
+    console.log(`✅ Fetched ${activeOffers.length} active offer(s) from Hikeup${inactiveCount > 0 ? ` (${inactiveCount} inactive)` : ''}`);
+
+    // Enrich offers with product/category information
+    console.log('🔄 Enriching offers with product/category data...');
+    const enrichedOffers = await Promise.all(
+      activeOffers.map(async (offer) => {
+        const enrichedOffer = { ...offer };
+        
+        console.log(`\n🎁 Processing offer: "${offer.name}"`);
+        
+        if (!offer.offerItems || offer.offerItems.length === 0) {
+          console.log(`  ℹ️ No specific items - applies to all products`);
+          return enrichedOffer;
+        }
+        
+        console.log(`  📋 Processing ${offer.offerItems.length} offer item(s)`);
+
+        enrichedOffer.applicableProducts = [];
+        enrichedOffer.applicableCategories = [];
+
+        for (const item of offer.offerItems) {
+          // Try to fetch as a product by ID
+          let productFound = false;
+          if (item.offerOnId) {
+            try {
+              const product = await getHikeupProduct(String(item.offerOnId));
+              if (product) {
+                const images = extractHikeupImages(product);
+                enrichedOffer.applicableProducts!.push({
+                  id: product.id as number,
+                  name: product.product_name || product.name || 'Unknown Product',
+                  image: images[0] || '/logo.png',
+                });
+                console.log(`    ✅ Added product: ${product.name || product.product_name}`);
+                productFound = true;
+              }
+            } catch (error) {
+              console.log(`    ⚠️ Could not fetch product ${item.offerOnId}`);
+            }
+          }
+          
+          // Skip further processing if we found a product
+          if (productFound) {
+            continue;
+          }
+          
+          // If no product found, log and skip
+          console.log(`    ℹ️ No product found for offerOnId: ${item.offerOnId}`);
+        }
+
+        const productCount = enrichedOffer.applicableProducts?.length || 0;
+        const categoryCount = enrichedOffer.applicableCategories?.length || 0;
+        console.log(`  ✅ Offer "${offer.name}" enriched: ${productCount} product(s), ${categoryCount} category(ies)`);
+
+        return enrichedOffer;
+      })
+    );
+
+    console.log(`\n✅ Enrichment complete`);
+
+    // Cache the enriched results
+    offersCache = {
+      offers: enrichedOffers,
+      timestamp: Date.now(),
+    };
+
+    return enrichedOffers;
+  } catch (error) {
+    console.error('❌ Error fetching Hikeup offers:', error);
+    return [];
+  }
+}
+
+/**
+ * Get active discount for a specific product
+ */
+export async function getProductDiscount(productId: number): Promise<{
+  discountPercentage: number;
+  discountAmount: number;
+  offerName: string;
+  validUntil: string;
+} | null> {
+  try {
+    const offers = await getHikeupOffers();
+    console.log(`🔍 Checking discount for product ID: ${productId}`);
+    console.log(`📋 Active offers found: ${offers.length}`);
+    
+    // Find an offer that applies to this product
+    for (const offer of offers) {
+      console.log(`\n🎁 Checking offer: "${offer.name}"`);
+      console.log(`   - Applicable products: ${offer.applicableProducts?.map(p => `${p.name} (ID: ${p.id})`).join(', ') || 'none'}`);
+      console.log(`   - Applicable categories: ${offer.applicableCategories?.join(', ') || 'none'}`);
+      
+      // Check if product is in applicable products
+      if (offer.applicableProducts && offer.applicableProducts.some(p => p.id === productId)) {
+        console.log(`✅ MATCH FOUND! Product ${productId} matches offer "${offer.name}"`);
+        return {
+          discountPercentage: offer.isPercentage ? (offer.offerValue || offer.offerAmount) : 0,
+          discountAmount: !offer.isPercentage ? (offer.offerValue || offer.offerAmount) : 0,
+          offerName: offer.name,
+          validUntil: offer.validTo,
+        };
+      }
+      
+      // Check if it's a store-wide offer (no specific products)
+      if ((!offer.applicableProducts || offer.applicableProducts.length === 0) &&
+          (!offer.applicableCategories || offer.applicableCategories.length === 0)) {
+        console.log(`✅ STORE-WIDE OFFER FOUND! Applying "${offer.name}" to product ${productId}`);
+        return {
+          discountPercentage: offer.isPercentage ? (offer.offerValue || offer.offerAmount) : 0,
+          discountAmount: !offer.isPercentage ? (offer.offerValue || offer.offerAmount) : 0,
+          offerName: offer.name,
+          validUntil: offer.validTo,
+        };
+      }
+    }
+    
+    console.log(`❌ No discount found for product ${productId}`);
+    return null;
+  } catch (error) {
+    console.error('Error getting product discount:', error);
+    return null;
+  }
+}

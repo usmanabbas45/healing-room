@@ -118,6 +118,11 @@ const AllProducts = async ({ id, category }: { id: string; category: string }) =
     _id: product.id,
     image: product.images,
     categories: (product as any).categories || [product.category], // All product types
+    // Preserve discount information
+    originalPrice: (product as any).originalPrice,
+    discountPercentage: (product as any).discountPercentage,
+    discountAmount: (product as any).discountAmount,
+    offerName: (product as any).offerName,
     variants: product.variants.map((v: any) => ({
       _id: v._id,
       priceId: v.priceId,
