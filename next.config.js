@@ -11,6 +11,10 @@ const nextConfig = {
       },
     ],
   },
+  // Enable instrumentation for cron jobs
+  experimental: {
+    instrumentationHook: true,
+  },
 };
 
 module.exports = nextConfig;

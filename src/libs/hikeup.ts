@@ -370,12 +370,32 @@ async function refreshAccessToken(): Promise<string | null> {
     } else {
       console.error('❌ Token refresh failed:', response.status, response.body);
       
-      // Log refresh failure
-      await logHikeupEvent('refresh_failed', 'Failed to refresh Hikeup token', {
-        statusCode: response.status,
-        hadRefreshToken: !!token.refreshToken,
-        errorResponse: response.body,
-      });
+      // Check if it's an invalid_grant error (refresh token expired)
+      const isInvalidGrant = response.body.includes('invalid_grant');
+      
+      if (isInvalidGrant) {
+        console.error('🔴 REFRESH TOKEN EXPIRED - Both access and refresh tokens are invalid');
+        console.error('🔴 This requires manual reconnection via /admin');
+        
+        // Delete the invalid tokens
+        await clearHikeupToken();
+        
+        // Log this critical event
+        await logHikeupEvent('refresh_token_expired', 'Refresh token expired - manual reconnection required', {
+          statusCode: response.status,
+          errorResponse: response.body,
+          metadata: {
+            message: 'Both access and refresh tokens are invalid. Please reconnect Hikeup via /admin',
+          },
+        });
+      } else {
+        // Log other refresh failures
+        await logHikeupEvent('refresh_failed', 'Failed to refresh Hikeup token', {
+          statusCode: response.status,
+          hadRefreshToken: !!token.refreshToken,
+          errorResponse: response.body,
+        });
+      }
       
       return null;
     }
@@ -639,9 +659,17 @@ async function getAccessToken(): Promise<string> {
     throw new Error('Hikeup not connected. Please connect via /admin');
   }
 
-  // Check if token is expired (with 5 min buffer)
-  if (Date.now() >= token.expiresAt - 300000) {
-    console.log('🔄 Token expired or expiring soon, attempting refresh...');
+  // Proactive refresh: Refresh if token is more than 50% through its lifetime OR within 5 min of expiry
+  // This keeps the refresh token fresh and prevents expiration
+  const tokenLifetime = 604800000; // 7 days in milliseconds
+  const tokenAge = Date.now() - (token.expiresAt - tokenLifetime);
+  const shouldProactivelyRefresh = tokenAge > (tokenLifetime * 0.5); // Refresh after 3.5 days
+  const isExpiringSoon = Date.now() >= token.expiresAt - 300000;
+  
+  if (shouldProactivelyRefresh || isExpiringSoon) {
+    const reason = shouldProactivelyRefresh ? 'proactive refresh (50% lifetime)' : 'token expiring soon';
+    console.log(`🔄 Token ${reason}, attempting refresh...`);
+    console.log(`   Token age: ${Math.round(tokenAge / 86400000)} days`);
     
     // If no refresh token, just try the existing access token anyway
     if (!token.refreshToken) {
