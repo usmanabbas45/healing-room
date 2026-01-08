@@ -93,10 +93,10 @@ export async function GET(request: NextRequest) {
           eventType: 'token_refreshed_cron',
           message: 'Hikeup token refreshed via cron job',
           statusCode: 200,
-          metadata: {
+          metadata: JSON.stringify({
             tokenAgeDays,
             expiresInHours: Math.round(expiresIn / 3600),
-          },
+          }),
         },
       });
       
@@ -117,7 +117,7 @@ export async function GET(request: NextRequest) {
           message: 'Failed to refresh Hikeup token via cron',
           statusCode: response.status,
           errorResponse: errorText,
-          metadata: { tokenAgeDays },
+          metadata: JSON.stringify({ tokenAgeDays }),
         },
       });
       

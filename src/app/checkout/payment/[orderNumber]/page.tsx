@@ -315,8 +315,7 @@ export default async function PaymentInstructionsPage({ params }: Props) {
         
         {/* Contact Info */}
         <div className="text-center mt-8 text-sm text-text-muted">
-          <p>Questions? Contact us at {STORE_LOCATION.phone}</p>
-          <p>or email {etransferEmail}</p>
+          <p>Questions? Email us at {etransferEmail}</p>
         </div>
       </div>
     </div>

@@ -304,9 +304,9 @@ export function generateOrderConfirmationEmail(data: OrderEmailData): { subject:
           <!-- Footer -->
           <tr>
             <td style="background-color: #2D2D2D; padding: 25px 30px; text-align: center;">
-              <p style="margin: 0 0 10px; color: #ffffff; font-size: 14px;">Questions? Contact us at</p>
+              <p style="margin: 0 0 10px; color: #ffffff; font-size: 14px;">Questions? Email us at</p>
               <p style="margin: 0; color: #D4842A; font-size: 14px;">
-                ${STORE_LOCATION.phone} | ${etransferEmail}
+                ${etransferEmail}
               </p>
               <p style="margin: 15px 0 0; color: #888; font-size: 12px;">
                 Healing Room Six Nations<br>
@@ -354,7 +354,7 @@ Subtotal: $${data.subtotal.toFixed(2)}
 ${data.fulfillmentMethod === 'pickup' ? 'Pickup' : data.fulfillmentMethod === 'delivery' ? 'Delivery' : 'Shipping'}: ${data.deliveryFee === 0 ? 'FREE' : '$' + data.deliveryFee.toFixed(2)}
 Total: $${data.totalPrice.toFixed(2)}
 
-Questions? Contact us at ${STORE_LOCATION.phone} or ${etransferEmail}
+Questions? Email us at ${etransferEmail}
 
 Healing Room Six Nations
 ${STORE_LOCATION.address}
@@ -422,7 +422,7 @@ export function generateOrderStatusUpdateEmail(
     </tr>
     <tr>
       <td style="background: #2D2D2D; padding: 20px; text-align: center;">
-        <p style="margin: 0; color: #888; font-size: 12px;">Healing Room Six Nations | ${STORE_LOCATION.phone}</p>
+        <p style="margin: 0; color: #888; font-size: 12px;">Healing Room Six Nations | ${STORE_LOCATION.email}</p>
       </td>
     </tr>
   </table>
@@ -442,7 +442,7 @@ ${message || ''}
 View your order at: https://healingroomsixnations.ca/orders
 
 Healing Room Six Nations
-${STORE_LOCATION.phone}
+${STORE_LOCATION.email}
   `.trim();
 
   return { subject, html, text };

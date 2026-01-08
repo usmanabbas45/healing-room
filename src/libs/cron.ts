@@ -108,11 +108,11 @@ async function refreshHikeupToken() {
           eventType: 'token_refreshed_cron',
           message: 'Hikeup token refreshed via automated cron job',
           statusCode: 200,
-          metadata: {
+          metadata: JSON.stringify({
             tokenAgeDays,
             expiresInHours: Math.round(expiresIn / 3600),
             cronSchedule: 'Every 12 hours + Daily at 3 AM',
-          },
+          }),
         },
       });
     } else {
@@ -126,7 +126,7 @@ async function refreshHikeupToken() {
           message: 'Failed to refresh Hikeup token via cron',
           statusCode: response.status,
           errorResponse: errorText,
-          metadata: { tokenAgeDays },
+          metadata: JSON.stringify({ tokenAgeDays }),
         },
       });
       
@@ -140,10 +140,10 @@ async function refreshHikeupToken() {
             message: 'CRITICAL: Refresh token expired - manual reconnection required',
             statusCode: response.status,
             errorResponse: errorText,
-            metadata: {
+            metadata: JSON.stringify({
               tokenAgeDays,
               action: 'Reconnect Hikeup via /admin',
-            },
+            }),
           },
         });
       }

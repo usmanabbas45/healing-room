@@ -42,7 +42,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const capitalizedName = capitalizeFirstLetter(product.name);
   const cleanDescription = stripHtml(product.description || '').slice(0, 160);
   const productUrl = `${BASE_URL}/${params.category}/${params.id}`;
-  const productImage = product.images?.[0] || `${BASE_URL}/logo.png`;
+  const productImages = (product as any).images || (product as any).image || [];
+  const productImage = productImages[0] || `${BASE_URL}/logo.png`;
   const productBrand = (product as { brand?: string }).brand || 'Healing Room';
 
   return {
@@ -112,11 +113,14 @@ const AllProducts = async ({ id, category }: { id: string; category: string }) =
   
   const randomProducts = await getRandomProducts(id);
   
+  // Get product images (could be 'images' or 'image' depending on source)
+  const productImagesArray = (product as any).images || (product as any).image || [];
+  
   // Transform product for SingleProduct component
   const productForComponent = {
     ...product,
     _id: product.id,
-    image: product.images,
+    image: productImagesArray,
     categories: (product as any).categories || [product.category], // All product types
     // Preserve discount information
     originalPrice: (product as any).originalPrice,
@@ -155,7 +159,7 @@ const AllProducts = async ({ id, category }: { id: string; category: string }) =
       <ProductJsonLd
         name={product.name}
         description={cleanDescription.slice(0, 500)}
-        image={product.images?.[0] || `${BASE_URL}/logo.png`}
+        image={productImagesArray[0] || `${BASE_URL}/logo.png`}
         price={productData.price || 0}
         currency="CAD"
         availability={availability as 'InStock' | 'OutOfStock'}

@@ -50,7 +50,7 @@ export default async function SpecialDeals() {
           {/* Left Side - Description */}
           <div className="lg:w-2/5 flex items-center justify-center">
             <p className="text-text-light text-lg md:text-xl leading-relaxed text-center">
-              Limited time offers on your favorite products. Don't miss out!
+              Limited time offers on your favorite products. Don&apos;t miss out!
             </p>
           </div>
 

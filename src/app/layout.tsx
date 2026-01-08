@@ -189,7 +189,6 @@ export const metadata: Metadata = {
     'business:contact_data:postal_code': 'N0E 1Z0',
     'business:contact_data:country_name': 'Canada',
     'business:contact_data:email': 'info@healingroomsixnations.ca',
-    'business:contact_data:email': 'info@healingroomsixnations.ca',
     // Price range for search
     'price-range': '$$',
   },

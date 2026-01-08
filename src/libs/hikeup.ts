@@ -168,7 +168,7 @@ async function loadAllProductsIntoCache(): Promise<void> {
     const productGroups = new Map<string, any[]>();
     
     allProducts.forEach((product: any) => {
-      const productName = product.product_name || product.name || '';
+      const productName = product.name || '';
       const baseName = productName.split(' / ')[0].trim().toLowerCase();
       
       if (!productGroups.has(baseName)) {
@@ -1097,7 +1097,7 @@ export async function searchHikeupProducts(query: string): Promise<HikeupProduct
   const allProducts = await getCachedProducts();
   
   const results = allProducts.filter((product: any) => {
-    const name = (product.product_name || product.name || '').toLowerCase();
+    const name = (product.name || '').toLowerCase();
     const sku = (product.sku || '').toLowerCase();
     const barcode = (product.barcode || '').toLowerCase();
     const description = (product.description || '').toLowerCase();
@@ -1111,7 +1111,7 @@ export async function searchHikeupProducts(query: string): Promise<HikeupProduct
   });
   
   console.log(`🔍 Raw search results: ${results.length} products`);
-  console.log(`🔍 Product names:`, results.map(p => p.name || p.product_name).slice(0, 10));
+  console.log(`🔍 Product names:`, results.map(p => p.name).slice(0, 10));
   
   // DEDUPLICATE: Group by base product name and keep only parent products
   // Hikeup returns both parent products (with product_variants array) AND separate variant products
@@ -1800,10 +1800,10 @@ export async function getHikeupOffers(): Promise<HikeupOffer[]> {
                 const images = extractHikeupImages(product);
                 enrichedOffer.applicableProducts!.push({
                   id: product.id as number,
-                  name: product.product_name || product.name || 'Unknown Product',
+                  name: product.name || 'Unknown Product',
                   image: images[0] || '/logo.png',
                 });
-                console.log(`    ✅ Added product: ${product.name || product.product_name}`);
+                console.log(`    ✅ Added product: ${product.name}`);
                 productFound = true;
               }
             } catch (error) {

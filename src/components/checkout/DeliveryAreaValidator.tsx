@@ -80,7 +80,7 @@ export default function DeliveryAreaValidator({
       // Check if within delivery radius
       if (!isValid) {
         setError(
-          `Address is ${dist.toFixed(1)} km away (maximum ${LOCAL_DELIVERY_CONFIG.maxDeliveryDistance} km). Please contact us at ${STORE_LOCATION.phone} for a custom delivery quote.`
+          `Address is ${dist.toFixed(1)} km away (maximum ${LOCAL_DELIVERY_CONFIG.maxDeliveryDistance} km). Please email us at ${STORE_LOCATION.email} for a custom delivery quote.`
         );
         onValidationError("Outside delivery area");
         return;
