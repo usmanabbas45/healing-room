@@ -234,7 +234,7 @@ export const getRandomProducts = async (productId: string) => {
     if (connected) {
       // Only fetch a small batch (24 products) with a random offset instead of ALL products
       // This is much more efficient than fetching 500+ products
-      const { totalCount } = await getHikeupProductsWithMeta(1, 0); // Get total count first (cached)
+      const { totalCount } = await getHikeupProductsWithMeta(1, 0); // Get total count from Hikeup API
       const maxOffset = Math.max(0, totalCount - 24);
       const randomOffset = Math.floor(Math.random() * maxOffset);
       

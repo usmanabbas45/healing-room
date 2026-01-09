@@ -42,7 +42,7 @@ export default async function ShopPage({
   const typeFilter = searchParams.type || 'all';
   const searchQuery = searchParams.q || '';
   
-  // Fetch product types from Hikeup (cached)
+  // Fetch product types from Hikeup
   const productTypes = await getProductTypes();
   
   // Validate type filter
