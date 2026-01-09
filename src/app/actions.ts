@@ -12,16 +12,50 @@ import {
   getProductTypesForFilter,
   searchHikeupProducts,
   transformHikeupProduct,
+  getHikeupOffers,
+  type HikeupOffer,
 } from "@/libs/hikeup";
 import { applyPriceMarkup } from "@/libs/pricing";
 
-// Transform Prisma product to EnrichedProducts format
-// Transform Hikeup product with discount data
-async function transformHikeupProductWithDiscount(product: any) {
+// Check discount against pre-fetched offers (no API call)
+function checkDiscountFromOffers(productId: number, offers: HikeupOffer[]): {
+  discountPercentage: number;
+  discountAmount: number;
+  offerName: string;
+  validUntil: string;
+} | null {
+  for (const offer of offers) {
+    // Check if product is in applicable products
+    if (offer.applicableProducts && offer.applicableProducts.some(p => p.id === productId)) {
+      return {
+        discountPercentage: offer.isPercentage ? (offer.offerValue || offer.offerAmount) : 0,
+        discountAmount: !offer.isPercentage ? (offer.offerValue || offer.offerAmount) : 0,
+        offerName: offer.name,
+        validUntil: offer.validTo,
+      };
+    }
+    
+    // Check if it's a store-wide offer
+    if ((!offer.applicableProducts || offer.applicableProducts.length === 0) &&
+        (!offer.applicableCategories || offer.applicableCategories.length === 0)) {
+      return {
+        discountPercentage: offer.isPercentage ? (offer.offerValue || offer.offerAmount) : 0,
+        discountAmount: !offer.isPercentage ? (offer.offerValue || offer.offerAmount) : 0,
+        offerName: offer.name,
+        validUntil: offer.validTo,
+      };
+    }
+  }
+  
+  return null;
+}
+
+// Transform Hikeup product with discount data (uses pre-fetched offers)
+function transformHikeupProductWithDiscount(product: any, offers: HikeupOffer[]) {
   const baseProduct = transformHikeupProduct(product);
   
   // Check if product has an active discount
-  const discount = await checkProductDiscount(Number(product.id));
+  const discount = checkDiscountFromOffers(Number(product.id), offers);
   
   if (discount) {
     const originalPrice = baseProduct.price;
@@ -141,6 +175,11 @@ export const getAllProducts = async (
     if (connected) {
       console.log('📦 Fetching products from Hikeup POS...');
       
+      // Fetch offers ONCE for all products (1 API call)
+      console.log('🎁 Fetching offers from Hikeup (1 API call for all products)...');
+      const offers = await getHikeupOffers();
+      console.log(`✅ Got ${offers.length} active offers`);
+      
       // Use type filter if specified
       const { products: hikeupProducts, totalCount } = typeFilter === 'all'
         ? await getHikeupProductsWithMeta(pageSize, skipCount)
@@ -149,9 +188,8 @@ export const getAllProducts = async (
       console.log('📦 Got', hikeupProducts.length, 'products from Hikeup (total:', totalCount, ')');
       
       if (hikeupProducts.length > 0 || typeFilter !== 'all') {
-        const transformed = await Promise.all(
-          hikeupProducts.map(async (p) => await transformHikeupProductWithDiscount(p))
-        );
+        // Transform all products with the same offers (no additional API calls)
+        const transformed = hikeupProducts.map(p => transformHikeupProductWithDiscount(p, offers));
         return { products: transformed, totalCount };
       }
       console.log('⚠️ No products from Hikeup, falling back to database');
@@ -209,8 +247,12 @@ export const getCategoryProducts = async (category: string) => {
     
     if (connected) {
       console.log(`📦 Fetching ${category} from Hikeup POS...`);
+      
+      // Fetch offers once
+      const offers = await getHikeupOffers();
+      
       const hikeupProducts = await getHikeupProductsByCategory(category);
-      return await Promise.all(hikeupProducts.map(p => transformHikeupProductWithDiscount(p)));
+      return hikeupProducts.map(p => transformHikeupProductWithDiscount(p, offers));
     }
 
     // Fall back to database
@@ -232,6 +274,9 @@ export const getRandomProducts = async (productId: string) => {
     const connected = await isHikeupConnected();
     
     if (connected) {
+      // Fetch offers once
+      const offers = await getHikeupOffers();
+      
       // Only fetch a small batch (24 products) with a random offset instead of ALL products
       // This is much more efficient than fetching 500+ products
       const { totalCount } = await getHikeupProductsWithMeta(1, 0); // Get total count from Hikeup API
@@ -244,7 +289,7 @@ export const getRandomProducts = async (productId: string) => {
       const filtered = hikeupProducts.filter(p => String(p.id) !== productId);
       const shuffled = filtered.sort(() => Math.random() - 0.5);
       const selected = shuffled.slice(0, 6);
-      return await Promise.all(selected.map(p => transformHikeupProductWithDiscount(p)));
+      return selected.map(p => transformHikeupProductWithDiscount(p, offers));
     }
 
     // Fall back to database - also optimized
@@ -276,10 +321,14 @@ export const getProduct = async (id: string) => {
     
     if (connected) {
       console.log(`📦 Fetching product ${id} from Hikeup POS...`);
+      
+      // Fetch offers once
+      const offers = await getHikeupOffers();
+      
       const hikeupProduct = await getHikeupProduct(id);
       if (hikeupProduct) {
         // Transform raw Hikeup product to website format with discount data
-        return await transformHikeupProductWithDiscount(hikeupProduct);
+        return transformHikeupProductWithDiscount(hikeupProduct, offers);
       }
       console.log(`❌ Product ${id} not found in Hikeup`);
     }
@@ -303,10 +352,11 @@ export const searchProducts = async (query: string, typeFilter: string = 'all') 
     const connected = await isHikeupConnected();
     
     if (connected) {
+      // Fetch offers once
+      const offers = await getHikeupOffers();
+      
       const hikeupProducts = await searchHikeupProducts(query);
-      let transformedProducts = await Promise.all(
-        hikeupProducts.map(p => transformHikeupProductWithDiscount(p))
-      );
+      let transformedProducts = hikeupProducts.map(p => transformHikeupProductWithDiscount(p, offers));
       
       console.log(`🔍 Search results for "${query}": ${transformedProducts.length} products`);
       

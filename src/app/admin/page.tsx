@@ -6,6 +6,10 @@ import { isHikeupConnected, getTokenStatus } from "@/libs/hikeup";
 import { getAllProducts } from "@/app/actions";
 import prisma from "@/libs/prisma";
 
+// Force dynamic rendering - no caching
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function AdminPage({
   searchParams,
 }: {

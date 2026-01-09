@@ -331,9 +331,10 @@ async function logHikeupEvent(
 }
 
 /**
- * Clear Hikeup token
+ * Clear Hikeup token (both cache and database)
  */
 export async function clearHikeupToken() {
+  console.log('🧹 Clearing Hikeup token from cache and database...');
   tokenCache.hikeupTokenCache = null;
   try {
     await prisma.settings.deleteMany({
@@ -343,6 +344,7 @@ export async function clearHikeupToken() {
         }
       }
     });
+    console.log('✅ Token cleared successfully');
   } catch (error) {
     console.error('Error clearing Hikeup token:', error);
   }
@@ -482,23 +484,12 @@ async function getAccessToken(): Promise<string> {
     throw new Error('Hikeup not connected. Please connect via /admin');
   }
 
-  // Proactive refresh: Refresh if token is more than 50% through its lifetime OR within 5 min of expiry
-  // This keeps the refresh token fresh and prevents expiration
-  const tokenLifetime = 604800000; // 7 days in milliseconds
-  const tokenAge = Date.now() - (token.expiresAt - tokenLifetime);
-  const shouldProactivelyRefresh = tokenAge > (tokenLifetime * 0.5); // Refresh after 3.5 days
-  const isExpiringSoon = Date.now() >= token.expiresAt - 300000;
+  // Only refresh if token is actually expired (within 5 minutes of expiry)
+  // The cron job handles proactive refreshing every 12 hours
+  const isExpired = Date.now() >= token.expiresAt - 300000; // 5 min buffer
   
-  if (shouldProactivelyRefresh || isExpiringSoon) {
-    const reason = shouldProactivelyRefresh ? 'proactive refresh (50% lifetime)' : 'token expiring soon';
-    console.log(`🔄 Token ${reason}, attempting refresh...`);
-    console.log(`   Token age: ${Math.round(tokenAge / 86400000)} days`);
-    
-    // If no refresh token, just try the existing access token anyway
-    if (!token.refreshToken) {
-      console.log('⚠️ No refresh token available, using existing access token...');
-      return token.accessToken;
-    }
+  if (isExpired && token.refreshToken) {
+    console.log(`⚠️ Token expired, attempting refresh...`);
     
     // Try to refresh
     const newAccessToken = await refreshAccessToken();
@@ -507,16 +498,9 @@ async function getAccessToken(): Promise<string> {
       return newAccessToken;
     }
     
-    // Refresh failed - but DON'T clear the token!
-    // The existing access token might still work (servers are sometimes lenient)
-    console.log('⚠️ Token refresh failed, but keeping existing token to try anyway...');
+    // Refresh failed - log warning but try existing token anyway
+    console.log('⚠️ Token refresh failed, using existing token...');
     console.log('⚠️ If API calls fail with 401, please reconnect Hikeup via /admin');
-    
-    // Update expiry to try again in 5 minutes (don't spam refresh attempts)
-    const tempExpiry = Date.now() + (5 * 60 * 1000);
-    tokenCache.hikeupTokenCache = { ...token, expiresAt: tempExpiry };
-    
-    return token.accessToken;
   }
 
   return token.accessToken;
