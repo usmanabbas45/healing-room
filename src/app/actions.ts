@@ -12,7 +12,6 @@ import {
   getProductTypesForFilter,
   searchHikeupProducts,
   transformHikeupProduct,
-  getCachedTotalCount,
 } from "@/libs/hikeup";
 import { applyPriceMarkup } from "@/libs/pricing";
 
@@ -191,14 +190,8 @@ export const getProductCount = async () => {
     const connected = await isHikeupConnected();
     
     if (connected) {
-      // Try cache first
-      const cached = getCachedTotalCount();
-      if (cached !== null) {
-        console.log('📦 Using cached total count:', cached);
-        return cached;
-      }
-      
-      // Fetch just 1 product to get totalCount
+      // Fetch just 1 product to get totalCount from Hikeup API
+      console.log('🔍 Fetching product count from Hikeup...');
       const { totalCount } = await getHikeupProductsWithMeta(1, 0);
       return totalCount;
     }

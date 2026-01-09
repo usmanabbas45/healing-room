@@ -15,203 +15,26 @@ import { applyPriceMarkup } from "@/libs/pricing";
 const HIKEUP_API_BASE = 'https://api.hikeup.com/api/v1';
 
 // ===========================================
-// SERVER-SIDE SHARED CACHE
-// Uses globalThis to survive Next.js dev mode recompilations
+// TOKEN CACHE ONLY (in-memory for performance)
+// Product data fetched directly from Hikeup API
 // ===========================================
 
-// Cache TTL (15 minutes - balance between freshness and API limits)
-const CACHE_TTL = 15 * 60 * 1000;
-const TYPES_CACHE_TTL = 15 * 60 * 1000;
-const SEARCH_CACHE_TTL = 5 * 60 * 1000;
-
-// Extend globalThis type
+// Extend globalThis type for token storage only
 declare global {
-  var hikeupCache: {
-    products: HikeupProduct[];
-    totalCount: number;
-    timestamp: number;
-    isLoading: boolean;
-    productTypes: { types: any[]; timestamp: number } | null;
-    productById: Map<string, HikeupProduct>;
-    search: Map<string, { results: HikeupProduct[]; timestamp: number }>;
-    token: {
-      accessToken: string;
-      refreshToken: string;
-      expiresAt: number;
-    } | null;
-  } | undefined;
+  var hikeupTokenCache: {
+    accessToken: string;
+    refreshToken: string;
+    expiresAt: number;
+  } | null | undefined;
 }
 
-// Initialize global cache (survives module reloads in dev mode)
-if (!globalThis.hikeupCache) {
-  globalThis.hikeupCache = {
-    products: [],
-    totalCount: 0,
-    timestamp: 0,
-    isLoading: false,
-    productTypes: null,
-    productById: new Map(),
-    search: new Map(),
-    token: null,
-  };
+// Initialize token cache only
+if (typeof globalThis.hikeupTokenCache === 'undefined') {
+  globalThis.hikeupTokenCache = null;
 }
 
-// Shortcuts to global cache
-const cache = globalThis.hikeupCache;
-
-
-function isAllProductsCacheValid(): boolean {
-  return Date.now() - cache.timestamp < CACHE_TTL && cache.products.length > 0;
-}
-
-function clearAllCaches() {
-  console.log('🧹 Clearing all Hikeup caches...');
-  cache.products = [];
-  cache.totalCount = 0;
-  cache.timestamp = 0;
-  cache.isLoading = false;
-  cache.productTypes = null;
-  cache.productById.clear();
-  cache.search.clear();
-  console.log('✅ All caches cleared');
-}
-
-// Export for manual cache clearing if needed
-export function clearHikeupCache() {
-  clearAllCaches();
-}
-
-/**
- * Get cached total count (avoids API call if cache is valid)
- */
-export function getCachedTotalCount(): number | null {
-  if (isAllProductsCacheValid()) {
-    return cache.totalCount;
-  }
-  return null;
-}
-
-/**
- * Load ALL products into cache (called once, shared by all users)
- * This is the ONLY function that makes multiple API calls
- */
-async function loadAllProductsIntoCache(): Promise<void> {
-  // If already loading, wait
-  if (cache.isLoading) {
-    console.log('⏳ Cache is already being loaded, waiting...');
-    // Wait for loading to complete (poll every 500ms, max 30 seconds)
-    let waited = 0;
-    while (cache.isLoading && waited < 30000) {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      waited += 500;
-    }
-    return;
-  }
-  
-  // If cache is valid, skip
-  if (isAllProductsCacheValid()) {
-    console.log(`📦 Using cached products (${cache.products.length} products, expires in ${Math.round((cache.timestamp + CACHE_TTL - Date.now()) / 60000)} min)`);
-    return;
-  }
-  
-  cache.isLoading = true;
-  console.log('🔄 Loading ALL products into server cache (one-time operation)...');
-  
-  try {
-    const allProducts: HikeupProduct[] = [];
-    const batchSize = 100;
-    let skipCount = 0;
-    let hasMore = true;
-    let totalCount = 0;
-    
-    while (hasMore) {
-      const params = new URLSearchParams({
-        page_size: batchSize.toString(),
-        Skip_count: skipCount.toString(),
-      });
-      
-      const response = await hikeupFetch<any>(`/products/get_all?${params.toString()}`);
-      
-      let products: HikeupProduct[] = [];
-      if (Array.isArray(response)) {
-        products = response;
-      } else if (response?.items) {
-        products = response.items;
-        totalCount = response.totalCount || totalCount;
-      } else if (response?.data) {
-        products = response.data;
-      }
-      
-      allProducts.push(...products);
-      
-      // Cache individual products for quick lookup
-      products.forEach(p => cache.productById.set(String(p.id), p));
-      
-      console.log(`📦 Loaded batch: ${allProducts.length}/${totalCount || '?'} products`);
-      
-      if (products.length < batchSize) {
-        hasMore = false;
-      } else {
-        skipCount += batchSize;
-      }
-      
-      // Safety limit
-      if (skipCount > 2000) {
-        hasMore = false;
-      }
-    }
-    
-    // DEDUPLICATE: Remove variant products before caching
-    // Hikeup returns both parent products (with product_variants) AND separate variant products
-    console.log(`🔍 Deduplicating ${allProducts.length} products...`);
-    
-    const productGroups = new Map<string, any[]>();
-    
-    allProducts.forEach((product: any) => {
-      const productName = product.name || '';
-      const baseName = productName.split(' / ')[0].trim().toLowerCase();
-      
-      if (!productGroups.has(baseName)) {
-        productGroups.set(baseName, []);
-      }
-      productGroups.get(baseName)!.push(product);
-    });
-    
-    const deduplicatedProducts = Array.from(productGroups.values()).map(group => {
-      if (group.length === 1) {
-        return group[0];
-      }
-      
-      // Pick parent product (one with product_variants array)
-      const parent = group.find(p => p.product_variants && p.product_variants.length > 0);
-      return parent || group[0];
-    });
-    
-    console.log(`✅ Deduplicated to ${deduplicatedProducts.length} unique products`);
-    
-    // Update global cache with deduplicated products
-    cache.products = deduplicatedProducts;
-    cache.totalCount = deduplicatedProducts.length;
-    cache.timestamp = Date.now();
-    cache.isLoading = false;
-    
-    console.log(`✅ Server cache loaded: ${deduplicatedProducts.length} products (valid for ${CACHE_TTL / 60000} minutes)`);
-    
-  } catch (error) {
-    console.error('❌ Error loading products into cache:', error);
-    cache.isLoading = false;
-  }
-}
-
-/**
- * Get all products from cache (loads cache if needed)
- */
-async function getCachedProducts(): Promise<HikeupProduct[]> {
-  if (!isAllProductsCacheValid()) {
-    await loadAllProductsIntoCache();
-  }
-  return cache.products;
-}
+// Shortcut to token cache
+const tokenCache = globalThis;
 
 /**
  * Make HTTPS request with weak DH key support (for Hikeup's outdated SSL)
@@ -263,7 +86,7 @@ function httpsRequest(
 /**
  * Load token from database
  */
-async function loadTokenFromDb(): Promise<typeof cache.token> {
+async function loadTokenFromDb(): Promise<{ accessToken: string; refreshToken: string; expiresAt: number } | null> {
   try {
     console.log('🔍 Loading Hikeup tokens from database...');
     
@@ -290,7 +113,7 @@ async function loadTokenFromDb(): Promise<typeof cache.token> {
       const expiresAtNum = parseInt(expiresAt, 10);
       const isExpired = Date.now() > expiresAtNum;
       
-      cache.token = {
+      tokenCache.hikeupTokenCache = {
         accessToken,
         refreshToken: refreshToken || '',
         expiresAt: expiresAtNum,
@@ -308,7 +131,7 @@ async function loadTokenFromDb(): Promise<typeof cache.token> {
         }
       }
       
-      return cache.token;
+      return tokenCache.hikeupTokenCache;
     }
     
     console.log('🔗 Hikeup: No token found in database - please connect via /admin');
@@ -323,7 +146,7 @@ async function loadTokenFromDb(): Promise<typeof cache.token> {
  * Refresh the access token using the refresh token
  */
 async function refreshAccessToken(): Promise<string | null> {
-  const token = cache.token;
+  const token = tokenCache.hikeupTokenCache;
   if (!token?.refreshToken) {
     console.log('❌ Cannot refresh: No refresh token available');
     return null;
@@ -439,7 +262,7 @@ async function saveTokenToDb(accessToken: string, refreshToken: string, expiresA
 export async function setHikeupToken(accessToken: string, refreshToken: string, expiresIn: number) {
   const expiresAt = Date.now() + (expiresIn * 1000);
   
-  cache.token = {
+  tokenCache.hikeupTokenCache = {
     accessToken,
     refreshToken,
     expiresAt,
@@ -466,7 +289,7 @@ export async function setHikeupToken(accessToken: string, refreshToken: string, 
  * Get stored token (from memory or database)
  */
 export async function getStoredToken() {
-  if (cache.token) return cache.token;
+  if (tokenCache.hikeupTokenCache) return tokenCache.hikeupTokenCache;
   return await loadTokenFromDb();
 }
 
@@ -511,7 +334,7 @@ async function logHikeupEvent(
  * Clear Hikeup token
  */
 export async function clearHikeupToken() {
-  cache.token = null;
+  tokenCache.hikeupTokenCache = null;
   try {
     await prisma.settings.deleteMany({
       where: {
@@ -579,13 +402,13 @@ async function testHikeupConnection(): Promise<boolean> {
       }
     );
     
-    if (response.status === 200) {
-      console.log('✅ Hikeup connection test passed!');
-      // Token still works - extend expiry since API accepted it
-      const newExpiry = Date.now() + (60 * 60 * 1000); // 1 hour from now
-      await saveTokenToDb(token.accessToken, token.refreshToken, newExpiry);
-      cache.token = { ...token, expiresAt: newExpiry };
-      return true;
+      if (response.status === 200) {
+        console.log('✅ Hikeup connection test passed!');
+        // Token still works - extend expiry since API accepted it
+        const newExpiry = Date.now() + (60 * 60 * 1000); // 1 hour from now
+        await saveTokenToDb(token.accessToken, token.refreshToken, newExpiry);
+        tokenCache.hikeupTokenCache = { ...token, expiresAt: newExpiry };
+        return true;
     } else if (response.status === 401) {
       console.log('🔴 Hikeup connection test failed: Token invalid');
       return false;
@@ -649,7 +472,7 @@ export async function getTokenStatus(): Promise<{
 }
 
 async function getAccessToken(): Promise<string> {
-  let token = cache.token;
+  let token = tokenCache.hikeupTokenCache;
   
   if (!token) {
     token = await loadTokenFromDb();
@@ -691,7 +514,7 @@ async function getAccessToken(): Promise<string> {
     
     // Update expiry to try again in 5 minutes (don't spam refresh attempts)
     const tempExpiry = Date.now() + (5 * 60 * 1000);
-    cache.token = { ...token, expiresAt: tempExpiry };
+    tokenCache.hikeupTokenCache = { ...token, expiresAt: tempExpiry };
     
     return token.accessToken;
   }
@@ -713,7 +536,7 @@ async function hikeupFetch<T>(endpoint: string): Promise<T> {
 
   // Handle 401 Unauthorized - token is definitely invalid
   if (response.status === 401) {
-    const token = cache.token;
+    const token = tokenCache.hikeupTokenCache;
     const tokenAge = token ? Math.round((Date.now() - (token.expiresAt - 7*24*60*60*1000)) / 86400000) : null;
     const tokenExpired = token ? Date.now() > token.expiresAt : null;
     const hadRefreshToken = !!token?.refreshToken;
@@ -831,32 +654,78 @@ export interface HikeupProductsResponse {
 // ============ Product API Functions ============
 
 /**
- * Get products with pagination (uses server cache)
- * For "All Products" view - just slices from cache
+ * Get products with pagination - DIRECT API CALL
+ * Makes a single API call to Hikeup for the requested page
  */
 export async function getHikeupProductsWithMeta(
   pageSize: number = 100,
   skipCount: number = 0,
   outletId?: number
 ): Promise<{ products: HikeupProduct[]; next: string | null; totalCount: number }> {
-  // Use cached products
-  const allProducts = await getCachedProducts();
-  
-  // Slice for pagination
-  const paginated = allProducts.slice(skipCount, skipCount + pageSize);
-  const hasMore = skipCount + pageSize < allProducts.length;
-  
-  console.log(`📦 Serving ${paginated.length} products from cache (${skipCount}-${skipCount + pageSize} of ${allProducts.length})`);
-  
-  return {
-    products: paginated,
-    next: hasMore ? 'more' : null,
-    totalCount: allProducts.length,
-  };
+  try {
+    console.log(`🌐 Fetching products from Hikeup API (page_size: ${pageSize}, skip: ${skipCount})`);
+    
+    const params = new URLSearchParams({
+      page_size: pageSize.toString(),
+      Skip_count: skipCount.toString(),
+    });
+    
+    const response = await hikeupFetch<any>(`/products/get_all?${params.toString()}`);
+    
+    let products: HikeupProduct[] = [];
+    let totalCount = 0;
+    
+    if (Array.isArray(response)) {
+      products = response;
+      totalCount = products.length;
+    } else if (response?.items) {
+      products = response.items;
+      totalCount = response.totalCount || products.length;
+    } else if (response?.data) {
+      products = response.data;
+      totalCount = response.total || products.length;
+    }
+    
+    // Deduplicate: Remove variant products (keep only parent products with product_variants)
+    const productGroups = new Map<string, any[]>();
+    
+    products.forEach((product: any) => {
+      const productName = product.name || '';
+      const baseName = productName.split(' / ')[0].trim().toLowerCase();
+      
+      if (!productGroups.has(baseName)) {
+        productGroups.set(baseName, []);
+      }
+      productGroups.get(baseName)!.push(product);
+    });
+    
+    const deduplicatedProducts = Array.from(productGroups.values()).map(group => {
+      if (group.length === 1) {
+        return group[0];
+      }
+      
+      // Pick parent product (one with product_variants array)
+      const parent = group.find(p => p.product_variants && p.product_variants.length > 0);
+      return parent || group[0];
+    });
+    
+    console.log(`✅ Fetched ${deduplicatedProducts.length} unique products (deduplicated from ${products.length})`);
+    
+    const hasMore = products.length === pageSize;
+    
+    return {
+      products: deduplicatedProducts,
+      next: hasMore ? 'more' : null,
+      totalCount: totalCount,
+    };
+  } catch (error) {
+    console.error('❌ Error fetching products from Hikeup:', error);
+    return { products: [], next: null, totalCount: 0 };
+  }
 }
 
 /**
- * Get products (single page from cache)
+ * Get products (single page) - DIRECT API CALL
  */
 export async function getHikeupProducts(
   pageSize: number = 100,
@@ -868,35 +737,54 @@ export async function getHikeupProducts(
 }
 
 /**
- * Get ALL products (from cache)
+ * Get ALL products - DIRECT API CALL (makes multiple API calls if needed)
+ * ⚠️ Use sparingly - this can make many API calls
  */
 export async function getAllHikeupProducts(outletId?: number): Promise<HikeupProduct[]> {
-  return await getCachedProducts();
+  try {
+    const allProducts: HikeupProduct[] = [];
+    const batchSize = 100;
+    let skipCount = 0;
+    let hasMore = true;
+    
+    while (hasMore) {
+      const { products, next } = await getHikeupProductsWithMeta(batchSize, skipCount, outletId);
+      allProducts.push(...products);
+      
+      if (!next || products.length < batchSize) {
+        hasMore = false;
+      } else {
+        skipCount += batchSize;
+      }
+      
+      // Safety limit
+      if (skipCount > 2000) {
+        console.log('⚠️ Reached safety limit of 2000 products');
+        hasMore = false;
+      }
+    }
+    
+    console.log(`✅ Fetched total of ${allProducts.length} products`);
+    return allProducts;
+  } catch (error) {
+    console.error('❌ Error fetching all products:', error);
+    return [];
+  }
 }
 
 /**
- * Get single product by ID - uses cache first, then direct API call
- * Uses: GET /products/get/{id} - single API call instead of fetching all products
+ * Get single product by ID - DIRECT API CALL
+ * Uses: GET /products/get/{id}
  */
 export async function getHikeupProduct(productId: string): Promise<HikeupProduct | null> {
   try {
     const id = String(productId);
-    console.log(`🔍 Looking for product ID: ${id}`);
+    console.log(`🔍 Fetching product ID: ${id} from Hikeup API...`);
     
-    // Check individual product cache first (instant - no API call)
-    if (cache.productById.has(id)) {
-      console.log(`✅ Found product ${id} in cache`);
-      return cache.productById.get(id)!;
-    }
-    
-    // Not in cache - fetch single product directly (1 API call)
-    console.log(`📦 Fetching single product ${id} from Hikeup API...`);
     const product = await hikeupFetch<HikeupProduct>(`/products/get/${id}`);
     
     if (product && product.id) {
-      // Cache this product for future lookups
-      cache.productById.set(id, product);
-      console.log(`✅ Fetched and cached product ${id}`);
+      console.log(`✅ Fetched product ${id}: ${product.name}`);
       return product;
     }
     
@@ -941,18 +829,32 @@ export async function getHikeupProductByFilter(filter: string, limit: number = 5
 }
 
 /**
- * Get products by category
+ * Get products by category - Uses Hikeup Filter API
  */
 export async function getHikeupProductsByCategory(categoryName: string): Promise<HikeupProduct[]> {
-  const products = await getAllHikeupProducts();
-  const normalizedCategory = categoryName.toLowerCase().replace(/-/g, ' ');
-  
-  return products.filter(p => {
-    const productCategory = (p.product_type_name || '').toLowerCase();
-    return productCategory === normalizedCategory ||
-           productCategory.includes(normalizedCategory) ||
-           normalizedCategory.includes(productCategory);
-  });
+  try {
+    console.log(`🔍 Fetching products for category: "${categoryName}"`);
+    
+    // Use Hikeup's Filter API to search by category
+    const normalizedCategory = categoryName.replace(/-/g, ' ');
+    const products = await getHikeupProductByFilter(normalizedCategory, 100);
+    
+    // Filter to match category more precisely
+    const filtered = products.filter(p => {
+      const productTypes = (p as any).product_type || [];
+      return productTypes.some((pt: any) => {
+        const typeName = (pt.type_name || pt.name || '').toLowerCase();
+        const searchName = normalizedCategory.toLowerCase();
+        return typeName.includes(searchName) || searchName.includes(typeName);
+      });
+    });
+    
+    console.log(`✅ Found ${filtered.length} products in category "${categoryName}"`);
+    return filtered;
+  } catch (error) {
+    console.error('Error fetching products by category:', error);
+    return [];
+  }
 }
 
 // Import type only - we'll fetch actual types from Hikeup
@@ -963,208 +865,165 @@ export { type ProductTypeId };
 export { PRODUCT_TYPES } from './product-types';
 
 /**
- * Get product types for filter dropdown (extracted from cached products)
- * Uses the products cache - NO additional API calls
+ * Get product types for filter dropdown - Fetches a sample of products to extract types
+ * Note: Fetches first 100 products to extract available categories
  */
 export async function getProductTypesForFilter(): Promise<{ id: string; name: string; count: number }[]> {
-  // Check types cache first
-  if (cache.productTypes && Date.now() - cache.productTypes.timestamp < TYPES_CACHE_TTL) {
-    console.log('📦 Using cached product types');
-    return [
-      { id: 'all', name: 'All Products', count: cache.totalCount },
-      ...cache.productTypes.types
-    ];
-  }
-  
-  // Get all products from cache
-  const allProducts = await getCachedProducts();
-  
-  // Extract unique types from products
-  const typeMap = new Map<string, { name: string; originalName: string; count: number }>();
-  
-  allProducts.forEach((product: any) => {
-    const productTypes = product.product_type || [];
-    productTypes.forEach((pt: any) => {
-      const typeName = pt.type_name || pt.name || '';
-      if (typeName) {
-        const typeId = typeName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-        const existing = typeMap.get(typeId);
-        if (existing) {
-          existing.count++;
-        } else {
-          // Clean up display name (remove parenthetical content for cleaner UI)
-          let displayName = typeName.replace(/\s*\([^)]*\)\s*/g, '').trim();
-          // Also fix common typos
-          displayName = displayName.replace('Hybird', 'Hybrid');
-          
-          typeMap.set(typeId, { name: displayName, originalName: typeName, count: 1 });
+  try {
+    console.log('🔍 Fetching product types from Hikeup...');
+    
+    // Fetch a sample of products (first 100) to extract types
+    const { products, totalCount } = await getHikeupProductsWithMeta(100, 0);
+    
+    // Extract unique types from products
+    const typeMap = new Map<string, { name: string; originalName: string; count: number }>();
+    
+    products.forEach((product: any) => {
+      const productTypes = product.product_type || [];
+      productTypes.forEach((pt: any) => {
+        const typeName = pt.type_name || pt.name || '';
+        if (typeName) {
+          const typeId = typeName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+          const existing = typeMap.get(typeId);
+          if (existing) {
+            existing.count++;
+          } else {
+            // Clean up display name (remove parenthetical content for cleaner UI)
+            let displayName = typeName.replace(/\s*\([^)]*\)\s*/g, '').trim();
+            // Also fix common typos
+            displayName = displayName.replace('Hybird', 'Hybrid');
+            
+            typeMap.set(typeId, { name: displayName, originalName: typeName, count: 1 });
+          }
         }
-      }
+      });
     });
-  });
-  
-  // Convert to array and sort by count
-  const typesArray = Array.from(typeMap.entries())
-    .map(([id, data]) => ({ id, name: data.name, originalName: data.originalName, count: data.count }))
-    .sort((a, b) => b.count - a.count);
-  
-  // Cache the types in global cache (with originalName for filtering)
-  cache.productTypes = { types: typesArray, timestamp: Date.now() };
-  
-  console.log(`📦 Extracted ${typesArray.length} product types: ${typesArray.map(t => `${t.name}(${t.count})`).join(', ')}`);
-  
-  return [
-    { id: 'all', name: 'All Products', count: allProducts.length },
-    ...typesArray
-  ];
+    
+    // Convert to array and sort by count
+    const typesArray = Array.from(typeMap.entries())
+      .map(([id, data]) => ({ id, name: data.name, count: data.count }))
+      .sort((a, b) => b.count - a.count);
+    
+    console.log(`✅ Extracted ${typesArray.length} product types from sample`);
+    
+    return [
+      { id: 'all', name: 'All Products', count: totalCount },
+      ...typesArray
+    ];
+  } catch (error) {
+    console.error('❌ Error fetching product types:', error);
+    return [{ id: 'all', name: 'All Products', count: 0 }];
+  }
 }
 
 /**
- * Get products filtered by product type (uses cache - 0 API calls)
+ * Get products filtered by product type - DIRECT API CALL
+ * Note: For better filtering, this fetches all products and filters locally
  */
 export async function getHikeupProductsByType(
   typeId: string,
   pageSize: number = 24,
   skipCount: number = 0
 ): Promise<{ products: HikeupProduct[]; totalCount: number }> {
-  // If "all", just return paginated products
-  if (typeId === 'all') {
-    return getHikeupProductsWithMeta(pageSize, skipCount);
-  }
-  
-  // Get all products from cache (loads if needed - one time only)
-  const allProducts = await getCachedProducts();
-  
-  // Get the original type name from our cached types (use originalName for matching)
-  const productTypes = cache.productTypes?.types || [];
-  const matchingType = productTypes.find((t: any) => t.id === typeId);
-  const originalTypeName = matchingType?.originalName || matchingType?.name || '';
-  
-  console.log(`🔍 Filtering by type: "${typeId}" → original name: "${originalTypeName}"`);
-  
-  const filtered = allProducts.filter(p => {
-    const product = p as any;
-    const types = product.product_type || [];
+  try {
+    // If "all", just return paginated products
+    if (typeId === 'all') {
+      return getHikeupProductsWithMeta(pageSize, skipCount);
+    }
     
-    return types.some((pt: any) => {
-      const ptName = (pt.type_name || pt.name || '').toLowerCase();
-      const searchName = originalTypeName.toLowerCase();
+    console.log(`🔍 Filtering products by type: "${typeId}"`);
+    
+    // Convert typeId back to readable format
+    const typeName = typeId.replace(/-/g, ' ');
+    
+    // Use Hikeup's Filter API to search
+    const allProducts = await getHikeupProductByFilter(typeName, 200);
+    
+    // Filter to match type more precisely
+    const filtered = allProducts.filter(p => {
+      const product = p as any;
+      const types = product.product_type || [];
       
-      // Exact match on original name
-      if (ptName === searchName) return true;
-      
-      // Fallback: normalize both and compare
-      const ptNormalized = ptName.replace(/[^a-z0-9]/g, '');
-      const searchNormalized = searchName.replace(/[^a-z0-9]/g, '');
-      
-      return ptNormalized === searchNormalized;
+      return types.some((pt: any) => {
+        const ptName = (pt.type_name || pt.name || '').toLowerCase();
+        const searchName = typeName.toLowerCase();
+        
+        // Exact match
+        if (ptName === searchName) return true;
+        
+        // Partial match
+        if (ptName.includes(searchName) || searchName.includes(ptName)) return true;
+        
+        // Normalized match
+        const ptNormalized = ptName.replace(/[^a-z0-9]/g, '');
+        const searchNormalized = searchName.replace(/[^a-z0-9]/g, '');
+        
+        return ptNormalized === searchNormalized;
+      });
     });
-  });
-  
-  console.log(`🔍 Filter "${originalTypeName}": ${filtered.length} products (from ${allProducts.length} cached)`);
-  
-  // Apply pagination
-  const paginated = filtered.slice(skipCount, skipCount + pageSize);
-  
-  return {
-    products: paginated,
-    totalCount: filtered.length,
-  };
+    
+    console.log(`✅ Found ${filtered.length} products for type "${typeId}"`);
+    
+    // Apply pagination
+    const paginated = filtered.slice(skipCount, skipCount + pageSize);
+    
+    return {
+      products: paginated,
+      totalCount: filtered.length,
+    };
+  } catch (error) {
+    console.error('❌ Error filtering products by type:', error);
+    return { products: [], totalCount: 0 };
+  }
 }
 
 /**
- * Search products from server cache (has correct category info)
- * This is better than Hikeup's Filter API because cached products have proper product_type data
- * Results are cached for 2 minutes
+ * Search products using Hikeup Filter API - DIRECT API CALL
+ * Searches by name, SKU, barcode
  */
 export async function searchHikeupProducts(query: string): Promise<HikeupProduct[]> {
   if (!query || query.trim().length < 2) {
     return [];
   }
   
-  const searchKey = query.trim().toLowerCase();
-  
-  // Check search cache first
-  const cached = cache.search.get(searchKey);
-  if (cached && Date.now() - cached.timestamp < SEARCH_CACHE_TTL) {
-    console.log(`🔍 Search cache hit for "${searchKey}": ${cached.results.length} results`);
-    return cached.results;
+  try {
+    console.log(`🔍 Searching Hikeup for: "${query}"`);
+    
+    // Use Hikeup's Filter API
+    const results = await getHikeupProductByFilter(query, 50);
+    
+    console.log(`🔍 Raw search results: ${results.length} products`);
+    
+    // DEDUPLICATE: Group by base product name and keep only parent products
+    const productGroups = new Map<string, any[]>();
+    
+    results.forEach((product: any) => {
+      const productName = product.name || '';
+      const baseName = productName.split(' / ')[0].trim().toLowerCase();
+      
+      if (!productGroups.has(baseName)) {
+        productGroups.set(baseName, []);
+      }
+      productGroups.get(baseName)!.push(product);
+    });
+    
+    // For each group, pick the parent product
+    const deduplicated = Array.from(productGroups.values()).map(group => {
+      if (group.length === 1) {
+        return group[0];
+      }
+      
+      // Pick parent (one with product_variants)
+      const parent = group.find(p => p.product_variants && p.product_variants.length > 0);
+      return parent || group[0];
+    });
+    
+    console.log(`✅ Search complete: ${deduplicated.length} unique products (from ${results.length} raw results)`);
+    return deduplicated;
+  } catch (error) {
+    console.error('❌ Error searching products:', error);
+    return [];
   }
-  
-  console.log(`🔍 Searching products for: "${query}"`);
-  
-  // Get all products from cache (loads if needed)
-  const allProducts = await getCachedProducts();
-  
-  const results = allProducts.filter((product: any) => {
-    const name = (product.name || '').toLowerCase();
-    const sku = (product.sku || '').toLowerCase();
-    const barcode = (product.barcode || '').toLowerCase();
-    const description = (product.description || '').toLowerCase();
-    const brand = (product.bran_name || product.brand_name || '').toLowerCase();
-    
-    return name.includes(searchKey) || 
-           sku.includes(searchKey) || 
-           barcode.includes(searchKey) ||
-           description.includes(searchKey) ||
-           brand.includes(searchKey);
-  });
-  
-  console.log(`🔍 Raw search results: ${results.length} products`);
-  console.log(`🔍 Product names:`, results.map(p => p.name).slice(0, 10));
-  
-  // DEDUPLICATE: Group by base product name and keep only parent products
-  // Hikeup returns both parent products (with product_variants array) AND separate variant products
-  // Strategy: Group by base name, prefer products with product_variants array
-  const productGroups = new Map<string, any[]>();
-  
-  results.forEach((product: any) => {
-    const productName = product.product_name || product.name || '';
-    // Extract base name (remove " / variant" suffix if present)
-    const baseName = productName.split(' / ')[0].trim().toLowerCase();
-    
-    if (!productGroups.has(baseName)) {
-      productGroups.set(baseName, []);
-    }
-    productGroups.get(baseName)!.push(product);
-  });
-  
-  // For each group, pick the best representative (parent product)
-  const deduplicated = Array.from(productGroups.values()).map(group => {
-    if (group.length === 1) {
-      return group[0]; // Only one product, keep it
-    }
-    
-    // Multiple products with same base name - pick parent (one with product_variants)
-    const parent = group.find(p => p.product_variants && p.product_variants.length > 0);
-    
-    if (parent) {
-      console.log(`✅ Keeping parent product: "${parent.name}" (${parent.product_variants.length} variants)`);
-      group.forEach(p => {
-        if (p.id !== parent.id) {
-          console.log(`❌ Filtering out duplicate: "${p.name}"`);
-        }
-      });
-      return parent;
-    }
-    
-    // No parent found, just keep the first one
-    return group[0];
-  });
-  
-  console.log(`✅ After deduplication: ${deduplicated.length} unique parent products (from ${results.length} raw results)`);
-  
-  // Cache deduplicated results
-  cache.search.set(searchKey, { results: deduplicated, timestamp: Date.now() });
-  
-  // Clean old cache entries (keep only last 20 searches)
-  if (cache.search.size > 20) {
-    const oldestKey = cache.search.keys().next().value;
-    if (oldestKey) cache.search.delete(oldestKey);
-  }
-  
-  console.log(`🔍 Search complete: ${deduplicated.length} results (from ${allProducts.length} cached products)`);
-  return deduplicated;
 }
 
 /**
@@ -1365,7 +1224,7 @@ export async function hikeupPost<T>(endpoint: string, body: any): Promise<T> {
 
   // Handle 401 Unauthorized - token is definitely invalid
   if (response.status === 401) {
-    const token = cache.token;
+    const token = tokenCache.hikeupTokenCache;
     const tokenAge = token ? Math.round((Date.now() - (token.expiresAt - 7*24*60*60*1000)) / 86400000) : null;
     const tokenExpired = token ? Date.now() > token.expiresAt : null;
     const hadRefreshToken = !!token?.refreshToken;
