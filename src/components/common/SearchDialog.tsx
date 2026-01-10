@@ -2,7 +2,8 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 
 const SearchDialog = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -59,6 +60,12 @@ const SearchDialog = () => {
         </button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-xl p-0 gap-0 bg-white border-border-primary overflow-hidden">
+        <VisuallyHidden>
+          <DialogTitle>Search Products</DialogTitle>
+          <DialogDescription>
+            Search for cannabis and tobacco products in our store
+          </DialogDescription>
+        </VisuallyHidden>
         <div className="flex items-center border-b border-border-primary">
           {/* Search icon */}
           <span className="h-14 w-14 flex items-center justify-center text-text-muted flex-shrink-0">
