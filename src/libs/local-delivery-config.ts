@@ -123,9 +123,8 @@ export function getNextDeliveryDate(): Date {
 }
 
 /**
- * Calculate DRIVING distance between two coordinates using GraphHopper (OpenStreetMap routing)
+ * Calculate DRIVING distance between two coordinates using OSRM (OpenStreetMap routing)
  * This returns actual road distance, not straight-line distance
- * GraphHopper is more accurate than OSRM and closer to Google Maps results
  * @param lat1 - Latitude of point 1
  * @param lng1 - Longitude of point 1
  * @param lat2 - Latitude of point 2 (defaults to store location)
@@ -139,54 +138,38 @@ export async function calculateDistance(
   lng2: number = STORE_LOCATION.lng
 ): Promise<number> {
   try {
-    // Try GraphHopper first (free tier: 500 requests/day, no key for basic usage)
-    const ghUrl = `https://graphhopper.com/api/1/route?point=${lat2},${lng2}&point=${lat1},${lng1}&vehicle=car&locale=en&calc_points=false&points_encoded=false`;
+    // OSRM public API - free, no key needed, unlimited usage
+    // Format: lng,lat (OSRM uses lng,lat order, not lat,lng!)
+    const url = `https://router.project-osrm.org/route/v1/driving/${lng2},${lat2};${lng1},${lat1}?overview=false`;
     
-    const ghResponse = await fetch(ghUrl, {
+    const response = await fetch(url, {
       headers: {
         'User-Agent': 'HealingRoomSixNations/1.0',
       },
     });
     
-    if (ghResponse.ok) {
-      const ghData = await ghResponse.json();
-      
-      if (ghData.paths && ghData.paths.length > 0) {
-        // GraphHopper returns distance in meters
-        const distanceKm = ghData.paths[0].distance / 1000;
-        console.log(`🚗 GraphHopper distance: ${distanceKm.toFixed(1)} km`);
-        return Math.round(distanceKm * 10) / 10;
-      }
+    if (!response.ok) {
+      console.error('❌ OSRM routing error:', response.status);
+      // Fallback to straight-line distance with road factor
+      return calculateStraightLineDistance(lat1, lng1, lat2, lng2) * 1.5;
     }
     
-    // Fallback to OSRM if GraphHopper fails
-    console.log('⚠️ GraphHopper failed, trying OSRM...');
-    const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${lng2},${lat2};${lng1},${lat1}?overview=false`;
+    const data = await response.json();
     
-    const osrmResponse = await fetch(osrmUrl, {
-      headers: {
-        'User-Agent': 'HealingRoomSixNations/1.0',
-      },
-    });
-    
-    if (osrmResponse.ok) {
-      const osrmData = await osrmResponse.json();
-      
-      if (osrmData.code === 'Ok' && osrmData.routes && osrmData.routes.length > 0) {
-        // OSRM returns distance in meters, convert to km
-        const distanceKm = osrmData.routes[0].distance / 1000;
-        console.log(`🚗 OSRM distance: ${distanceKm.toFixed(1)} km`);
-        return Math.round(distanceKm * 10) / 10;
-      }
+    if (data.code !== 'Ok' || !data.routes || data.routes.length === 0) {
+      console.error('❌ OSRM no route found');
+      // Fallback to straight-line distance with road factor
+      return calculateStraightLineDistance(lat1, lng1, lat2, lng2) * 1.5;
     }
     
-    console.error('All routing APIs failed, using fallback');
-    // Fallback to straight-line distance with road factor
-    return calculateStraightLineDistance(lat1, lng1, lat2, lng2) * 1.9;
+    // OSRM returns distance in meters, convert to km
+    const distanceKm = data.routes[0].distance / 1000;
+    console.log(`🚗 OSRM driving distance: ${distanceKm.toFixed(1)} km`);
+    return Math.round(distanceKm * 10) / 10; // Round to 1 decimal
   } catch (error) {
-    console.error('Error calculating driving distance:', error);
+    console.error('❌ Error calculating driving distance:', error);
     // Fallback to straight-line distance with road factor
-    return calculateStraightLineDistance(lat1, lng1, lat2, lng2) * 1.9;
+    return calculateStraightLineDistance(lat1, lng1, lat2, lng2) * 1.5;
   }
 }
 
