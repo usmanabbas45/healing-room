@@ -4,6 +4,8 @@ import { Pagination } from "@/components/common/Pagination";
 import { ShopToolbar } from "@/components/shop/ShopToolbar";
 import { Metadata } from "next";
 import { BreadcrumbJsonLd } from "@/components/seo/JsonLd";
+import { Suspense } from "react";
+import { Loader } from "@/components/common/Loader";
 
 const PRODUCTS_PER_PAGE = 24;
 
@@ -33,22 +35,16 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function ShopPage({
-  searchParams,
+// Products Grid Component - Async data fetching
+async function ProductsGrid({
+  currentPage,
+  validType,
+  searchQuery,
 }: {
-  searchParams: { page?: string; type?: string; q?: string };
+  currentPage: number;
+  validType: string;
+  searchQuery: string;
 }) {
-  const currentPage = Number(searchParams.page) || 1;
-  const typeFilter = searchParams.type || 'all';
-  const searchQuery = searchParams.q || '';
-  
-  // Fetch product types from Hikeup
-  const productTypes = await getProductTypes();
-  
-  // Validate type filter
-  const validType = productTypes.find(t => t.id === typeFilter) ? typeFilter : 'all';
-  const typeName = productTypes.find(t => t.id === validType)?.name || 'All Products';
-
   // Fetch products - either search or browse
   let products;
   let totalCount;
@@ -73,6 +69,67 @@ export default async function ShopPage({
   if (searchQuery) paginationParams.set('q', searchQuery);
   const baseUrl = `/shop${paginationParams.toString() ? `?${paginationParams.toString()}` : ''}`;
 
+  if (products.length > 0) {
+    return (
+      <>
+        <Products products={products} extraClassname="" />
+        
+        {totalPages > 1 && !searchQuery && (
+          <Pagination 
+            currentPage={currentPage} 
+            totalPages={totalPages} 
+            baseUrl={baseUrl}
+          />
+        )}
+      </>
+    );
+  }
+
+  return (
+    <div className="text-center py-16 px-4">
+      <div className="inline-flex items-center justify-center w-16 h-16 bg-primary/10 rounded-full mb-4">
+        <svg className="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+      </div>
+      <p className="text-text-primary text-lg font-medium">
+        {searchQuery ? 'No products match your search' : 'No products found'}
+      </p>
+      <p className="text-text-muted text-sm mt-2 max-w-md mx-auto">
+        {searchQuery 
+          ? `We couldn't find any products matching "${searchQuery}". Try a different search term or browse our categories.`
+          : 'Try selecting a different category or search for specific products.'}
+      </p>
+    </div>
+  );
+}
+
+// Loading fallback for products grid
+function ProductsLoading() {
+  return (
+    <div className="flex flex-col items-center justify-center py-20">
+      <Loader height={48} width={48} />
+      <p className="mt-4 text-text-muted text-sm">Loading products...</p>
+    </div>
+  );
+}
+
+export default async function ShopPage({
+  searchParams,
+}: {
+  searchParams: { page?: string; type?: string; q?: string };
+}) {
+  const currentPage = Number(searchParams.page) || 1;
+  const typeFilter = searchParams.type || 'all';
+  const searchQuery = searchParams.q || '';
+  
+  // Fetch product types from Hikeup (fast, cached)
+  const productTypes = await getProductTypes();
+  
+  // Validate type filter
+  const validType = productTypes.find(t => t.id === typeFilter) ? typeFilter : 'all';
+  const typeName = productTypes.find(t => t.id === validType)?.name || 'All Products';
+
   return (
     <>
       <BreadcrumbJsonLd 
@@ -83,54 +140,33 @@ export default async function ShopPage({
         ]} 
       />
       <section className="pt-4">
-        {/* Page Header */}
+        {/* Page Header - Loads Immediately */}
         <div className="mb-6">
           <h1 className="text-2xl md:text-3xl font-bold text-text-primary">
             {validType !== 'all' ? typeName : 'Shop'}
           </h1>
           <p className="text-sm text-text-muted mt-1">
-            {totalCount} product{totalCount !== 1 ? 's' : ''} available
+            Browse our selection
           </p>
         </div>
         
-        {/* Shop Toolbar with Search and Filter */}
+        {/* Shop Toolbar - Loads Immediately */}
         <ShopToolbar 
           currentType={validType}
           currentSearch={searchQuery}
           productTypes={productTypes}
-          totalCount={totalCount}
+          totalCount={0}
         />
       
-      {products.length > 0 ? (
-        <>
-          <Products products={products} extraClassname="" />
-          
-          {totalPages > 1 && !searchQuery && (
-            <Pagination 
-              currentPage={currentPage} 
-              totalPages={totalPages} 
-              baseUrl={baseUrl}
-            />
-          )}
-        </>
-      ) : (
-        <div className="text-center py-16 px-4">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary/10 rounded-full mb-4">
-            <svg className="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </div>
-          <p className="text-text-primary text-lg font-medium">
-            {searchQuery ? 'No products match your search' : 'No products found'}
-          </p>
-          <p className="text-text-muted text-sm mt-2 max-w-md mx-auto">
-            {searchQuery 
-              ? `We couldn't find any products matching "${searchQuery}". Try a different search term or browse our categories.`
-              : 'Try selecting a different category or search for specific products.'}
-          </p>
-        </div>
-      )}
-    </section>
+        {/* Products Grid - Streams in with Suspense */}
+        <Suspense fallback={<ProductsLoading />}>
+          <ProductsGrid 
+            currentPage={currentPage}
+            validType={validType}
+            searchQuery={searchQuery}
+          />
+        </Suspense>
+      </section>
     </>
   );
 }

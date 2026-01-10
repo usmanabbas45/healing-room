@@ -785,7 +785,8 @@ export async function getHikeupProduct(productId: string): Promise<HikeupProduct
  */
 export async function getHikeupProductByFilter(filter: string, limit: number = 50): Promise<HikeupProduct[]> {
   try {
-    console.log(`🔍 Searching Hikeup with filter: "${filter}" (limit: ${limit})`);
+    console.log(`🔍 Searching Hikeup with filter: "${filter}"`);
+    console.log(`   📤 Request params: page_size=${limit}, Skip_count=0, Filter="${filter}"`);
     
     const params = new URLSearchParams({
       page_size: limit.toString(),
@@ -793,33 +794,33 @@ export async function getHikeupProductByFilter(filter: string, limit: number = 5
       Filter: filter,
     });
     
-    const url = `/products/get_all?${params.toString()}`;
-    console.log(`🌐 Full request URL: ${HIKEUP_API_BASE}${url}`);
-    console.log(`📤 Request params:`, { page_size: limit, Skip_count: 0, Filter: filter });
+    const response = await hikeupFetch<any>(`/products/get_all?${params.toString()}`);
     
-    const response = await hikeupFetch<any>(url);
-    
-    console.log(`📥 Response type:`, typeof response);
-    console.log(`📥 Response keys:`, response ? Object.keys(response) : 'null');
-    console.log(`📥 Is array:`, Array.isArray(response));
-    console.log(`📥 Full response (first 500 chars):`, JSON.stringify(response).substring(0, 500));
+    console.log(`📥 FULL RESPONSE from Hikeup Filter API:`);
+    console.log(`   Response type: ${Array.isArray(response) ? 'array' : typeof response}`);
+    console.log(`   Response keys:`, response ? Object.keys(response) : 'null');
+    console.log(`   Full response:`, JSON.stringify(response, null, 2).substring(0, 1000));
     
     let products: HikeupProduct[] = [];
     if (Array.isArray(response)) {
       products = response;
-      console.log(`✅ Response is array with ${products.length} products`);
+      console.log(`   ✅ Products in root array: ${products.length}`);
     } else if (response?.items) {
       products = response.items;
-      console.log(`✅ Response.items has ${products.length} products`);
+      console.log(`   ✅ Products in response.items: ${products.length}`);
     } else if (response?.data) {
       products = response.data;
-      console.log(`✅ Response.data has ${products.length} products`);
+      console.log(`   ✅ Products in response.data: ${products.length}`);
+    } else if (response?.result) {
+      products = response.result;
+      console.log(`   ✅ Products in response.result: ${products.length}`);
     } else {
-      console.log(`⚠️ Unknown response format:`, JSON.stringify(response, null, 2));
+      console.log(`   ❌ Could not find products array in response structure`);
+      console.log(`   Available keys:`, response ? Object.keys(response) : 'none');
     }
     
     if (products.length > 0) {
-      console.log(`📦 First product sample:`, JSON.stringify(products[0], null, 2).substring(0, 300));
+      console.log(`   📦 Sample product:`, JSON.stringify(products[0], null, 2).substring(0, 500));
     }
     
     console.log(`🔍 Filter search returned ${products.length} products`);
@@ -1003,7 +1004,7 @@ export async function getHikeupProductsByType(
     
     // Convert typeId back to readable format
     const typeName = typeId.replace(/-/g, ' ');
-    console.log(`   Type name for matching: "${typeName}"`);
+    console.log(`   🔄 Converted type ID "${typeId}" to search name: "${typeName}"`);
     
     // Check cache first
     let filtered: HikeupProduct[];
@@ -1013,30 +1014,23 @@ export async function getHikeupProductsByType(
       console.log(`📦 Using cached type filter results (${cached.products.length} products)`);
       filtered = cached.products;
     } else {
-      console.log(`🌐 Fetching ALL products from Hikeup to filter by type "${typeId}"`);
+      console.log(`🌐 Fetching products from Hikeup API for type "${typeId}"`);
       
-      // IMPORTANT: Fetch ALL products WITHOUT filter (Filter searches product names, not types!)
-      // We'll filter by product_type field locally
-      const allProducts = await getAllHikeupProducts();
-      console.log(`📦 Fetched ${allProducts.length} total products from Hikeup`);
+      // Fetch ALL matching products (we'll cache them)
+      const allProducts = await getHikeupProductByFilter(typeName, 500);
+      
+      console.log(`   📦 Received ${allProducts.length} products from filter API`);
       
       if (allProducts.length > 0) {
+        console.log(`   📋 Sample product structure:`, JSON.stringify(allProducts[0], null, 2).substring(0, 800));
         const sampleProduct = allProducts[0] as any;
-        console.log(`📋 Sample product structure:`, {
-          id: sampleProduct.id,
-          name: sampleProduct.name || sampleProduct.product_name,
-          product_type: sampleProduct.product_type,
-        });
+        console.log(`   🏷️  Sample product types:`, JSON.stringify(sampleProduct.product_type, null, 2));
       }
       
-      // Filter by product_type field
+      // Filter to match type more precisely
       filtered = allProducts.filter(p => {
         const product = p as any;
         const types = product.product_type || [];
-        
-        if (types.length === 0) {
-          return false;
-        }
         
         const matches = types.some((pt: any) => {
           const ptName = (pt.type_name || pt.name || '').toLowerCase();
@@ -1048,7 +1042,7 @@ export async function getHikeupProductsByType(
           // Partial match
           if (ptName.includes(searchName) || searchName.includes(ptName)) return true;
           
-          // Normalized match (remove special chars)
+          // Normalized match
           const ptNormalized = ptName.replace(/[^a-z0-9]/g, '');
           const searchNormalized = searchName.replace(/[^a-z0-9]/g, '');
           
@@ -1058,10 +1052,11 @@ export async function getHikeupProductsByType(
         return matches;
       });
       
-      console.log(`✅ Filtered to ${filtered.length} products matching type "${typeName}"`);
+      console.log(`   🔍 After precise filtering: ${filtered.length} products match type "${typeName}"`);
       
-      if (filtered.length > 0 && filtered.length < 5) {
-        console.log(`   Sample matching products:`, filtered.map(p => (p as any).name || (p as any).product_name));
+      if (filtered.length === 0 && allProducts.length > 0) {
+        console.log(`   ⚠️  WARNING: Filter API returned products but none matched type "${typeName}"`);
+        console.log(`   💡 This might mean the Filter parameter doesn't search product types`);
       }
       
       // Cache the results
@@ -1070,12 +1065,11 @@ export async function getHikeupProductsByType(
         timestamp: Date.now(),
       });
       
-      console.log(`💾 Cached ${filtered.length} products for type "${typeId}"`);
+      console.log(`✅ Found and cached ${filtered.length} products for type "${typeId}"`);
     }
     
-    // Apply pagination to filtered results
+    // Apply pagination to cached results (super fast!)
     const paginated = filtered.slice(skipCount, skipCount + pageSize);
-    console.log(`📄 Returning page ${Math.floor(skipCount / pageSize) + 1}: ${paginated.length} products (${skipCount} to ${skipCount + pageSize})`);
     
     return {
       products: paginated,
