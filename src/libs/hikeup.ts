@@ -1757,9 +1757,172 @@ let productTypesCache: {
 } | null = null;
 const PRODUCT_TYPES_CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 
+// ============================================================================
+// DATABASE-BACKED PRODUCT CACHE (for multi-worker access)
+// ============================================================================
+
+/**
+ * Sync products from Hikeup to database cache
+ * This replaces in-memory caching and works across all worker processes
+ */
+export async function syncProductsToDatabase(): Promise<void> {
+  try {
+    console.log('📦 [DB SYNC] Starting product sync to database...');
+    const startTime = Date.now();
+    
+    const allProducts = await getAllHikeupProducts();
+    console.log(`📥 Fetched ${allProducts.length} products from Hikeup`);
+    
+    // Prepare bulk upsert data
+    const cacheRecords = allProducts.map((product: any) => {
+      // Extract product types for filtering
+      const productTypes = (product.product_type || []).map((pt: any) => 
+        (pt.type_name || pt.name || '').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+      ).filter(Boolean);
+      
+      return {
+        hikeupId: Number(product.id),
+        name: product.name || '',
+        rawData: JSON.stringify(product),
+        productTypes,
+        isActive: product.isActive !== false,
+        hasVariants: (product.product_variants || []).length > 0,
+        lastModified: product.last_modified ? new Date(product.last_modified) : null,
+      };
+    });
+    
+    console.log(`💾 Upserting ${cacheRecords.length} products to database...`);
+    
+    // Batch upsert (PostgreSQL-specific for efficiency)
+    let upserted = 0;
+    const batchSize = 100;
+    
+    for (let i = 0; i < cacheRecords.length; i += batchSize) {
+      const batch = cacheRecords.slice(i, i + batchSize);
+      
+      // Upsert each product
+      await Promise.all(batch.map(record => 
+        prisma.hikeupProductCache.upsert({
+          where: { hikeupId: record.hikeupId },
+          update: {
+            name: record.name,
+            rawData: record.rawData,
+            productTypes: record.productTypes,
+            isActive: record.isActive,
+            hasVariants: record.hasVariants,
+            lastModified: record.lastModified,
+          },
+          create: record,
+        })
+      ));
+      
+      upserted += batch.length;
+      console.log(`   ✅ Upserted ${upserted}/${cacheRecords.length} products`);
+    }
+    
+    const duration = Date.now() - startTime;
+    console.log(`✅ [DB SYNC] Completed in ${duration}ms`);
+    console.log(`📊 Database cache: ${cacheRecords.length} products`);
+    
+    // Log type distribution
+    const typeStats = new Map<string, number>();
+    cacheRecords.forEach(record => {
+      record.productTypes.forEach(type => {
+        typeStats.set(type, (typeStats.get(type) || 0) + 1);
+      });
+    });
+    
+    console.log(`📋 Type distribution:`);
+    Array.from(typeStats.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .forEach(([type, count]) => {
+        console.log(`   ${type}: ${count} products`);
+      });
+      
+  } catch (error) {
+    console.error('❌ [DB SYNC] Error syncing products:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get products from database cache (filtered by type)
+ */
+export async function getProductsFromDatabase(
+  typeFilter: string = 'all',
+  page: number = 1,
+  pageSize: number = 24
+): Promise<{ products: any[]; totalCount: number }> {
+  try {
+    const skip = (page - 1) * pageSize;
+    
+    const where = typeFilter === 'all' 
+      ? { isActive: true }
+      : { isActive: true, productTypes: { has: typeFilter } };
+    
+    const [products, totalCount] = await Promise.all([
+      prisma.hikeupProductCache.findMany({
+        where,
+        skip,
+        take: pageSize,
+        orderBy: { name: 'asc' },
+      }),
+      prisma.hikeupProductCache.count({ where }),
+    ]);
+    
+    // Parse rawData back to objects
+    const parsedProducts = products.map(p => JSON.parse(p.rawData));
+    
+    console.log(`📦 [DB CACHE] Retrieved ${products.length} products (${totalCount} total) for type "${typeFilter}"`);
+    
+    return {
+      products: parsedProducts,
+      totalCount,
+    };
+  } catch (error) {
+    console.error('❌ [DB CACHE] Error retrieving products:', error);
+    return { products: [], totalCount: 0 };
+  }
+}
+
+/**
+ * Get available product types from database
+ */
+export async function getProductTypesFromDatabase(): Promise<{ id: string; name: string; count: number }[]> {
+  try {
+    // Get all unique product types
+    const products = await prisma.hikeupProductCache.findMany({
+      where: { isActive: true },
+      select: { productTypes: true },
+    });
+    
+    // Count occurrences
+    const typeCounts = new Map<string, number>();
+    products.forEach(p => {
+      p.productTypes.forEach(type => {
+        typeCounts.set(type, (typeCounts.get(type) || 0) + 1);
+      });
+    });
+    
+    return Array.from(typeCounts.entries())
+      .map(([name, count]) => ({ id: name, name, count }))
+      .sort((a, b) => b.count - a.count);
+      
+  } catch (error) {
+    console.error('❌ [DB CACHE] Error getting product types:', error);
+    return [];
+  }
+}
+
+// ============================================================================
+// IN-MEMORY CACHE (DEPRECATED - kept for backward compatibility)
+// ============================================================================
+
 /**
  * Load ALL products into cache with type indexing
  * Called on server startup and for full refresh
+ * @deprecated Use syncProductsToDatabase() instead
  */
 export async function loadAllProductsIntoCache(): Promise<void> {
   if (allProductsCache?.isLoading) {

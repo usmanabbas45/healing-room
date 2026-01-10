@@ -13,6 +13,8 @@ import {
   searchHikeupProducts,
   transformHikeupProduct,
   getHikeupOffers,
+  getProductsFromDatabase,
+  getProductTypesFromDatabase,
   type HikeupOffer,
 } from "@/libs/hikeup";
 import { applyPriceMarkup } from "@/libs/pricing";
@@ -164,35 +166,36 @@ export const getAllProducts = async (
   typeFilter: string = 'all'
 ) => {
   try {
-    const skipCount = (page - 1) * pageSize;
-    console.log(`🔍 getAllProducts called (page ${page}, size ${pageSize}, skip ${skipCount}, type ${typeFilter})`);
+    console.log(`🔍 getAllProducts called (page ${page}, size ${pageSize}, type ${typeFilter})`);
     
-    // Check if Hikeup is connected (async - checks database)
+    // Check if Hikeup is connected
     const connected = await isHikeupConnected();
     console.log('🔗 Hikeup connected:', connected);
     
-    // Try Hikeup first if connected
     if (connected) {
-      console.log('📦 Fetching products from Hikeup POS...');
+      console.log('📦 Fetching products from DATABASE CACHE (instant, no API calls)...');
       
       // Fetch offers ONCE for all products (1 API call)
-      console.log('🎁 Fetching offers from Hikeup (1 API call for all products)...');
+      console.log('🎁 Fetching offers from Hikeup (1 API call)...');
       const offers = await getHikeupOffers();
       console.log(`✅ Got ${offers.length} active offers`);
       
-      // Use type filter if specified
-      const { products: hikeupProducts, totalCount } = typeFilter === 'all'
-        ? await getHikeupProductsWithMeta(pageSize, skipCount)
-        : await getHikeupProductsByType(typeFilter, pageSize, skipCount);
+      // Get products from database cache (instant!)
+      const { products: cachedProducts, totalCount } = await getProductsFromDatabase(
+        typeFilter,
+        page,
+        pageSize
+      );
       
-      console.log('📦 Got', hikeupProducts.length, 'products from Hikeup (total:', totalCount, ')');
+      console.log(`📦 Got ${cachedProducts.length} products from database cache (total: ${totalCount})`);
       
-      if (hikeupProducts.length > 0 || typeFilter !== 'all') {
-        // Transform all products with the same offers (no additional API calls)
-        const transformed = hikeupProducts.map(p => transformHikeupProductWithDiscount(p, offers));
+      if (cachedProducts.length > 0) {
+        // Transform with offers (no additional API calls)
+        const transformed = cachedProducts.map(p => transformHikeupProductWithDiscount(p, offers));
         return { products: transformed, totalCount };
       }
-      console.log('⚠️ No products from Hikeup, falling back to database');
+      
+      console.log('⚠️ No products in database cache, database may need syncing');
     }
 
     // Fall back to database
@@ -423,7 +426,18 @@ export const getProductTypes = async () => {
   try {
     const connected = await isHikeupConnected();
     if (connected) {
-      return await getProductTypesForFilter();
+      console.log('📦 Fetching product types from DATABASE CACHE...');
+      const types = await getProductTypesFromDatabase();
+      
+      // Add "All Products" option at the beginning
+      return [
+        { id: 'all', name: 'All Products', count: types.reduce((sum, t) => sum + t.count, 0) },
+        ...types.map(t => ({
+          id: t.id,
+          name: t.name.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
+          count: t.count,
+        })),
+      ];
     }
     // Fallback types if not connected
     return [

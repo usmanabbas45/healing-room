@@ -18,7 +18,7 @@ export function ShopToolbar({
   currentType: string;
   currentSearch: string;
   productTypes: ProductType[];
-  totalCount: number;
+  totalCount: number | null;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -151,10 +151,12 @@ export function ShopToolbar({
 
         {/* Active Filters / Results Summary */}
         <div className="flex flex-wrap items-center gap-2 mt-4">
-          {/* Results count */}
-          <span className="text-sm text-text-muted">
-            {totalCount > 0 ? `${totalCount} products` : 'No products found'}
-          </span>
+          {/* Results count - only show when loaded */}
+          {totalCount !== null && (
+            <span className="text-sm text-text-muted">
+              {totalCount > 0 ? `${totalCount} products` : 'No products found'}
+            </span>
+          )}
 
           {/* Active filter tags */}
           {(currentSearch || currentType !== 'all') && (

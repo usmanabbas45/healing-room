@@ -150,12 +150,12 @@ export default async function ShopPage({
           </p>
         </div>
         
-        {/* Shop Toolbar - Loads Immediately */}
+        {/* Shop Toolbar - Loads Immediately (no count yet) */}
         <ShopToolbar 
           currentType={validType}
           currentSearch={searchQuery}
           productTypes={productTypes}
-          totalCount={0}
+          totalCount={null}
         />
       
         {/* Products Grid - Streams in with Suspense */}
