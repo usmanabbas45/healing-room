@@ -635,13 +635,6 @@ export default function CheckoutPage() {
                             setDeliveryCoords(coords);
                             setAddressValidationError(null);
                             setTriggerAddressValidation(false); // Reset trigger
-                            // Auto-proceed to next step after successful validation
-                            setTimeout(() => {
-                              const idx = currentStepIndex;
-                              if (idx < steps.length - 1) {
-                                setCurrentStep(steps[idx + 1].id);
-                              }
-                            }, 500);
                           }}
                           onValidationError={(error) => {
                             setDeliveryDistance(null);
