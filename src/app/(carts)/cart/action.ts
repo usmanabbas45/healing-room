@@ -5,7 +5,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/libs/auth";
 import { Session } from "next-auth";
 import prisma from "@/libs/prisma";
-import { getHikeupProduct, transformHikeupProduct, isHikeupConnected } from "@/libs/hikeup";
+import { getHikeupProduct, transformHikeupProduct, isHikeupConnected, getHikeupOffers, type HikeupOffer } from "@/libs/hikeup";
 
 export type CartType = {
   userId: string;
@@ -29,6 +29,7 @@ export type EnrichedCartItem = {
   discountPercentage?: number;
   discountAmount?: number;
   offerName?: string;
+  dealExpired?: boolean; // NEW: Flag if deal is no longer active
   color: string;
   size: string;
   quantity: number;
@@ -36,6 +37,36 @@ export type EnrichedCartItem = {
   purchased: boolean;
   _id: string;
 };
+
+// Helper: Check if discount is still active
+function checkDiscountStillActive(productId: string, offers: HikeupOffer[]): {
+  discountPercentage: number;
+  discountAmount: number;
+  offerName: string;
+} | null {
+  for (const offer of offers) {
+    // Check if product matches
+    if (offer.applicableProducts && offer.applicableProducts.some(p => String(p.id) === String(productId))) {
+      return {
+        discountPercentage: offer.isPercentage ? (offer.offerValue || offer.offerAmount) : 0,
+        discountAmount: !offer.isPercentage ? (offer.offerValue || offer.offerAmount) : 0,
+        offerName: offer.name,
+      };
+    }
+    
+    // Check if it's a store-wide offer
+    if ((!offer.applicableProducts || offer.applicableProducts.length === 0) &&
+        (!offer.applicableCategories || offer.applicableCategories.length === 0)) {
+      return {
+        discountPercentage: offer.isPercentage ? (offer.offerValue || offer.offerAmount) : 0,
+        discountAmount: !offer.isPercentage ? (offer.offerValue || offer.offerAmount) : 0,
+        offerName: offer.name,
+      };
+    }
+  }
+  
+  return null;
+}
 
 export async function getItems(userId: string): Promise<EnrichedCartItem[] | undefined> {
   if (!userId) {
@@ -54,24 +85,83 @@ export async function getItems(userId: string): Promise<EnrichedCartItem[] | und
     return undefined;
   }
 
-  // Cart items now store product info directly
-  const enrichedItems: EnrichedCartItem[] = cart.items.map((item) => ({
-    id: item.id,
-    _id: item.id,
-    productId: item.productId,
-    name: item.productName || 'Product',
-    category: item.category || 'uncategorized',
-    image: item.image ? [item.image] : ['/logo.png'],
-    price: item.price,
-    originalPrice: (item as any).originalPrice || undefined,
-    discountPercentage: (item as any).discountPercentage || undefined,
-    discountAmount: (item as any).discountAmount || undefined,
-    offerName: (item as any).offerName || undefined,
-    color: item.size, // Using size as color for Hikeup products
-    size: item.size,
-    quantity: item.quantity,
-    variantId: item.variantId || "",
-    purchased: false,
+  // Fetch active offers to re-validate discounts
+  let activeOffers: HikeupOffer[] = [];
+  try {
+    if (await isHikeupConnected()) {
+      activeOffers = await getHikeupOffers();
+      console.log(`🛒 Cart: Validating ${cart.items.length} items against ${activeOffers.length} active offers`);
+    }
+  } catch (error) {
+    console.error('Error fetching offers for cart validation:', error);
+  }
+
+  // Re-validate each cart item's discount
+  const enrichedItems: EnrichedCartItem[] = await Promise.all(cart.items.map(async (item) => {
+    let finalPrice = item.price;
+    let originalPrice = (item as any).originalPrice || undefined;
+    let discountPercentage = (item as any).discountPercentage || undefined;
+    let discountAmount = (item as any).discountAmount || undefined;
+    let offerName = (item as any).offerName || undefined;
+    let dealExpired = false;
+
+    // If item had a discount, check if it's still valid
+    if (originalPrice && (discountPercentage || discountAmount)) {
+      const currentDiscount = checkDiscountStillActive(item.productId, activeOffers);
+      
+      if (currentDiscount && currentDiscount.offerName === offerName) {
+        // Deal is still active with same offer
+        console.log(`✅ Cart item "${item.productName}": Deal "${offerName}" still active`);
+      } else {
+        // Deal expired or changed - revert to original price
+        console.log(`⚠️ Cart item "${item.productName}": Deal "${offerName}" EXPIRED - reverting to regular price`);
+        finalPrice = originalPrice;
+        dealExpired = true;
+        
+        // Update database to reflect expired deal
+        try {
+          await prisma.cartItem.update({
+            where: { id: item.id },
+            data: {
+              price: originalPrice,
+              originalPrice: null,
+              discountPercentage: null,
+              discountAmount: null,
+              offerName: null,
+            },
+          });
+          console.log(`📝 Updated cart item in database: removed expired discount`);
+        } catch (error) {
+          console.error('Error updating cart item:', error);
+        }
+        
+        // Clear discount info for return
+        originalPrice = undefined;
+        discountPercentage = undefined;
+        discountAmount = undefined;
+        offerName = undefined;
+      }
+    }
+
+    return {
+      id: item.id,
+      _id: item.id,
+      productId: item.productId,
+      name: item.productName || 'Product',
+      category: item.category || 'uncategorized',
+      image: item.image ? [item.image] : ['/logo.png'],
+      price: finalPrice,
+      originalPrice,
+      discountPercentage,
+      discountAmount,
+      offerName,
+      dealExpired,
+      color: item.size,
+      size: item.size,
+      quantity: item.quantity,
+      variantId: item.variantId || "",
+      purchased: false,
+    };
   }));
 
   return enrichedItems;

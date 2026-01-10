@@ -152,9 +152,10 @@ const ProductsCart = async ({ session }: { session: Session }) => {
 
 // Horizontal Cart Item Component
 const CartItem = ({ item }: { item: EnrichedProducts }) => {
-  const { productId, category, image, name, price, quantity, size, color } = item;
+  const { productId, category, image, name, price, quantity, size, color, originalPrice, discountPercentage, offerName, dealExpired } = item;
   const productLink = `/${category}/${productId}`;
   const showVariantInfo = size !== 'Default' || color !== 'Default';
+  const hasActiveDiscount = originalPrice && !dealExpired;
   
   return (
     <div className="flex gap-4 p-4 bg-white border border-border-primary rounded-xl hover:shadow-md transition-shadow">
@@ -168,6 +169,12 @@ const CartItem = ({ item }: { item: EnrichedProducts }) => {
             className="object-cover"
             sizes="96px"
           />
+          {/* Discount Badge */}
+          {hasActiveDiscount && discountPercentage && (
+            <div className="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-bl">
+              -{Math.round(discountPercentage)}%
+            </div>
+          )}
         </div>
       </Link>
       
@@ -186,13 +193,45 @@ const CartItem = ({ item }: { item: EnrichedProducts }) => {
               {color !== 'Default' && color}
             </p>
           )}
+          
+          {/* Deal Status */}
+          {hasActiveDiscount && offerName && (
+            <div className="mt-1">
+              <span className="inline-flex items-center text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded">
+                🎉 {offerName}
+              </span>
+            </div>
+          )}
+          
+          {/* Deal Expired Warning */}
+          {dealExpired && (
+            <div className="mt-1">
+              <span className="inline-flex items-center text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded">
+                ⚠️ Deal expired - regular price applied
+              </span>
+            </div>
+          )}
         </div>
         
         {/* Price - Mobile */}
         <div className="md:hidden mt-2">
-          <span className="text-primary font-semibold">${(price * quantity).toFixed(2)}</span>
-          {quantity > 1 && (
-            <span className="text-xs text-text-muted ml-1">(${price.toFixed(2)} each)</span>
+          {hasActiveDiscount && originalPrice ? (
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-gray-400 line-through text-sm">${(originalPrice * quantity).toFixed(2)}</span>
+                <span className="text-green-600 font-semibold">${(price * quantity).toFixed(2)}</span>
+              </div>
+              {quantity > 1 && (
+                <span className="text-xs text-text-muted">${price.toFixed(2)} each</span>
+              )}
+            </div>
+          ) : (
+            <>
+              <span className="text-primary font-semibold">${(price * quantity).toFixed(2)}</span>
+              {quantity > 1 && (
+                <span className="text-xs text-text-muted ml-1">(${price.toFixed(2)} each)</span>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -204,9 +243,21 @@ const CartItem = ({ item }: { item: EnrichedProducts }) => {
         <div className="flex items-center gap-3">
           {/* Price - Desktop */}
           <div className="hidden md:block text-right">
-            <p className="text-primary font-semibold">${(price * quantity).toFixed(2)}</p>
-            {quantity > 1 && (
-              <p className="text-xs text-text-muted">${price.toFixed(2)} each</p>
+            {hasActiveDiscount && originalPrice ? (
+              <>
+                <p className="text-gray-400 line-through text-sm">${(originalPrice * quantity).toFixed(2)}</p>
+                <p className="text-green-600 font-semibold">${(price * quantity).toFixed(2)}</p>
+                {quantity > 1 && (
+                  <p className="text-xs text-text-muted">${price.toFixed(2)} each</p>
+                )}
+              </>
+            ) : (
+              <>
+                <p className="text-primary font-semibold">${(price * quantity).toFixed(2)}</p>
+                {quantity > 1 && (
+                  <p className="text-xs text-text-muted">${price.toFixed(2)} each</p>
+                )}
+              </>
             )}
           </div>
           

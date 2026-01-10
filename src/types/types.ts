@@ -26,6 +26,7 @@ export interface EnrichedProducts {
   discountPercentage?: number;
   discountAmount?: number;
   offerName?: string;
+  dealExpired?: boolean; // True if deal was active but has now expired
   purchased: boolean;
   color: string;
   size: string;
