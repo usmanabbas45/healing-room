@@ -3,8 +3,8 @@
 
 export const STORE_LOCATION = {
   address: "7147 Indian Line Rd, Norfolk County, ON N0E 1Z0",
-  lat: 42.9625,
-  lng: -80.1050,
+  lat: 43.02805,
+  lng: -80.23135,
   email: "healingroom7147@proton.me",
 };
 
@@ -174,11 +174,9 @@ export async function calculateDistance(
       
       if (osrmData.code === 'Ok' && osrmData.routes && osrmData.routes.length > 0) {
         // OSRM returns distance in meters, convert to km
-        // Apply 1.21x correction factor to match Google Maps (observed: OSRM 46km → Google 56km)
-        const rawDistanceKm = osrmData.routes[0].distance / 1000;
-        const correctedDistanceKm = rawDistanceKm * 1.21;
-        console.log(`🚗 OSRM distance: ${rawDistanceKm.toFixed(1)} km (corrected: ${correctedDistanceKm.toFixed(1)} km)`);
-        return Math.round(correctedDistanceKm * 10) / 10;
+        const distanceKm = osrmData.routes[0].distance / 1000;
+        console.log(`🚗 OSRM distance: ${distanceKm.toFixed(1)} km`);
+        return Math.round(distanceKm * 10) / 10;
       }
     }
     

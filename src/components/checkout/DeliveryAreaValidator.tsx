@@ -157,12 +157,6 @@ export default function DeliveryAreaValidator({
                   <span className="text-xs text-green-800">Delivery fee:</span>
                   <span className="text-lg font-bold text-primary">${deliveryFee.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between items-center pt-1 border-t border-green-200">
-                  <span className="text-xs text-green-800">Estimated delivery time:</span>
-                  <span className="text-xs font-medium text-green-900">
-                    {getEstimatedDeliveryTime(distance)}
-                  </span>
-                </div>
               </div>
             </div>
           </div>

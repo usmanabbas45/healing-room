@@ -3,8 +3,8 @@
 
 export const STORE_LOCATION = {
   address: "7147 Indian Line Rd, Norfolk County, ON N0E 1Z0",
-  lat: 42.9625,
-  lng: -80.1050,
+  lat: 43.02805,
+  lng: -80.23135,
   email: "info@healingroomsixnations.ca",
 };
 
