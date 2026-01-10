@@ -11,7 +11,7 @@ let cronInitialized = false;
  * Initialize all cron jobs
  * Called once when the server starts
  */
-export function initializeCronJobs() {
+export async function initializeCronJobs() {
   // Prevent multiple initializations
   if (cronInitialized) {
     console.log('⏰ Cron jobs already initialized, skipping...');
@@ -19,6 +19,11 @@ export function initializeCronJobs() {
   }
 
   console.log('⏰ Initializing cron jobs...');
+
+  // Load products into cache on startup
+  console.log('📦 [STARTUP] Loading products into cache...');
+  const { loadAllProductsIntoCache, syncProductUpdates } = await import('./hikeup');
+  await loadAllProductsIntoCache();
 
   // Refresh Hikeup token every day at 3 AM
   cron.schedule('0 3 * * *', async () => {
@@ -32,9 +37,16 @@ export function initializeCronJobs() {
     await refreshHikeupToken();
   });
 
+  // Sync product updates every 5 minutes
+  cron.schedule('*/5 * * * *', async () => {
+    console.log('🔄 [CRON] Syncing product updates...');
+    await syncProductUpdates();
+  });
+
   cronInitialized = true;
   console.log('✅ Cron jobs initialized successfully!');
   console.log('   - Hikeup token refresh: Every day at 3 AM + every 12 hours');
+  console.log('   - Product sync: Every 5 minutes');
 }
 
 /**

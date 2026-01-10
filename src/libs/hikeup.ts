@@ -513,6 +513,16 @@ async function hikeupFetch<T>(endpoint: string): Promise<T> {
   
   console.log('🌐 Hikeup API Request:', url);
   
+  // Parse and log query parameters
+  if (url.includes('?')) {
+    const [base, queryString] = url.split('?');
+    const params = new URLSearchParams(queryString);
+    console.log('   📋 Query Parameters:');
+    params.forEach((value, key) => {
+      console.log(`      ${key}: ${value}`);
+    });
+  }
+  
   const response = await httpsRequest(url, 'GET', {
     'Authorization': `Bearer ${token}`,
     'Content-Type': 'application/json',
@@ -551,6 +561,7 @@ async function hikeupFetch<T>(endpoint: string): Promise<T> {
 
   if (response.status !== 200) {
     console.error(`❌ Hikeup API Error (${response.status}):`, response.body);
+    console.error(`   📍 Full URL: ${url}`);
     
     // Log non-401 API errors for monitoring
     await logHikeupEvent('api_error', `Hikeup API error: ${response.status}`, {
@@ -563,7 +574,22 @@ async function hikeupFetch<T>(endpoint: string): Promise<T> {
   }
 
   try {
-    return JSON.parse(response.body);
+    const data = JSON.parse(response.body);
+    
+    // Log response schema for debugging
+    if (url.includes('/products/get_all')) {
+      console.log('📥 Response Schema:');
+      console.log(`   Type: ${Array.isArray(data) ? 'Array' : typeof data}`);
+      console.log(`   Keys: [${Object.keys(data).join(', ')}]`);
+      
+      if (data.items && Array.isArray(data.items) && data.items.length > 0) {
+        const sampleProduct = data.items[0];
+        console.log(`   Sample Product Keys: [${Object.keys(sampleProduct).slice(0, 10).join(', ')}...]`);
+        console.log(`   Total Results: ${data.totalCount || data.items.length}`);
+      }
+    }
+    
+    return data;
   } catch (e) {
     console.error('❌ Failed to parse JSON:', e);
     throw new Error('Invalid JSON response from Hikeup');
@@ -821,6 +847,45 @@ export async function getHikeupProductByFilter(filter: string, limit: number = 5
     
     if (products.length > 0) {
       console.log(`   📦 Sample product:`, JSON.stringify(products[0], null, 2).substring(0, 500));
+      
+      // REVERSE-ENGINEER: Check which fields contain the filter value
+      console.log(`\n🔬 ANALYZING FILTER BEHAVIOR: Which fields match "${filter}"?`);
+      const filterLower = filter.toLowerCase();
+      const matchedFields: Set<string> = new Set();
+      
+      // Check first 5 products to see which fields match
+      products.slice(0, 5).forEach((product: any, index) => {
+        if (index === 0) console.log(`   Checking fields in returned products...`);
+        
+        // Check all string fields
+        Object.entries(product).forEach(([key, value]) => {
+          if (typeof value === 'string' && value.toLowerCase().includes(filterLower)) {
+            matchedFields.add(key);
+            if (index === 0) {
+              console.log(`   ✅ "${key}": "${value.substring(0, 100)}"`);
+            }
+          }
+          
+          // Check nested arrays (like product_type, product_tags)
+          if (Array.isArray(value)) {
+            value.forEach((item: any) => {
+              if (typeof item === 'object' && item !== null) {
+                Object.entries(item).forEach(([nestedKey, nestedValue]) => {
+                  if (typeof nestedValue === 'string' && nestedValue.toLowerCase().includes(filterLower)) {
+                    matchedFields.add(`${key}.${nestedKey}`);
+                    if (index === 0) {
+                      console.log(`   ✅ "${key}.${nestedKey}": "${nestedValue}"`);
+                    }
+                  }
+                });
+              }
+            });
+          }
+        });
+      });
+      
+      console.log(`\n📊 FILTER CONCLUSION: "${filter}" matched these fields:`);
+      console.log(`   ${Array.from(matchedFields).join(', ') || 'NONE (Filter may search computed/unlisted fields)'}`);
     }
     
     console.log(`🔍 Filter search returned ${products.length} products`);
@@ -995,81 +1060,42 @@ export async function getHikeupProductsByType(
   skipCount: number = 0
 ): Promise<{ products: HikeupProduct[]; totalCount: number }> {
   try {
-    // If "all", just return paginated products
+    // If "all", return all products from cache
     if (typeId === 'all') {
-      return getHikeupProductsWithMeta(pageSize, skipCount);
-    }
-    
-    console.log(`🔍 Filtering products by type: "${typeId}" (page_size: ${pageSize}, skip: ${skipCount})`);
-    
-    // Convert typeId back to readable format
-    const typeName = typeId.replace(/-/g, ' ');
-    console.log(`   🔄 Converted type ID "${typeId}" to search name: "${typeName}"`);
-    
-    // Check cache first
-    let filtered: HikeupProduct[];
-    const cached = typeFilterCache.get(typeId);
-    
-    if (cached && Date.now() - cached.timestamp < TYPE_FILTER_CACHE_TTL) {
-      console.log(`📦 Using cached type filter results (${cached.products.length} products)`);
-      filtered = cached.products;
-    } else {
-      console.log(`🌐 Fetching products from Hikeup API for type "${typeId}"`);
-      
-      // Fetch ALL matching products (we'll cache them)
-      const allProducts = await getHikeupProductByFilter(typeName, 500);
-      
-      console.log(`   📦 Received ${allProducts.length} products from filter API`);
-      
-      if (allProducts.length > 0) {
-        console.log(`   📋 Sample product structure:`, JSON.stringify(allProducts[0], null, 2).substring(0, 800));
-        const sampleProduct = allProducts[0] as any;
-        console.log(`   🏷️  Sample product types:`, JSON.stringify(sampleProduct.product_type, null, 2));
+      if (!isProductCacheReady()) {
+        console.warn('⚠️ Product cache not ready, falling back to API');
+        return getHikeupProductsWithMeta(pageSize, skipCount);
       }
       
-      // Filter to match type more precisely
-      filtered = allProducts.filter(p => {
-        const product = p as any;
-        const types = product.product_type || [];
-        
-        const matches = types.some((pt: any) => {
-          const ptName = (pt.type_name || pt.name || '').toLowerCase();
-          const searchName = typeName.toLowerCase();
-          
-          // Exact match
-          if (ptName === searchName) return true;
-          
-          // Partial match
-          if (ptName.includes(searchName) || searchName.includes(ptName)) return true;
-          
-          // Normalized match
-          const ptNormalized = ptName.replace(/[^a-z0-9]/g, '');
-          const searchNormalized = searchName.replace(/[^a-z0-9]/g, '');
-          
-          return ptNormalized === searchNormalized;
-        });
-        
-        return matches;
-      });
-      
-      console.log(`   🔍 After precise filtering: ${filtered.length} products match type "${typeName}"`);
-      
-      if (filtered.length === 0 && allProducts.length > 0) {
-        console.log(`   ⚠️  WARNING: Filter API returned products but none matched type "${typeName}"`);
-        console.log(`   💡 This might mean the Filter parameter doesn't search product types`);
-      }
-      
-      // Cache the results
-      typeFilterCache.set(typeId, {
-        products: filtered,
-        timestamp: Date.now(),
-      });
-      
-      console.log(`✅ Found and cached ${filtered.length} products for type "${typeId}"`);
+      const allProducts = getCachedProducts();
+      const paginated = allProducts.slice(skipCount, skipCount + pageSize);
+      return {
+        products: paginated,
+        totalCount: allProducts.length,
+      };
     }
     
-    // Apply pagination to cached results (super fast!)
+    console.log(`⚡ Getting products by type: "${typeId}" from cache (instant!)`);
+    
+    // Get products from cache by type (instant!)
+    if (!isProductCacheReady()) {
+      console.warn('⚠️ Product cache not ready yet, products may not be available');
+      return {
+        products: [],
+        totalCount: 0,
+      };
+    }
+    
+    const filtered = getCachedProductsByType(typeId);
+    
+    if (filtered.length === 0) {
+      console.log(`⚠️ No products found for type "${typeId}"`);
+    }
+    
+    // Apply pagination
     const paginated = filtered.slice(skipCount, skipCount + pageSize);
+    
+    console.log(`✅ Returning ${paginated.length} of ${filtered.length} total products for type "${typeId}"`);
     
     return {
       products: paginated,
@@ -1683,12 +1709,15 @@ let offersCache: {
 
 const OFFERS_CACHE_TTL = 15 * 60 * 1000; // 15 minutes
 
-// Cache for type filter results (short TTL since products change)
-let typeFilterCache: Map<string, {
+// ============ PRODUCT CACHE SYSTEM ============
+// Background-synced full product catalog with type indexing
+
+let allProductsCache: {
   products: HikeupProduct[];
-  timestamp: number;
-}> = new Map();
-const TYPE_FILTER_CACHE_TTL = 2 * 60 * 1000; // 2 minutes
+  byType: Map<string, HikeupProduct[]>; // Indexed by type for instant filtering
+  lastSyncTime: Date;
+  isLoading: boolean;
+} | null = null;
 
 // Cache for product types (longer TTL since types don't change often)
 let productTypesCache: {
@@ -1696,6 +1725,176 @@ let productTypesCache: {
   timestamp: number;
 } | null = null;
 const PRODUCT_TYPES_CACHE_TTL = 30 * 60 * 1000; // 30 minutes
+
+/**
+ * Load ALL products into cache with type indexing
+ * Called on server startup and for full refresh
+ */
+export async function loadAllProductsIntoCache(): Promise<void> {
+  if (allProductsCache?.isLoading) {
+    console.log('⏳ Products already loading, skipping...');
+    return;
+  }
+
+  try {
+    if (allProductsCache) {
+      allProductsCache.isLoading = true;
+    }
+
+    console.log('📦 Loading ALL products into cache...');
+    const startTime = Date.now();
+    
+    const allProducts = await getAllHikeupProducts();
+    
+    console.log(`✅ Loaded ${allProducts.length} products in ${Date.now() - startTime}ms`);
+    
+    // Build type index
+    console.log('🏗️  Building type index...');
+    const byType = new Map<string, HikeupProduct[]>();
+    
+    allProducts.forEach((product: any) => {
+      const types = product.product_type || [];
+      types.forEach((pt: any) => {
+        const typeName = (pt.type_name || pt.name || '').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+        if (typeName) {
+          if (!byType.has(typeName)) {
+            byType.set(typeName, []);
+          }
+          byType.get(typeName)!.push(product);
+        }
+      });
+    });
+    
+    console.log(`✅ Type index built: ${byType.size} types`);
+    byType.forEach((products, type) => {
+      console.log(`   ${type}: ${products.length} products`);
+    });
+    
+    allProductsCache = {
+      products: allProducts,
+      byType,
+      lastSyncTime: new Date(),
+      isLoading: false,
+    };
+    
+    console.log(`✅ Product cache ready! ${allProducts.length} products indexed by ${byType.size} types`);
+  } catch (error) {
+    console.error('❌ Error loading products into cache:', error);
+    if (allProductsCache) {
+      allProductsCache.isLoading = false;
+    }
+  }
+}
+
+/**
+ * Incrementally sync products using Sync_From parameter
+ * Called by cron job every 5 minutes
+ */
+export async function syncProductUpdates(): Promise<void> {
+  if (!allProductsCache) {
+    console.log('⚠️ No product cache exists, performing full load...');
+    await loadAllProductsIntoCache();
+    return;
+  }
+
+  if (allProductsCache.isLoading) {
+    console.log('⏳ Sync already in progress, skipping...');
+    return;
+  }
+
+  try {
+    allProductsCache.isLoading = true;
+    
+    const syncFrom = allProductsCache.lastSyncTime.toISOString();
+    console.log(`🔄 Syncing product updates since ${syncFrom}...`);
+    
+    const params = new URLSearchParams({
+      page_size: '500',
+      Skip_count: '0',
+      Sync_From: syncFrom,
+    });
+    
+    const response = await hikeupFetch<any>(`/products/get_all?${params.toString()}`);
+    const updates = response?.items || response || [];
+    
+    if (updates.length === 0) {
+      console.log('✅ No product updates');
+      allProductsCache.isLoading = false;
+      return;
+    }
+    
+    console.log(`📥 Received ${updates.length} product updates`);
+    
+    // Merge updates into cache
+    const productMap = new Map(allProductsCache.products.map(p => [p.id, p]));
+    updates.forEach((update: any) => {
+      productMap.set(update.id, update);
+    });
+    
+    const allProducts = Array.from(productMap.values());
+    
+    // Rebuild type index
+    const byType = new Map<string, HikeupProduct[]>();
+    allProducts.forEach((product: any) => {
+      const types = product.product_type || [];
+      types.forEach((pt: any) => {
+        const typeName = (pt.type_name || pt.name || '').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+        if (typeName) {
+          if (!byType.has(typeName)) {
+            byType.set(typeName, []);
+          }
+          byType.get(typeName)!.push(product);
+        }
+      });
+    });
+    
+    allProductsCache = {
+      products: allProducts,
+      byType,
+      lastSyncTime: new Date(),
+      isLoading: false,
+    };
+    
+    console.log(`✅ Cache updated: ${allProducts.length} total products, ${byType.size} types`);
+  } catch (error) {
+    console.error('❌ Error syncing product updates:', error);
+    if (allProductsCache) {
+      allProductsCache.isLoading = false;
+    }
+  }
+}
+
+/**
+ * Get products from cache (instant!)
+ */
+export function getCachedProducts(): HikeupProduct[] {
+  if (!allProductsCache) {
+    console.warn('⚠️ Product cache not initialized');
+    return [];
+  }
+  return allProductsCache.products;
+}
+
+/**
+ * Get products by type from cache (instant!)
+ */
+export function getCachedProductsByType(typeId: string): HikeupProduct[] {
+  if (!allProductsCache) {
+    console.warn('⚠️ Product cache not initialized');
+    return [];
+  }
+  
+  const products = allProductsCache.byType.get(typeId) || [];
+  console.log(`📦 Cache hit: ${products.length} products for type "${typeId}"`);
+  return products;
+}
+
+/**
+ * Check if product cache is ready
+ */
+export function isProductCacheReady(): boolean {
+  return allProductsCache !== null && !allProductsCache.isLoading;
+}
 
 /**
  * Get all active offers from Hikeup
