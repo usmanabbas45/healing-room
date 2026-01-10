@@ -915,40 +915,57 @@ export async function getHikeupProductsByType(
       return getHikeupProductsWithMeta(pageSize, skipCount);
     }
     
-    console.log(`🔍 Filtering products by type: "${typeId}"`);
+    console.log(`🔍 Filtering products by type: "${typeId}" (page_size: ${pageSize}, skip: ${skipCount})`);
     
     // Convert typeId back to readable format
     const typeName = typeId.replace(/-/g, ' ');
     
-    // Use Hikeup's Filter API to search
-    const allProducts = await getHikeupProductByFilter(typeName, 200);
+    // Check cache first
+    let filtered: HikeupProduct[];
+    const cached = typeFilterCache.get(typeId);
     
-    // Filter to match type more precisely
-    const filtered = allProducts.filter(p => {
-      const product = p as any;
-      const types = product.product_type || [];
+    if (cached && Date.now() - cached.timestamp < TYPE_FILTER_CACHE_TTL) {
+      console.log(`📦 Using cached type filter results (${cached.products.length} products)`);
+      filtered = cached.products;
+    } else {
+      console.log(`🌐 Fetching products from Hikeup API for type "${typeId}"`);
       
-      return types.some((pt: any) => {
-        const ptName = (pt.type_name || pt.name || '').toLowerCase();
-        const searchName = typeName.toLowerCase();
+      // Fetch ALL matching products (we'll cache them)
+      const allProducts = await getHikeupProductByFilter(typeName, 500);
+      
+      // Filter to match type more precisely
+      filtered = allProducts.filter(p => {
+        const product = p as any;
+        const types = product.product_type || [];
         
-        // Exact match
-        if (ptName === searchName) return true;
-        
-        // Partial match
-        if (ptName.includes(searchName) || searchName.includes(ptName)) return true;
-        
-        // Normalized match
-        const ptNormalized = ptName.replace(/[^a-z0-9]/g, '');
-        const searchNormalized = searchName.replace(/[^a-z0-9]/g, '');
-        
-        return ptNormalized === searchNormalized;
+        return types.some((pt: any) => {
+          const ptName = (pt.type_name || pt.name || '').toLowerCase();
+          const searchName = typeName.toLowerCase();
+          
+          // Exact match
+          if (ptName === searchName) return true;
+          
+          // Partial match
+          if (ptName.includes(searchName) || searchName.includes(ptName)) return true;
+          
+          // Normalized match
+          const ptNormalized = ptName.replace(/[^a-z0-9]/g, '');
+          const searchNormalized = searchName.replace(/[^a-z0-9]/g, '');
+          
+          return ptNormalized === searchNormalized;
+        });
       });
-    });
+      
+      // Cache the results
+      typeFilterCache.set(typeId, {
+        products: filtered,
+        timestamp: Date.now(),
+      });
+      
+      console.log(`✅ Found and cached ${filtered.length} products for type "${typeId}"`);
+    }
     
-    console.log(`✅ Found ${filtered.length} products for type "${typeId}"`);
-    
-    // Apply pagination
+    // Apply pagination to cached results (super fast!)
     const paginated = filtered.slice(skipCount, skipCount + pageSize);
     
     return {
@@ -1562,6 +1579,13 @@ let offersCache: {
 } | null = null;
 
 const OFFERS_CACHE_TTL = 15 * 60 * 1000; // 15 minutes
+
+// Cache for type filter results (short TTL since products change)
+let typeFilterCache: Map<string, {
+  products: HikeupProduct[];
+  timestamp: number;
+}> = new Map();
+const TYPE_FILTER_CACHE_TTL = 2 * 60 * 1000; // 2 minutes
 
 /**
  * Get all active offers from Hikeup
