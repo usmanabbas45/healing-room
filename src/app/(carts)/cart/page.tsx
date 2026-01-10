@@ -102,8 +102,8 @@ const ProductsCart = async ({ session }: { session: Session }) => {
                   <span className="text-text-primary font-medium">${subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-text-muted">Delivery</span>
-                  <span className="text-text-muted">Calculated at checkout</span>
+                  <span className="text-text-muted">Shipping</span>
+                  <span className="text-green-600 font-medium">Free</span>
                 </div>
                 <div className="border-t border-border-primary pt-3">
                   <div className="flex justify-between">
@@ -197,8 +197,8 @@ const CartItem = ({ item }: { item: EnrichedProducts }) => {
           {/* Deal Status */}
           {hasActiveDiscount && offerName && (
             <div className="mt-1">
-              <span className="inline-flex items-center text-xs text-green-700 font-medium">
-                {offerName}
+              <span className="inline-flex items-center text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded">
+                🎉 {offerName}
               </span>
             </div>
           )}
@@ -206,8 +206,8 @@ const CartItem = ({ item }: { item: EnrichedProducts }) => {
           {/* Deal Expired Warning */}
           {dealExpired && (
             <div className="mt-1">
-              <span className="inline-flex items-center text-xs text-text-muted">
-                Deal expired - regular price applied
+              <span className="inline-flex items-center text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded">
+                ⚠️ Deal expired - regular price applied
               </span>
             </div>
           )}

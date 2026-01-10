@@ -30,16 +30,18 @@ const UserOrders = async () => {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center h-[calc(100vh-91px)] gap-2 px-4">
-      <h2 className="mb-6 text-4xl font-bold">NO ORDERS YET</h2>
-      <p className="mb-4 text-lg">To view your orders you must be logged in.</p>
+    <section className="flex flex-col items-center justify-center w-full h-[calc(100vh-91px)] gap-2">
+      <h1 className="mb-4 text-2xl md:text-3xl font-bold text-text-primary">Sign In Required</h1>
+      <p className="mb-4 text-text-muted text-center max-w-md">
+        Sign in to view your order history and track your purchases.
+      </p>
       <Link
-        className="flex font-medium items-center bg-primary text-white justify-center text-sm min-w-[160px] max-w-[160px] h-[40px] px-[10px] rounded-md transition-all hover:bg-primary-dark"
+        className="flex font-medium items-center bg-primary text-white justify-center text-sm min-w-[160px] h-[44px] px-6 rounded-lg transition-all hover:bg-primary-dark"
         href="/login"
       >
-        Login
+        Sign In
       </Link>
-    </div>
+    </section>
   );
 };
 
@@ -48,46 +50,133 @@ const Orders = async () => {
 
   if (!orders || orders.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center w-full h-[80vh] gap-2 px-4">
-        <h2 className="mb-6 text-4xl font-bold">NO ORDERS YET</h2>
-        <p className="mb-4 text-lg">
-          To create an order add a product to the cart and buy it!
+      <section className="flex flex-col items-center justify-center w-full h-[calc(100vh-91px)] gap-2">
+        <h1 className="mb-4 text-2xl md:text-3xl font-bold text-text-primary">No Orders Yet</h1>
+        <p className="mb-4 text-text-muted text-center max-w-md">
+          When you place an order, it will appear here. Start shopping to create your first order!
         </p>
         <Link
-          className="flex font-medium items-center bg-primary text-white justify-center text-sm min-w-[160px] max-w-[160px] h-[40px] px-[10px] rounded-md transition-all hover:bg-primary-dark"
-          href="/"
+          className="flex font-medium items-center bg-primary text-white justify-center text-sm min-w-[160px] h-[44px] px-6 rounded-lg transition-all hover:bg-primary-dark"
+          href="/shop"
         >
-          Start
+          Start Shopping
         </Link>
-      </div>
+      </section>
     );
   }
 
+  const totalItems = orders.reduce((sum, order) => 
+    sum + order.items.reduce((itemSum, item) => itemSum + item.quantity, 0), 0
+  );
+
   return (
-    <div className="grid items-center justify-between pt-12 grid-cols-auto-fill-350 gap-7">
-      {orders.map((order, index: number) => (
-        <div
-          key={index}
-          className="w-full transition duration-150 border border-solid rounded border-border-primary bg-background-secondary hover:bg-color-secondary"
-        >
-          <Link
-            href={`/orders/${order.id}?items=${order.items.length}`}
-            className="flex flex-col justify-between h-full gap-2 px-4 py-5"
-          >
-            <h4 className="font-semibold">{`${format(
-              order.purchaseDate,
-              "dd LLL yyyy"
-            )} | $${order.totalPrice.toFixed(
-              2
-            )} | Items: ${order.items.reduce(
-              (total, item) => total + item.quantity,
-              0
-            )} `}</h4>
-            <p className="text-sm">Order number: {order.orderNumber}</p>
-          </Link>
-        </div>
-      ))}
-    </div>
+    <section className="pt-4 pb-8">
+      <div className="mb-6">
+        <h1 className="text-2xl md:text-3xl font-bold text-text-primary">My Orders</h1>
+        <p className="text-sm text-text-muted mt-1">
+          {orders.length} order{orders.length !== 1 ? 's' : ''} • {totalItems} item{totalItems !== 1 ? 's' : ''} total
+        </p>
+      </div>
+
+      <div className="space-y-4">
+        {orders.map((order, index: number) => {
+          const itemCount = order.items.reduce((total, item) => total + item.quantity, 0);
+          const orderDate = format(order.purchaseDate, "MMM dd, yyyy");
+          
+          // Determine status badge color
+          const getStatusColor = (status: string) => {
+            switch (status?.toLowerCase()) {
+              case 'completed':
+                return 'bg-green-100 text-green-800';
+              case 'processing':
+                return 'bg-blue-100 text-blue-800';
+              case 'pending':
+                return 'bg-yellow-100 text-yellow-800';
+              case 'cancelled':
+                return 'bg-red-100 text-red-800';
+              default:
+                return 'bg-gray-100 text-gray-800';
+            }
+          };
+
+          return (
+            <Link
+              key={index}
+              href={`/orders/${order.id}?items=${order.items.length}`}
+              className="block"
+            >
+              <div className="bg-white border border-border-primary rounded-xl p-4 md:p-6 hover:shadow-md transition-shadow">
+                {/* Header Row */}
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
+                      <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-text-primary">Order #{order.orderNumber}</p>
+                      <p className="text-xs text-text-muted">{orderDate}</p>
+                    </div>
+                  </div>
+                  
+                  {order.status && (
+                    <span className={`text-xs font-medium px-3 py-1 rounded-full ${getStatusColor(order.status)} w-fit`}>
+                      {order.status}
+                    </span>
+                  )}
+                </div>
+
+                {/* Details Grid */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-border-primary">
+                  <div>
+                    <p className="text-xs text-text-muted mb-1">Total</p>
+                    <p className="text-lg font-bold text-primary">${order.totalPrice.toFixed(2)}</p>
+                  </div>
+                  
+                  <div>
+                    <p className="text-xs text-text-muted mb-1">Items</p>
+                    <p className="text-base font-semibold text-text-primary">{itemCount}</p>
+                  </div>
+                  
+                  <div>
+                    <p className="text-xs text-text-muted mb-1">Method</p>
+                    <p className="text-base font-medium text-text-primary capitalize">
+                      {order.fulfillmentMethod === 'pickup' ? 'Pickup' : 
+                       order.fulfillmentMethod === 'delivery' ? 'Delivery' : 'Shipping'}
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <p className="text-xs text-text-muted mb-1">Payment</p>
+                    <p className="text-base font-medium text-text-primary capitalize">
+                      {order.paymentMethod || 'E-Transfer'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* View Details Link */}
+                <div className="mt-4 pt-4 border-t border-border-primary flex items-center justify-between">
+                  <p className="text-sm text-text-muted">
+                    {order.fulfillmentMethod === 'delivery' && order.deliveryAddressLine1
+                      ? `Deliver to ${order.deliveryCity}, ${order.deliveryProvince}`
+                      : order.fulfillmentMethod === 'pickup'
+                      ? 'Pickup at store'
+                      : 'Shipping'}
+                  </p>
+                  <span className="text-sm text-primary font-medium flex items-center gap-1">
+                    View Details
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </span>
+                </div>
+              </div>
+            </Link>
+          );
+        })}
+      </div>
+    </section>
   );
 };
 

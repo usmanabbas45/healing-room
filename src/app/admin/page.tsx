@@ -53,77 +53,98 @@ export default async function AdminPage({
   const totalOrders = orderCounts.reduce((sum, c) => sum + c._count.id, 0);
 
   return (
-    <section className="pt-12 max-w-4xl mx-auto">
-      <h1 className="text-2xl font-bold text-text-primary mb-8">Admin Dashboard</h1>
+    <section className="pt-4 pb-8 max-w-6xl mx-auto">
+      <div className="mb-6">
+        <h1 className="text-2xl md:text-3xl font-bold text-text-primary">Admin Dashboard</h1>
+        <p className="text-sm text-text-muted mt-1">Manage orders, products, and system settings</p>
+      </div>
 
       {/* Status Messages */}
       {success === "hikeup_connected" && (
-        <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg mb-6">
-          ✅ Hikeup POS connected successfully! Token saved to database. Products will now load from your POS.
+        <div className="bg-white border-l-4 border-primary rounded-lg px-4 py-3 mb-6 shadow-sm">
+          <div className="flex items-start gap-3">
+            <svg className="w-5 h-5 text-primary shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+            <p className="text-sm text-text-primary">Hikeup POS connected successfully! Token saved to database. Products will now load from your POS.</p>
+          </div>
         </div>
       )}
       
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg mb-6">
-          ❌ Error: {error.replace(/_/g, " ")}
-          {errorMessage && (
-            <p className="mt-2 text-sm font-mono bg-red-100 p-2 rounded">
-              Details: {errorMessage}
-            </p>
-          )}
-          {error === 'ssl_error' && (
-            <p className="mt-2 text-sm">
-              This is an SSL compatibility issue with Hikeup&apos;s server. 
-              Try running the server with: <code className="bg-red-100 px-1">NODE_TLS_REJECT_UNAUTHORIZED=0 npm run dev</code>
-            </p>
-          )}
-          {error === 'hikeup_auth_failed' && errorMessage === 'invalid_request' && (
-            <div className="mt-3 text-sm">
-              <p className="font-semibold">This means Hikeup rejected your OAuth request.</p>
-              <p className="mt-2">Common causes:</p>
-              <ul className="list-disc ml-5 mt-1 space-y-1">
-                <li>Your redirect URI is not whitelisted in Hikeup app settings</li>
-                <li>The client ID or secret is incorrect</li>
-                <li>Your app is not approved/active in Hikeup</li>
-              </ul>
-              <p className="mt-2 font-semibold">Fix:</p>
-              <ol className="list-decimal ml-5 mt-1 space-y-1">
-                <li>Go to Hikeup Developer Dashboard</li>
-                <li>Find app: <code className="bg-red-100 px-1">healingroom-ced58b3a33</code></li>
-                <li>Add redirect URI: <code className="bg-red-100 px-1 break-all">https://resplendent-wonder-production.up.railway.app/api/hikeup/callback</code></li>
-                <li>Save and try again</li>
-              </ol>
+        <div className="bg-white border-l-4 border-red-500 rounded-lg px-4 py-3 mb-6 shadow-sm">
+          <div className="flex items-start gap-3">
+            <svg className="w-5 h-5 text-red-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-text-primary">Error: {error.replace(/_/g, " ")}</p>
+              {errorMessage && (
+                <p className="mt-2 text-xs font-mono bg-gray-100 p-2 rounded text-text-muted">
+                  Details: {errorMessage}
+                </p>
+              )}
+              {error === 'ssl_error' && (
+                <p className="mt-2 text-xs text-text-muted">
+                  This is an SSL compatibility issue with Hikeup&apos;s server. 
+                  Try running the server with: <code className="bg-gray-100 px-1 rounded">NODE_TLS_REJECT_UNAUTHORIZED=0 npm run dev</code>
+                </p>
+              )}
+              {error === 'hikeup_auth_failed' && errorMessage === 'invalid_request' && (
+                <div className="mt-3 text-xs text-text-muted">
+                  <p className="font-semibold text-text-primary">This means Hikeup rejected your OAuth request.</p>
+                  <p className="mt-2">Common causes:</p>
+                  <ul className="list-disc ml-5 mt-1 space-y-1">
+                    <li>Your redirect URI is not whitelisted in Hikeup app settings</li>
+                    <li>The client ID or secret is incorrect</li>
+                    <li>Your app is not approved/active in Hikeup</li>
+                  </ul>
+                  <p className="mt-2 font-semibold text-text-primary">Fix:</p>
+                  <ol className="list-decimal ml-5 mt-1 space-y-1">
+                    <li>Go to Hikeup Developer Dashboard</li>
+                    <li>Find app: <code className="bg-gray-100 px-1 rounded">healingroom-ced58b3a33</code></li>
+                    <li>Add redirect URI: <code className="bg-gray-100 px-1 rounded break-all">https://resplendent-wonder-production.up.railway.app/api/hikeup/callback</code></li>
+                    <li>Save and try again</li>
+                  </ol>
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
       )}
 
-      {/* Connection Status */}
-      <div className={`border rounded-lg p-4 mb-6 ${connected ? 'bg-green-50 border-green-200' : 'bg-yellow-50 border-yellow-200'}`}>
-        <div className="flex items-center gap-2">
-          <span className={`w-3 h-3 rounded-full ${connected ? 'bg-green-500' : 'bg-yellow-500'}`}></span>
-          <span className={connected ? 'text-green-800' : 'text-yellow-800'}>
-            {connected ? '🟢 Hikeup POS Connected - Token stored in database' : '🟡 Hikeup POS Not Connected'}
-          </span>
-        </div>
-      </div>
-
       {/* Hikeup Integration Card */}
-      <div className="bg-white border border-border-primary rounded-lg p-6 mb-6">
-        <h2 className="text-lg font-semibold text-text-primary mb-2">
-          🔗 Hikeup POS Integration
-        </h2>
-        <p className="text-text-light mb-4">
+      <div className="bg-white border border-border-primary rounded-xl p-6 mb-6 shadow-sm">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+              <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-text-primary">Hikeup POS Integration</h2>
+              <div className="flex items-center gap-2 mt-1">
+                <span className={`w-2 h-2 rounded-full ${connected ? 'bg-green-500' : 'bg-gray-400'}`}></span>
+                <span className="text-xs text-text-muted">
+                  {connected ? 'Connected' : 'Not Connected'}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <p className="text-sm text-text-muted mb-4">
           {connected 
             ? 'Your Hikeup POS is connected. Products and inventory are fetched in real-time. Token is stored in database and persists across restarts.'
             : 'Connect your Hikeup POS to display products and inventory from your store.'}
         </p>
         
-        <div className="flex flex-wrap gap-4">
+        <div className="flex flex-wrap gap-3">
           {!connected ? (
             <a
               href="/api/hikeup/connect"
-              className="bg-primary text-white px-4 py-2 rounded-md hover:bg-primary-dark transition-colors"
+              className="bg-primary text-white px-4 py-2.5 rounded-lg hover:bg-primary-dark transition-colors text-sm font-medium"
             >
               Connect Hikeup POS
             </a>
@@ -131,76 +152,87 @@ export default async function AdminPage({
             <>
               <Link
                 href="/shop"
-                className="bg-primary text-white px-4 py-2 rounded-md hover:bg-primary-dark transition-colors"
+                className="bg-primary text-white px-4 py-2.5 rounded-lg hover:bg-primary-dark transition-colors text-sm font-medium"
               >
-                View Store →
+                View Store
               </Link>
               <a
                 href="/api/hikeup/connect"
-                className="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300 transition-colors"
+                className="bg-white border border-border-primary text-text-primary px-4 py-2.5 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium"
               >
-                🔄 Reconnect (Get Fresh Token)
+                Reconnect
               </a>
             </>
           )}
           <Link
             href="/admin/hikeup-logs"
-            className="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600 transition-colors"
+            className="bg-white border border-border-primary text-text-primary px-4 py-2.5 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium"
           >
-            📋 View Integration Logs
+            Integration Logs
           </Link>
         </div>
         
         {/* Detailed Token Info */}
         {tokenStatus.connected && (
-          <div className="mt-4 p-3 bg-gray-50 rounded text-sm">
-            <p className="text-text-muted">
-              <strong>Token Expires:</strong> {tokenStatus.expiresAt?.toLocaleString() || 'Unknown'}
-            </p>
-            <p className="text-text-muted">
-              <strong>Status:</strong>{' '}
-              {tokenStatus.isExpired ? (
-                <span className="text-red-500">⚠️ Expired - Will attempt refresh on next request</span>
-              ) : (
-                <span className="text-green-600">✅ Valid</span>
-              )}
-            </p>
-            <p className="text-text-muted">
-              <strong>Auto-Refresh:</strong>{' '}
-              {tokenStatus.hasRefreshToken ? (
-                <span className="text-green-600">✅ Enabled (has refresh token)</span>
-              ) : (
-                <span className="text-yellow-600">⚠️ Disabled (no refresh token - reconnect for persistent access)</span>
-              )}
-            </p>
+          <div className="mt-4 pt-4 border-t border-border-primary space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-text-muted">Token Expires</span>
+              <span className="text-text-primary font-medium">{tokenStatus.expiresAt?.toLocaleString() || 'Unknown'}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-text-muted">Status</span>
+              <span className={tokenStatus.isExpired ? 'text-red-600 font-medium' : 'text-green-600 font-medium'}>
+                {tokenStatus.isExpired ? 'Expired' : 'Valid'}
+              </span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-text-muted">Auto-Refresh</span>
+              <span className={tokenStatus.hasRefreshToken ? 'text-green-600 font-medium' : 'text-gray-600 font-medium'}>
+                {tokenStatus.hasRefreshToken ? 'Enabled' : 'Disabled'}
+              </span>
+            </div>
           </div>
         )}
       </div>
 
       {/* Orders Card - Prominent */}
       {(pendingPayments > 0 || paidOrders > 0) && (
-        <div className="bg-gradient-to-r from-primary/10 to-orange-100 border border-primary/30 rounded-lg p-6 mb-6">
+        <div className="bg-white border-l-4 border-primary rounded-xl p-6 mb-6 shadow-sm">
           <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-semibold text-text-primary mb-1">
-                📦 Orders Require Attention
-              </h2>
-              <p className="text-text-muted">
-                {pendingPayments > 0 && <span className="text-yellow-600 font-medium">{pendingPayments} awaiting payment</span>}
-                {pendingPayments > 0 && paidOrders > 0 && " • "}
-                {paidOrders > 0 && <span className="text-blue-600 font-medium">{paidOrders} paid & ready to process</span>}
-              </p>
-              {pendingPayments > 0 && (
-                <p className="text-xs text-text-muted mt-2">
-                  💡 Check e-transfer for order number in message field
-                </p>
-              )}
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
+                <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-text-primary mb-1">
+                  Orders Require Attention
+                </h2>
+                <div className="flex flex-wrap gap-2 items-center text-sm">
+                  {pendingPayments > 0 && (
+                    <span className="px-2.5 py-1 bg-gray-100 text-text-primary rounded-full font-medium">
+                      {pendingPayments} awaiting payment
+                    </span>
+                  )}
+                  {paidOrders > 0 && (
+                    <span className="px-2.5 py-1 bg-primary/10 text-primary rounded-full font-medium">
+                      {paidOrders} ready to process
+                    </span>
+                  )}
+                </div>
+                {pendingPayments > 0 && (
+                  <p className="text-xs text-text-muted mt-2">
+                    Check e-transfer for order number in message field
+                  </p>
+                )}
+              </div>
             </div>
             <Link
               href="/admin/orders?status=awaiting_payment"
-              className="bg-primary text-white px-6 py-2.5 rounded-lg font-medium hover:bg-primary-dark transition-colors"
+              className="bg-primary text-white px-6 py-2.5 rounded-lg font-medium hover:bg-primary-dark transition-colors text-sm shrink-0"
             >
-              Manage Orders →
+              Manage Orders
             </Link>
           </div>
         </div>
@@ -208,50 +240,82 @@ export default async function AdminPage({
       
       {/* Quick Stats */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-        <Link href="/admin/orders" className="bg-white border border-border-primary rounded-lg p-6 hover:border-primary transition-colors">
-          <h3 className="text-sm text-text-light mb-1">Total Orders</h3>
+        <Link href="/admin/orders" className="bg-white border border-border-primary rounded-xl p-5 hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-2 mb-2">
+            <svg className="w-4 h-4 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+            </svg>
+            <h3 className="text-xs text-text-muted font-medium">Total Orders</h3>
+          </div>
           <p className="text-2xl font-bold text-text-primary">{totalOrders}</p>
         </Link>
-        <Link href="/admin/orders?status=awaiting_payment" className="bg-white border border-border-primary rounded-lg p-6 hover:border-primary transition-colors">
-          <h3 className="text-sm text-text-light mb-1">Awaiting Payment</h3>
-          <p className="text-2xl font-bold text-yellow-600">{pendingPayments}</p>
+        
+        <Link href="/admin/orders?status=awaiting_payment" className="bg-white border border-border-primary rounded-xl p-5 hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-2 mb-2">
+            <svg className="w-4 h-4 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <h3 className="text-xs text-text-muted font-medium">Awaiting Payment</h3>
+          </div>
+          <p className="text-2xl font-bold text-text-primary">{pendingPayments}</p>
         </Link>
-        <Link href="/admin/orders?status=processing" className="bg-white border border-border-primary rounded-lg p-6 hover:border-primary transition-colors">
-          <h3 className="text-sm text-text-light mb-1">Processing</h3>
-          <p className="text-2xl font-bold text-purple-600">{processingOrders}</p>
+        
+        <Link href="/admin/orders?status=processing" className="bg-white border border-border-primary rounded-xl p-5 hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-2 mb-2">
+            <svg className="w-4 h-4 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <h3 className="text-xs text-text-muted font-medium">Processing</h3>
+          </div>
+          <p className="text-2xl font-bold text-text-primary">{processingOrders}</p>
         </Link>
-        <div className="bg-white border border-border-primary rounded-lg p-6">
-          <h3 className="text-sm text-text-light mb-1">Products</h3>
+        
+        <div className="bg-white border border-border-primary rounded-xl p-5">
+          <div className="flex items-center gap-2 mb-2">
+            <svg className="w-4 h-4 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+            </svg>
+            <h3 className="text-xs text-text-muted font-medium">Products</h3>
+          </div>
           <p className="text-2xl font-bold text-text-primary">{productCount}</p>
           <p className="text-xs text-text-muted mt-1">
             {connected ? 'From Hikeup POS' : 'From database'}
           </p>
         </div>
-        <div className="bg-white border border-border-primary rounded-lg p-6">
-          <h3 className="text-sm text-text-light mb-1">POS Status</h3>
-          <p className={`text-lg font-bold ${connected ? 'text-green-600' : 'text-yellow-500'}`}>
-            {connected ? '🟢 Connected' : '🟡 Disconnected'}
-          </p>
+        
+        <div className="bg-white border border-border-primary rounded-xl p-5">
+          <div className="flex items-center gap-2 mb-2">
+            <svg className="w-4 h-4 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            <h3 className="text-xs text-text-muted font-medium">POS Status</h3>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className={`w-2 h-2 rounded-full ${connected ? 'bg-green-500' : 'bg-gray-400'}`}></span>
+            <p className={`text-sm font-semibold ${connected ? 'text-text-primary' : 'text-text-muted'}`}>
+              {connected ? 'Connected' : 'Disconnected'}
+            </p>
+          </div>
         </div>
       </div>
 
       {/* Instructions */}
       {!connected && (
-        <div className="bg-bg-alt border border-border-primary rounded-lg p-6">
+        <div className="bg-white border border-border-primary rounded-xl p-6 shadow-sm">
           <h2 className="text-lg font-semibold text-text-primary mb-4">
-            📋 How to Connect
+            How to Connect
           </h2>
-          <ol className="list-decimal list-inside space-y-2 text-text-light">
+          <ol className="list-decimal list-inside space-y-3 text-sm text-text-primary">
             <li>Click <strong>&quot;Connect Hikeup POS&quot;</strong> above</li>
             <li>Log in with your <strong>Hikeup store account</strong> (not developer account)</li>
             <li>Click <strong>&quot;Authorize&quot;</strong> to grant access</li>
-            <li>Token will be saved to database and persist permanently!</li>
-            <li>Products will appear on your website automatically! ✨</li>
+            <li>Token will be saved to database and persist permanently</li>
+            <li>Products will appear on your website automatically</li>
           </ol>
           
-          <div className="mt-4 p-3 bg-white rounded border border-border-primary">
+          <div className="mt-4 p-4 bg-gray-50 rounded-lg">
             <p className="text-sm text-text-muted">
-              <strong>Note:</strong> You need to log in with the Hikeup account that has your store&apos;s products, 
+              <strong className="text-text-primary">Note:</strong> You need to log in with the Hikeup account that has your store&apos;s products, 
               not the developer account you used to create the app.
             </p>
           </div>

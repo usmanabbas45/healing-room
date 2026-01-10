@@ -181,7 +181,7 @@ export async function POST(request: NextRequest) {
       console.error("Failed to create Hikeup invoice:", hikeupError);
     }
     
-    // Send confirmation email
+    // Send confirmation email to customer
     try {
       const emailData = generateOrderConfirmationEmail({
         orderNumber: order.orderNumber,
@@ -219,6 +219,7 @@ export async function POST(request: NextRequest) {
         },
       });
       
+      // Send to customer
       await transporter.sendMail({
         from: process.env.EMAIL_FROM,
         to: contactInfo.email,
@@ -228,6 +229,65 @@ export async function POST(request: NextRequest) {
       });
       
       console.log(`📧 Confirmation email sent to ${contactInfo.email}`);
+      
+      // Send notification to all staff members
+      const staffMembers = await prisma.user.findMany({
+        where: { role: 'staff' },
+        select: { email: true, name: true },
+      });
+      
+      if (staffMembers.length > 0) {
+        const staffEmails = staffMembers.map(staff => staff.email);
+        
+        // Staff notification email (simplified version)
+        const staffSubject = `🔔 New Order: ${order.orderNumber}`;
+        const staffHtml = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #e67e22;">New Order Received</h2>
+            
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 20px 0;">
+              <p style="margin: 5px 0;"><strong>Order Number:</strong> ${order.orderNumber}</p>
+              <p style="margin: 5px 0;"><strong>Customer:</strong> ${contactInfo.name} (${contactInfo.email})</p>
+              <p style="margin: 5px 0;"><strong>Total:</strong> $${order.totalPrice.toFixed(2)}</p>
+              <p style="margin: 5px 0;"><strong>Method:</strong> ${fulfillmentMethod === 'pickup' ? 'Store Pickup' : fulfillmentMethod === 'delivery' ? 'Local Delivery' : 'Shipping'}</p>
+            </div>
+            
+            <h3>Order Items (${order.items.length}):</h3>
+            <ul>
+              ${order.items.map(item => `
+                <li>${item.productName} (${item.size}) × ${item.quantity} - $${(item.price * item.quantity).toFixed(2)}</li>
+              `).join('')}
+            </ul>
+            
+            ${fulfillmentMethod === 'delivery' && deliveryAddress ? `
+              <h3>Delivery Details:</h3>
+              <p>${deliveryAddress.line1}${deliveryAddress.line2 ? ', ' + deliveryAddress.line2 : ''}<br/>
+              ${deliveryAddress.city}, ${deliveryAddress.province} ${deliveryAddress.postalCode}</p>
+              ${deliveryDate ? `<p><strong>Scheduled:</strong> ${new Date(deliveryDate).toLocaleDateString()}</p>` : ''}
+              ${deliveryDistance ? `<p><strong>Distance:</strong> ${deliveryDistance.toFixed(1)} km</p>` : ''}
+              ${deliveryInstructions ? `<p><strong>Instructions:</strong> ${deliveryInstructions}</p>` : ''}
+            ` : ''}
+            
+            <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffc107;">
+              <p style="margin: 0;"><strong>⚠️ Payment Status:</strong> Awaiting e-Transfer confirmation</p>
+              <p style="margin: 10px 0 0 0; font-size: 14px; color: #666;">Customer should send e-Transfer to: healingroom7147@proton.me</p>
+            </div>
+            
+            <p style="margin-top: 30px; color: #666; font-size: 14px;">
+              <a href="${process.env.NEXTAUTH_URL || 'https://healingroomsixnations.ca'}/admin/orders" style="color: #e67e22;">View in Admin Dashboard →</a>
+            </p>
+          </div>
+        `;
+        
+        await transporter.sendMail({
+          from: process.env.EMAIL_FROM,
+          to: staffEmails,
+          subject: staffSubject,
+          html: staffHtml,
+        });
+        
+        console.log(`📧 Staff notification sent to ${staffMembers.length} staff member(s)`);
+      }
     } catch (emailError) {
       // Don't fail the order if email fails
       console.error("Failed to send confirmation email:", emailError);
