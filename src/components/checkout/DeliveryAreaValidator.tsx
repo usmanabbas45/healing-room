@@ -154,9 +154,12 @@ export default function DeliveryAreaValidator({
                   <span className="text-sm font-semibold text-green-900">{distance.toFixed(1)} km</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-xs text-green-800">Delivery fee:</span>
+                  <span className="text-xs text-green-800">Delivery fee (round-trip):</span>
                   <span className="text-lg font-bold text-primary">${deliveryFee.toFixed(2)}</span>
                 </div>
+                <p className="text-[10px] text-green-700 italic">
+                  ${LOCAL_DELIVERY_CONFIG.perKilometerRate.toFixed(2)}/km × {(distance * 2).toFixed(1)} km (there & back)
+                </p>
               </div>
             </div>
           </div>

@@ -840,8 +840,8 @@ export default function CheckoutPage() {
                       <p className="text-xs lg:text-sm text-yellow-800 mt-2">
                         <strong>Delivery Process:</strong> Once payment is received, your order will be placed in the next delivery run. 
                         {isSameDayDeliveryAvailable() 
-                          ? "Orders before 1 PM go out today (2-7 PM)." 
-                          : "Orders after 1 PM go out tomorrow (2-7 PM)."}
+                          ? " Orders before 1 PM go out today (2-7 PM)." 
+                          : " Orders after 1 PM go out tomorrow (2-7 PM)."}
                       </p>
                     )}
                   </div>

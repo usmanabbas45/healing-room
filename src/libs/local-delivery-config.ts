@@ -54,12 +54,14 @@ export const LOCAL_DELIVERY_CONFIG = {
 };
 
 /**
- * Calculate delivery fee based on distance
- * @param distanceKm - Distance in kilometers from store
- * @returns Delivery fee in dollars
+ * Calculate delivery fee based on distance (round-trip)
+ * @param distanceKm - One-way distance in kilometers from store
+ * @returns Delivery fee in dollars (charged for round-trip)
  */
 export function calculateLocalDeliveryFee(distanceKm: number): number {
-  const fee = distanceKm * LOCAL_DELIVERY_CONFIG.perKilometerRate;
+  // Double the distance to account for round-trip (there and back)
+  const roundTripDistance = distanceKm * 2;
+  const fee = roundTripDistance * LOCAL_DELIVERY_CONFIG.perKilometerRate;
   return Math.round(fee * 100) / 100; // Round to 2 decimals
 }
 
