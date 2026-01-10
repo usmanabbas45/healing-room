@@ -4,6 +4,7 @@
  */
 import cron from 'node-cron';
 import prisma from './prisma';
+import { loadAllProductsIntoCache, syncProductUpdates } from './hikeup';
 
 let cronInitialized = false;
 
@@ -22,7 +23,6 @@ export async function initializeCronJobs() {
 
   // Load products into cache on startup
   console.log('📦 [STARTUP] Loading products into cache...');
-  const { loadAllProductsIntoCache, syncProductUpdates } = await import('./hikeup');
   await loadAllProductsIntoCache();
 
   // Refresh Hikeup token every day at 3 AM
