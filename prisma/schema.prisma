@@ -223,3 +223,22 @@ model HikeupLog {
   @@index([eventType])
   @@index([createdAt])
 }
+
+// Cache for Hikeup products (stored in database for multi-worker access)
+model HikeupProductCache {
+  id               String   @id @default(cuid())
+  hikeupId         Int      @unique // Hikeup product ID
+  name             String   // For search
+  rawData          String   // Full JSON product data from Hikeup
+  productTypes     String[] // Array of type names for filtering (e.g., ["nicotine", "vape"])
+  isActive         Boolean  @default(true)
+  hasVariants      Boolean  @default(false)
+  lastModified     DateTime? // Hikeup's last_modified timestamp
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  
+  @@index([hikeupId])
+  @@index([isActive])
+  @@index([productTypes])
+  @@index([lastModified])
+}

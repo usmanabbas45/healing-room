@@ -586,6 +586,13 @@ async function hikeupFetch<T>(endpoint: string): Promise<T> {
         const sampleProduct = data.items[0];
         console.log(`   Sample Product Keys: [${Object.keys(sampleProduct).slice(0, 10).join(', ')}...]`);
         console.log(`   Total Results: ${data.totalCount || data.items.length}`);
+        
+        // DETAILED PRODUCT STRUCTURE FOR DATABASE DESIGN
+        console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        console.log('📦 FULL PRODUCT STRUCTURE (for database design):');
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        console.log(JSON.stringify(sampleProduct, null, 2));
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
       }
     }
     
