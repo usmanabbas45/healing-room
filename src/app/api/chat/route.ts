@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { searchHikeupProducts, transformHikeupProduct, isHikeupConnected, getProductTypesForFilter, getHikeupProductsByType } from "@/libs/hikeup";
+import { searchHikeupProducts, transformHikeupProduct, isHikeupConnected, getProductTypesFromDatabase, getProductsFromDatabase } from "@/libs/hikeup";
 import { rateLimit, rateLimitedResponse } from "@/libs/rate-limit";
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
@@ -97,7 +97,7 @@ async function getCategories() {
       return { categories: [], error: "Store inventory not available" };
     }
 
-    const types = await getProductTypesForFilter();
+    const types = await getProductTypesFromDatabase();
     
     return {
       categories: types.map(t => ({
@@ -130,8 +130,8 @@ async function getProductsByCategory(category: string, limit: number = 8) {
     // Normalize category name to ID format
     const categoryId = category.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
     
-    // Fetch more products to find unique ones
-    const result = await getHikeupProductsByType(categoryId, 50, 0);
+    // Fetch products from database cache (instant, no API calls!)
+    const result = await getProductsFromDatabase(categoryId, 1, 50);
     
     if (result.products.length === 0) {
       return {

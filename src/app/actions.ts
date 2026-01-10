@@ -231,10 +231,12 @@ export const getProductCount = async () => {
     const connected = await isHikeupConnected();
     
     if (connected) {
-      // Fetch just 1 product to get totalCount from Hikeup API
-      console.log('🔍 Fetching product count from Hikeup...');
-      const { totalCount } = await getHikeupProductsWithMeta(1, 0);
-      return totalCount;
+      // Get count from database cache (instant, no API calls!)
+      console.log('🔍 Fetching product count from database cache...');
+      const count = await prisma.hikeupProductCache.count({
+        where: { isActive: true }
+      });
+      return count;
     }
 
     return await prisma.product.count();
@@ -249,13 +251,17 @@ export const getCategoryProducts = async (category: string) => {
     const connected = await isHikeupConnected();
     
     if (connected) {
-      console.log(`📦 Fetching ${category} from Hikeup POS...`);
+      console.log(`📦 Fetching ${category} from database cache...`);
       
       // Fetch offers once
       const offers = await getHikeupOffers();
       
-      const hikeupProducts = await getHikeupProductsByCategory(category);
-      return hikeupProducts.map(p => transformHikeupProductWithDiscount(p, offers));
+      // Normalize category to type ID format
+      const typeId = category.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+      
+      // Get from database cache (instant!)
+      const { products: cachedProducts } = await getProductsFromDatabase(typeId, 1, 100);
+      return cachedProducts.map(p => transformHikeupProductWithDiscount(p, offers));
     }
 
     // Fall back to database
@@ -280,16 +286,22 @@ export const getRandomProducts = async (productId: string) => {
       // Fetch offers once
       const offers = await getHikeupOffers();
       
-      // Only fetch a small batch (24 products) with a random offset instead of ALL products
-      // This is much more efficient than fetching 500+ products
-      const { totalCount } = await getHikeupProductsWithMeta(1, 0); // Get total count from Hikeup API
+      // Get count from database cache
+      const totalCount = await prisma.hikeupProductCache.count({
+        where: { isActive: true }
+      });
+      
+      // Calculate random offset
       const maxOffset = Math.max(0, totalCount - 24);
       const randomOffset = Math.floor(Math.random() * maxOffset);
       
-      console.log(`📦 Fetching random products (offset: ${randomOffset}, total: ${totalCount})`);
-      const { products: hikeupProducts } = await getHikeupProductsWithMeta(24, randomOffset);
+      console.log(`📦 Fetching random products from database cache (offset: ${randomOffset}, total: ${totalCount})`);
       
-      const filtered = hikeupProducts.filter(p => String(p.id) !== productId);
+      // Get random batch from database cache (instant!)
+      const randomPage = Math.floor(randomOffset / 24) + 1;
+      const { products: cachedProducts } = await getProductsFromDatabase('all', randomPage, 24);
+      
+      const filtered = cachedProducts.filter(p => String(p.id) !== productId);
       const shuffled = filtered.sort(() => Math.random() - 0.5);
       const selected = shuffled.slice(0, 6);
       return selected.map(p => transformHikeupProductWithDiscount(p, offers));
