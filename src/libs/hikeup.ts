@@ -1077,8 +1077,13 @@ export async function getHikeupProductsByType(
   skipCount: number = 0
 ): Promise<{ products: HikeupProduct[]; totalCount: number }> {
   try {
+    console.log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+    console.log(`🔍 [FILTER REQUEST] Type: "${typeId}", Page Size: ${pageSize}, Skip: ${skipCount}`);
+    console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
+    
     // If "all", return all products from cache
     if (typeId === 'all') {
+      console.log(`📦 Fetching ALL products (no type filter)`);
       if (!isProductCacheReady()) {
         console.warn('⚠️ Product cache not ready, falling back to API');
         return getHikeupProductsWithMeta(pageSize, skipCount);
@@ -1086,6 +1091,7 @@ export async function getHikeupProductsByType(
       
       const allProducts = getCachedProducts();
       const paginated = allProducts.slice(skipCount, skipCount + pageSize);
+      console.log(`✅ Returning ${paginated.length} of ${allProducts.length} total products (all types)\n`);
       return {
         products: paginated,
         totalCount: allProducts.length,
@@ -1096,7 +1102,7 @@ export async function getHikeupProductsByType(
     
     // Get products from cache by type (instant!)
     if (!isProductCacheReady()) {
-      console.warn('⚠️ Product cache not ready yet, products may not be available');
+      console.warn('⚠️ Product cache not ready yet, products may not be available\n');
       return {
         products: [],
         totalCount: 0,
@@ -1112,7 +1118,8 @@ export async function getHikeupProductsByType(
     // Apply pagination
     const paginated = filtered.slice(skipCount, skipCount + pageSize);
     
-    console.log(`✅ Returning ${paginated.length} of ${filtered.length} total products for type "${typeId}"`);
+    console.log(`\n✅ [FINAL RESULT] Returning ${paginated.length} of ${filtered.length} total products for type "${typeId}"`);
+    console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
     
     return {
       products: paginated,
@@ -1795,6 +1802,7 @@ export async function loadAllProductsIntoCache(): Promise<void> {
     };
     
     console.log(`✅ Product cache ready! ${allProducts.length} products indexed by ${byType.size} types`);
+    console.log(`📍 [MODULE INSTANCE] Cache created at: ${new Date().toISOString()}`);
   } catch (error) {
     console.error('❌ Error loading products into cache:', error);
     if (allProductsCache) {
@@ -1896,13 +1904,30 @@ export function getCachedProducts(): HikeupProduct[] {
  * Get products by type from cache (instant!)
  */
 export function getCachedProductsByType(typeId: string): HikeupProduct[] {
+  console.log(`\n🔍 [CACHE LOOKUP] Searching for type: "${typeId}"`);
+  
   if (!allProductsCache) {
     console.warn('⚠️ Product cache not initialized');
     return [];
   }
   
+  console.log(`📊 [CACHE STATE]`);
+  console.log(`   Total products in cache: ${allProductsCache.products.length}`);
+  console.log(`   Total types indexed: ${allProductsCache.byType.size}`);
+  console.log(`   Available types: [${Array.from(allProductsCache.byType.keys()).join(', ')}]`);
+  console.log(`   Is loading: ${allProductsCache.isLoading}`);
+  console.log(`   Last sync: ${allProductsCache.lastSyncTime}`);
+  
   const products = allProductsCache.byType.get(typeId) || [];
-  console.log(`📦 Cache hit: ${products.length} products for type "${typeId}"`);
+  console.log(`\n📦 [RESULT] Found ${products.length} products for type "${typeId}"`);
+  
+  if (products.length > 0) {
+    console.log(`   Sample products: ${products.slice(0, 3).map((p: any) => p.name).join(', ')}`);
+  } else {
+    console.log(`   ⚠️ Type "${typeId}" not found in cache!`);
+    console.log(`   Did you mean one of: ${Array.from(allProductsCache.byType.keys()).slice(0, 5).join(', ')}?`);
+  }
+  
   return products;
 }
 
@@ -1910,7 +1935,16 @@ export function getCachedProductsByType(typeId: string): HikeupProduct[] {
  * Check if product cache is ready
  */
 export function isProductCacheReady(): boolean {
-  return allProductsCache !== null && !allProductsCache.isLoading;
+  const isReady = allProductsCache !== null && !allProductsCache.isLoading;
+  
+  console.log(`\n🔍 [CACHE READY CHECK]`);
+  console.log(`   allProductsCache exists: ${allProductsCache !== null}`);
+  console.log(`   isLoading: ${allProductsCache?.isLoading ?? 'N/A'}`);
+  console.log(`   Product count: ${allProductsCache?.products.length ?? 0}`);
+  console.log(`   Type count: ${allProductsCache?.byType.size ?? 0}`);
+  console.log(`   ✅ Cache ready: ${isReady}`);
+  
+  return isReady;
 }
 
 /**
