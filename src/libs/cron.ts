@@ -3,8 +3,8 @@
  * This file runs automatically when the server starts
  */
 import cron from 'node-cron';
-import prisma from './prisma';
-import { loadAllProductsIntoCache, syncProductUpdates } from './hikeup';
+import prisma from '@/libs/prisma';
+import { loadAllProductsIntoCache, syncProductUpdates } from '@/libs/hikeup';
 
 let cronInitialized = false;
 
