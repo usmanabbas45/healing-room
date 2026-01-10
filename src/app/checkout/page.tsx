@@ -22,6 +22,7 @@ import {
 } from "@/libs/local-delivery-config";
 import DeliveryScheduler from "@/components/checkout/DeliveryScheduler";
 import DeliveryAreaValidator from "@/components/checkout/DeliveryAreaValidator";
+import AddressAutocomplete from "@/components/checkout/AddressAutocomplete";
 
 interface CartItem {
   productId: string;
@@ -536,14 +537,26 @@ export default function CheckoutPage() {
                           <label className="block text-sm font-medium text-text-primary mb-1.5">
                             Street Address *
                           </label>
-                          <input
-                            type="text"
+                          <AddressAutocomplete
                             value={deliveryAddress.line1}
-                            onChange={(e) => setDeliveryAddress({ ...deliveryAddress, line1: e.target.value })}
+                            onChange={(value) => setDeliveryAddress({ ...deliveryAddress, line1: value })}
+                            onSelectAddress={(address) => {
+                              setDeliveryAddress({
+                                line1: address.line1,
+                                line2: deliveryAddress.line2, // Keep existing line2
+                                city: address.city,
+                                province: address.province,
+                                postalCode: address.postalCode,
+                              });
+                              // Trigger validation after address selection
+                              setTriggerAddressValidation(prev => !prev);
+                            }}
+                            placeholder="Start typing your address..."
                             className="w-full px-4 py-3 text-base border border-border-primary rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                            placeholder="123 Main St"
-                            required
                           />
+                          <p className="text-xs text-text-muted mt-1.5">
+                            Type your address and select from suggestions
+                          </p>
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-text-primary mb-1.5">
