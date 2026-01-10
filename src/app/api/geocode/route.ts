@@ -38,8 +38,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Calculate distance from store
-    const distance = calculateDistance(
+    // Calculate DRIVING distance from store (async)
+    const distance = await calculateDistance(
       result.lat,
       result.lng,
       STORE_LOCATION.lat,
@@ -51,6 +51,8 @@ export async function POST(request: NextRequest) {
 
     // Calculate delivery fee
     const fee = isValid ? calculateLocalDeliveryFee(distance) : null;
+
+    console.log(`📊 Distance: ${distance.toFixed(1)} km | Fee: $${fee?.toFixed(2) || 'N/A'} | Valid: ${isValid}`);
 
     return NextResponse.json({
       success: true,

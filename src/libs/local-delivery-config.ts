@@ -123,18 +123,70 @@ export function getNextDeliveryDate(): Date {
 }
 
 /**
- * Calculate distance between two coordinates using Haversine formula
+ * Calculate DRIVING distance between two coordinates using OSRM (OpenStreetMap routing)
+ * This returns actual road distance, not straight-line distance
  * @param lat1 - Latitude of point 1
  * @param lng1 - Longitude of point 1
  * @param lat2 - Latitude of point 2 (defaults to store location)
  * @param lng2 - Longitude of point 2 (defaults to store location)
- * @returns Distance in kilometers
+ * @returns Distance in kilometers (actual driving distance)
  */
-export function calculateDistance(
+export async function calculateDistance(
   lat1: number,
   lng1: number,
   lat2: number = STORE_LOCATION.lat,
   lng2: number = STORE_LOCATION.lng
+): Promise<number> {
+  try {
+    // OSRM public API - free, no key needed
+    // Format: lng,lat (OSRM uses lng,lat order, not lat,lng!)
+    const url = `https://router.project-osrm.org/route/v1/driving/${lng2},${lat2};${lng1},${lat1}?overview=false`;
+    
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'HealingRoomSixNations/1.0',
+      },
+    });
+    
+    if (!response.ok) {
+      console.error('OSRM routing error:', response.status);
+      // Fallback to straight-line distance with road factor
+      return calculateStraightLineDistance(lat1, lng1, lat2, lng2) * 1.4;
+    }
+    
+    const data = await response.json();
+    
+    if (data.code !== 'Ok' || !data.routes || data.routes.length === 0) {
+      console.error('OSRM no route found');
+      // Fallback to straight-line distance with road factor
+      return calculateStraightLineDistance(lat1, lng1, lat2, lng2) * 1.4;
+    }
+    
+    // OSRM returns distance in meters, convert to km
+    const distanceKm = data.routes[0].distance / 1000;
+    
+    console.log(`🚗 Driving distance calculated: ${distanceKm.toFixed(1)} km`);
+    return Math.round(distanceKm * 10) / 10; // Round to 1 decimal
+  } catch (error) {
+    console.error('Error calculating driving distance:', error);
+    // Fallback to straight-line distance with road factor
+    return calculateStraightLineDistance(lat1, lng1, lat2, lng2) * 1.4;
+  }
+}
+
+/**
+ * Calculate straight-line distance (fallback)
+ * @param lat1 - Latitude of point 1
+ * @param lng1 - Longitude of point 1
+ * @param lat2 - Latitude of point 2
+ * @param lng2 - Longitude of point 2
+ * @returns Distance in kilometers (as the crow flies)
+ */
+function calculateStraightLineDistance(
+  lat1: number,
+  lng1: number,
+  lat2: number,
+  lng2: number
 ): number {
   const R = 6371; // Earth's radius in km
   const dLat = toRad(lat2 - lat1);
@@ -150,6 +202,7 @@ export function calculateDistance(
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   const distance = R * c;
   
+  console.log(`📏 Straight-line distance (fallback): ${distance.toFixed(1)} km`);
   return Math.round(distance * 10) / 10; // Round to 1 decimal
 }
 

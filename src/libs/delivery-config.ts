@@ -114,23 +114,9 @@ export function getNextDeliveryDate(): Date {
   return result;
 }
 
-// Calculate distance between two coordinates (Haversine formula)
-export function calculateDistance(
-  lat1: number,
-  lng1: number,
-  lat2: number = STORE_LOCATION.lat,
-  lng2: number = STORE_LOCATION.lng
-): number {
-  const R = 6371; // Earth's radius in km
-  const dLat = toRad(lat2 - lat1);
-  const dLng = toRad(lng2 - lng1);
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-    Math.sin(dLng / 2) * Math.sin(dLng / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-}
+// Calculate DRIVING distance between two coordinates using OSRM
+// Re-export from local-delivery-config for consistency
+export { calculateDistance } from './local-delivery-config';
 
 function toRad(deg: number): number {
   return deg * (Math.PI / 180);

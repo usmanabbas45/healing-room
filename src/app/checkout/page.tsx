@@ -950,10 +950,17 @@ export default function CheckoutPage() {
                   </div>
                 )}
                 <div className="flex justify-between text-sm">
-                  <span className="text-text-muted">
-                    {fulfillmentMethod === "pickup" ? "Pickup" :
-                     fulfillmentMethod === "delivery" ? "Delivery" : "Shipping"}
-                  </span>
+                  <div className="flex flex-col">
+                    <span className="text-text-muted">
+                      {fulfillmentMethod === "pickup" ? "Pickup" :
+                       fulfillmentMethod === "delivery" ? "Delivery" : "Shipping"}
+                    </span>
+                    {fulfillmentMethod === "delivery" && deliveryDistance !== null && (
+                      <span className="text-xs text-text-muted mt-0.5">
+                        {deliveryDistance.toFixed(1)} km
+                      </span>
+                    )}
+                  </div>
                   <span className={deliveryFee === 0 ? "text-green-600" : "text-text-primary"}>
                     {deliveryFee === 0 ? "FREE" : `$${deliveryFee.toFixed(2)}`}
                   </span>
