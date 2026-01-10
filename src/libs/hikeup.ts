@@ -721,11 +721,17 @@ export async function getHikeupProductsWithMeta(
     
     console.log(`✅ Fetched ${deduplicatedProducts.length} unique products (deduplicated from ${products.length})`);
     
-    const hasMore = products.length === pageSize;
+    // Use Hikeup's 'next' field from response, or calculate based on raw product count
+    let nextPage: string | null = null;
+    if (response?.next) {
+      nextPage = response.next;
+    } else if (products.length === pageSize && totalCount > skipCount + pageSize) {
+      nextPage = 'more'; // More pages available
+    }
     
     return {
       products: deduplicatedProducts,
-      next: hasMore ? 'more' : null,
+      next: nextPage,
       totalCount: totalCount,
     };
   } catch (error) {
@@ -756,25 +762,36 @@ export async function getAllHikeupProducts(outletId?: number): Promise<HikeupPro
     const batchSize = 100;
     let skipCount = 0;
     let hasMore = true;
+    let totalCount = 0;
+    
+    console.log('📦 Fetching ALL products from Hikeup (paginated)...');
     
     while (hasMore) {
-      const { products, next } = await getHikeupProductsWithMeta(batchSize, skipCount, outletId);
+      const { products, next, totalCount: count } = await getHikeupProductsWithMeta(batchSize, skipCount, outletId);
       allProducts.push(...products);
+      totalCount = count;
       
-      if (!next || products.length < batchSize) {
+      console.log(`   📄 Page ${Math.floor(skipCount / batchSize) + 1}: ${products.length} products (total so far: ${allProducts.length}/${totalCount})`);
+      
+      // Check if there's a next page using Hikeup's 'next' field
+      if (!next) {
+        console.log('   ✅ No more pages (next = null)');
         hasMore = false;
       } else {
         skipCount += batchSize;
       }
       
       // Safety limit
-      if (skipCount > 2000) {
-        console.log('⚠️ Reached safety limit of 2000 products');
+      if (skipCount >= 1000) {
+        console.log('⚠️ Reached safety limit of 1000 skip count');
         hasMore = false;
       }
     }
     
-    console.log(`✅ Fetched total of ${allProducts.length} products`);
+    console.log(`✅ Fetched total of ${allProducts.length} unique parent products`);
+    console.log(`   (Hikeup reported ${totalCount} total products including variants)`);
+    console.log(`   Deduplication removed ${totalCount - allProducts.length} variant products`)
+    
     return allProducts;
   } catch (error) {
     console.error('❌ Error fetching all products:', error);
