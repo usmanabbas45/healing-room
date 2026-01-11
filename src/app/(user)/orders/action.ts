@@ -27,6 +27,14 @@ export const getUserOrders = async () => {
       purchaseDate: order.purchaseDate,
       totalPrice: order.totalPrice,
       status: order.status,
+      fulfillmentMethod: order.fulfillmentMethod,
+      paymentMethod: order.paymentMethod,
+      paymentStatus: order.paymentStatus,
+      deliveryAddressLine1: order.deliveryAddressLine1,
+      deliveryCity: order.deliveryCity,
+      deliveryProvince: order.deliveryProvince,
+      trackingNumber: order.trackingNumber,
+      shippedAt: order.shippedAt,
       items: order.items,
     }));
   } catch (error) {
@@ -93,6 +101,8 @@ export const getOrder = async (orderId: string) => {
       total_price: order.totalPrice,
       status: order.status,
       paymentStatus: order.paymentStatus,
+      trackingNumber: order.trackingNumber,
+      shippedAt: order.shippedAt,
     };
   } catch (error) {
     console.error("Error getting order:", error);

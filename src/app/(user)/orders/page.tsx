@@ -88,15 +88,35 @@ const Orders = async () => {
             switch (status?.toLowerCase()) {
               case 'completed':
                 return 'bg-green-100 text-green-800';
+              case 'delivered':
+                return 'bg-green-100 text-green-800';
+              case 'shipped':
+                return 'bg-blue-100 text-blue-800';
+              case 'out_for_delivery':
+                return 'bg-blue-100 text-blue-800';
               case 'processing':
                 return 'bg-blue-100 text-blue-800';
-              case 'pending':
+              case 'ready_for_pickup':
+                return 'bg-purple-100 text-purple-800';
+              case 'awaiting_payment':
                 return 'bg-yellow-100 text-yellow-800';
+              case 'paid':
+                return 'bg-green-100 text-green-800';
               case 'cancelled':
+                return 'bg-red-100 text-red-800';
+              case 'refunded':
                 return 'bg-red-100 text-red-800';
               default:
                 return 'bg-gray-100 text-gray-800';
             }
+          };
+          
+          // Format status label
+          const formatStatus = (status: string) => {
+            return status
+              .split('_')
+              .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+              .join(' ');
           };
 
           return (
@@ -122,7 +142,7 @@ const Orders = async () => {
                   
                   {order.status && (
                     <span className={`text-xs font-medium px-3 py-1 rounded-full ${getStatusColor(order.status)} w-fit`}>
-                      {order.status}
+                      {formatStatus(order.status)}
                     </span>
                   )}
                 </div>
@@ -155,22 +175,49 @@ const Orders = async () => {
                   </div>
                 </div>
 
-                {/* View Details Link */}
-                <div className="mt-4 pt-4 border-t border-border-primary flex items-center justify-between">
-                  <p className="text-sm text-text-muted">
-                    {order.fulfillmentMethod === 'delivery' && order.deliveryAddressLine1
-                      ? `Deliver to ${order.deliveryCity}, ${order.deliveryProvince}`
-                      : order.fulfillmentMethod === 'pickup'
-                      ? 'Pickup at store'
-                      : 'Shipping'}
-                  </p>
-                  <span className="text-sm text-primary font-medium flex items-center gap-1">
-                    View Details
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </span>
-                </div>
+                {/* Tracking / Fulfillment Info */}
+                {order.trackingNumber && order.fulfillmentMethod === 'shipping' ? (
+                  <div className="mt-4 pt-4 border-t border-border-primary">
+                    <div className="flex items-center gap-2 mb-2">
+                      <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                      </svg>
+                      <p className="text-sm font-medium text-text-primary">Tracking Number</p>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <a
+                        href={`https://www.canadapost-postescanada.ca/track-reperage/en#/search?searchFor=${order.trackingNumber}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm font-mono text-primary hover:underline"
+                      >
+                        {order.trackingNumber}
+                      </a>
+                      <span className="text-sm text-primary font-medium flex items-center gap-1">
+                        View Details
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mt-4 pt-4 border-t border-border-primary flex items-center justify-between">
+                    <p className="text-sm text-text-muted">
+                      {order.fulfillmentMethod === 'delivery' && order.deliveryAddressLine1
+                        ? `Deliver to ${order.deliveryCity}, ${order.deliveryProvince}`
+                        : order.fulfillmentMethod === 'pickup'
+                        ? 'Pickup at store'
+                        : 'Shipping'}
+                    </p>
+                    <span className="text-sm text-primary font-medium flex items-center gap-1">
+                      View Details
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </span>
+                  </div>
+                )}
               </div>
             </Link>
           );

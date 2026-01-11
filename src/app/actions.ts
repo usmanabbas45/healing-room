@@ -200,6 +200,7 @@ export const getAllProducts = async (
 
     // Fall back to database
     console.log('📦 Fetching products from database...');
+    const skipCount = (page - 1) * pageSize;
     const whereClause = typeFilter !== 'all' 
       ? { category: { contains: typeFilter.replace(/-/g, ' '), mode: 'insensitive' as const } }
       : {};

@@ -122,9 +122,24 @@ function toRad(deg: number): number {
   return deg * (Math.PI / 180);
 }
 
-// Check if address is within delivery radius
+// Calculate straight-line distance using Haversine formula
+function calculateStraightLineDistance(lat: number, lng: number): number {
+  const R = 6371; // Earth's radius in km
+  const dLat = toRad(lat - STORE_LOCATION.lat);
+  const dLng = toRad(lng - STORE_LOCATION.lng);
+  
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(STORE_LOCATION.lat)) * Math.cos(toRad(lat)) *
+    Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+// Check if address is within delivery radius (using straight-line distance)
 export function isWithinDeliveryRadius(lat: number, lng: number): boolean {
-  const distance = calculateDistance(lat, lng);
+  const distance = calculateStraightLineDistance(lat, lng);
   return distance <= DELIVERY_RADIUS_KM;
 }
 

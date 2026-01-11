@@ -1827,7 +1827,7 @@ export async function syncProductsToDatabase(): Promise<void> {
     // Log type distribution
     const typeStats = new Map<string, number>();
     cacheRecords.forEach(record => {
-      record.productTypes.forEach(type => {
+      record.productTypes.forEach((type: string) => {
         typeStats.set(type, (typeStats.get(type) || 0) + 1);
       });
     });
