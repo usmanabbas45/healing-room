@@ -5,35 +5,126 @@ import InteractiveMap from "@/components/map/InteractiveMap";
 import { FAQJsonLd } from "@/components/seo/JsonLd";
 import SpecialDeals from "@/components/deals/SpecialDeals";
 
-// FAQ data for SEO
+// FAQ data for SEO - Comprehensive customer support questions
 const faqs = [
+  // Ordering & Payment
   {
-    question: "What are your hours of operation?",
-    answer: "Healing Room is open 7 days a week from 9:00 AM to 10:00 PM, including holidays.",
+    question: "Is it safe to order?",
+    answer: "Yes. Orders are handled securely, shipped discreetly, and customer privacy is taken seriously.",
   },
   {
-    question: "Where is Healing Room located?",
-    answer: "We are located at 7147 Indian Line Rd, Norfolk County, ON N0E 1Z0 in Six Nations, Ontario, Canada.",
+    question: "Who is eligible to purchase?",
+    answer: "You must be 19 years of age or older and reside in Canada to place an order.",
   },
   {
-    question: "What age do I need to be to enter?",
-    answer: "You must be 19 years or older to enter and purchase products from Healing Room.",
+    question: "What payment methods are accepted?",
+    answer: "Payments are accepted through Interac e-Transfer only.",
   },
   {
-    question: "What types of products do you sell?",
-    answer: "We offer a wide variety of cannabis products including flower (indica, sativa, hybrid), pre-rolls, edibles, vapes, concentrates, CBD products, and tobacco accessories.",
+    question: "Are taxes included in the prices?",
+    answer: "Yes. All listed prices already include applicable taxes.",
   },
   {
-    question: "Are your products lab tested?",
-    answer: "Yes, all our cannabis products are rigorously lab tested for purity, potency, and safety. Certificates of Analysis are available upon request.",
+    question: "How do I place an order?",
+    answer: "Create an account, add products to your cart, and complete checkout using Interac e-Transfer. Once payment is confirmed, your order is processed and shipped.",
   },
   {
-    question: "Do you offer delivery?",
-    answer: "Please email us at info@healingroomsixnations.ca or use our AI chat assistant to inquire about delivery options.",
+    question: "Can I change or cancel my order?",
+    answer: "If the order has not yet been processed or shipped, cancellation may be possible. Once processing begins, changes may not be allowed.",
   },
   {
-    question: "What payment methods do you accept?",
-    answer: "We accept cash, debit cards, credit cards, and e-transfer payments.",
+    question: "Is my personal information secure?",
+    answer: "Yes. Customer information is protected using secure servers and encrypted systems.",
+  },
+  {
+    question: "What if I don't receive my order?",
+    answer: "If your package has not arrived within 48 hours of the expected delivery date, contact customer support for assistance.",
+  },
+  {
+    question: "Why didn't I receive any emails?",
+    answer: "Check your spam or junk folder, as automated emails may sometimes be filtered.",
+  },
+  
+  // Discounts & Policies
+  {
+    question: "Do you offer bulk discounts?",
+    answer: "Yes. Bulk pricing is available. Please contact us directly for bulk discount pricing and availability.",
+  },
+  {
+    question: "Are there scams or impersonators to watch out for?",
+    answer: "Customers should only place orders through the official website. Payments are never accepted via gift cards, credit cards, phone orders, or social media.",
+  },
+  
+  // Product & Quality
+  {
+    question: "What if I'm unhappy with the product quality?",
+    answer: "Contact support with your order number, product name, description of the issue, and photos or videos if available. Issues should be reported shortly after delivery.",
+  },
+  {
+    question: "What should I do if there is an issue with my order?",
+    answer: "Reach out to customer support with full order details and documentation so the issue can be reviewed and resolved.",
+  },
+  
+  // Refunds & Exchanges
+  {
+    question: "Do you offer refunds or exchanges?",
+    answer: "All consumable products are final sale. In some cases, store credit may be offered for verified issues reported shortly after delivery.",
+  },
+  
+  // Shipping
+  {
+    question: "What are the shipping fees?",
+    answer: "Shipping is free on qualifying orders. Smaller orders may be subject to a flat shipping fee.",
+  },
+  {
+    question: "Do you ship outside of Canada?",
+    answer: "No. Shipping is available within Canada only.",
+  },
+  {
+    question: "How long does shipping take?",
+    answer: "Most orders arrive within 1–3 business days. Rural or remote areas may take slightly longer.",
+  },
+  {
+    question: "When does my order ship?",
+    answer: "Orders paid before the daily cutoff time typically ship the same business day. Later payments ship the next business day.",
+  },
+  {
+    question: "Why isn't my tracking number active yet?",
+    answer: "Tracking may take up to 24 hours to update after the package is scanned by the carrier.",
+  },
+  {
+    question: "Is a signature required upon delivery?",
+    answer: "Orders above a certain value may require a signature. Customers may request no signature, but responsibility transfers once delivered.",
+  },
+  {
+    question: "What happens if my package is lost or stolen?",
+    answer: "Lost packages are investigated. Depending on the situation and location, a replacement or store credit may be issued.",
+  },
+  {
+    question: "What if I entered the wrong shipping address?",
+    answer: "Customers are responsible for providing accurate shipping information. Orders sent to incorrect addresses may not be recoverable.",
+  },
+  
+  // Cannabis Education
+  {
+    question: "What is Indica?",
+    answer: "Indica strains are typically associated with relaxing, body-focused effects.",
+  },
+  {
+    question: "What is Sativa?",
+    answer: "Sativa strains are known for uplifting, energetic, and creativity-enhancing effects.",
+  },
+  {
+    question: "What is a Hybrid strain?",
+    answer: "Hybrid strains combine characteristics of both Indica and Sativa for balanced effects.",
+  },
+  {
+    question: "What is THC?",
+    answer: "THC is the primary psychoactive compound in cannabis responsible for producing euphoric effects.",
+  },
+  {
+    question: "What is CBD?",
+    answer: "CBD is a non-intoxicating cannabinoid commonly used for wellness and relaxation.",
   },
 ];
 
