@@ -51,6 +51,9 @@ export default async function AdminPage({
   const processingOrders = orderCounts.find(c => c.status === "processing")?._count.id || 0;
   const paidOrders = orderCounts.find(c => c.status === "paid")?._count.id || 0;
   const totalOrders = orderCounts.reduce((sum, c) => sum + c._count.id, 0);
+  
+  // Get user count
+  const userCount = await prisma.user.count();
 
   return (
     <section className="pt-4 pb-8 max-w-6xl mx-auto">
@@ -239,7 +242,7 @@ export default async function AdminPage({
       )}
       
       {/* Quick Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-6">
         <Link href="/admin/orders" className="bg-white border border-border-primary rounded-xl p-5 hover:shadow-md transition-shadow">
           <div className="flex items-center gap-2 mb-2">
             <svg className="w-4 h-4 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -268,6 +271,16 @@ export default async function AdminPage({
             <h3 className="text-xs text-text-muted font-medium">Processing</h3>
           </div>
           <p className="text-2xl font-bold text-text-primary">{processingOrders}</p>
+        </Link>
+        
+        <Link href="/admin/users" className="bg-white border border-border-primary rounded-xl p-5 hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-2 mb-2">
+            <svg className="w-4 h-4 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+            <h3 className="text-xs text-text-muted font-medium">Users</h3>
+          </div>
+          <p className="text-2xl font-bold text-text-primary">{userCount}</p>
         </Link>
         
         <div className="bg-white border border-border-primary rounded-xl p-5">
