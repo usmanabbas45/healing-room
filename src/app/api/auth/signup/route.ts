@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { getHikeupCustomerByEmail, createHikeupCustomer, isHikeupConnected } from "@/libs/hikeup";
 import { rateLimit, rateLimitedResponse } from "@/libs/rate-limit";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/libs/auth";
 
 export async function POST(request: NextRequest) {
   // Rate limit: 3 signups per hour per IP
@@ -113,7 +115,24 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: Request) {
   try {
+    // SECURITY: Require authentication
+    const session = await getServerSession(authOptions);
+    if (!session?.user?._id) {
+      return NextResponse.json(
+        { message: "Unauthorized" },
+        { status: 401 },
+      );
+    }
+
     const { userId, name, email, password } = await request.json();
+
+    // SECURITY: Users can only update their own account
+    if (userId !== session.user._id) {
+      return NextResponse.json(
+        { message: "Forbidden: Can only update your own account" },
+        { status: 403 },
+      );
+    }
 
     if (password && password.length < 6) {
       return NextResponse.json(
@@ -130,17 +149,21 @@ export async function PUT(request: Request) {
       return NextResponse.json({ message: "User not found" }, { status: 404 });
     }
 
+    // SECURITY: Only allow updating specific fields (prevent role escalation)
     const updateData: any = {};
     if (name) updateData.name = name;
     if (email) updateData.email = email;
     if (password) {
       updateData.password = await bcrypt.hash(password, 12);
     }
+    // CRITICAL: Role cannot be updated through this endpoint
 
     const updatedUser = await prisma.user.update({
       where: { id: userId },
       data: updateData,
     });
+
+    console.log(`👤 User ${updatedUser.email} updated their profile`);
 
     return NextResponse.json(
       {
@@ -166,7 +189,24 @@ export async function PUT(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
+    // SECURITY: Require authentication
+    const session = await getServerSession(authOptions);
+    if (!session?.user?._id) {
+      return NextResponse.json(
+        { message: "Unauthorized" },
+        { status: 401 },
+      );
+    }
+
     const { userId } = await request.json();
+
+    // SECURITY: Users can only delete their own account (unless staff)
+    if (userId !== session.user._id && session.user.role !== "staff") {
+      return NextResponse.json(
+        { message: "Forbidden: Can only delete your own account" },
+        { status: 403 },
+      );
+    }
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -179,6 +219,8 @@ export async function DELETE(request: Request) {
     await prisma.user.delete({
       where: { id: userId },
     });
+
+    console.log(`🗑️ User ${user.email} deleted by ${session.user.email}`);
 
     return NextResponse.json(
       { message: "User deleted successfully" },
