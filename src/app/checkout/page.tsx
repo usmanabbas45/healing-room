@@ -156,11 +156,13 @@ export default function CheckoutPage() {
     loadData();
   }, [status, router]);
   
-  // Set default delivery date
+  // Set default delivery date only for delivery method
   useEffect(() => {
-    const nextDate = getLocalDeliveryDate();
-    setDeliveryDate(nextDate.toISOString().split("T")[0]);
-  }, []);
+    if (fulfillmentMethod === "delivery") {
+      const nextDate = getLocalDeliveryDate();
+      setDeliveryDate(nextDate.toISOString().split("T")[0]);
+    }
+  }, [fulfillmentMethod]);
   
   const steps: { id: Step; label: string }[] = [
     { id: "fulfillment", label: "Fulfillment" },
@@ -178,32 +180,35 @@ export default function CheckoutPage() {
         return true;
       case "address":
         if (fulfillmentMethod === "pickup") {
-          return contactInfo.name && contactInfo.email;
-        }
-        // For delivery, require address fields (validation happens on Continue click)
-        if (fulfillmentMethod === "delivery") {
-          return (
+          return !!(contactInfo.name && contactInfo.email);
+        } else if (fulfillmentMethod === "delivery") {
+          return !!(
             contactInfo.name &&
             contactInfo.email &&
             deliveryAddress.line1 &&
             deliveryAddress.city &&
             deliveryAddress.postalCode
           );
+        } else {
+          // For shipping
+          return !!(
+            contactInfo.name &&
+            contactInfo.email &&
+            deliveryAddress.line1 &&
+            deliveryAddress.city &&
+            deliveryAddress.province &&
+            deliveryAddress.postalCode
+          );
         }
-        // For shipping
-        return (
-          contactInfo.name &&
-          contactInfo.email &&
-          deliveryAddress.line1 &&
-          deliveryAddress.city &&
-          deliveryAddress.postalCode
-        );
       case "schedule":
-        if (fulfillmentMethod === "pickup") return true;
-        if (fulfillmentMethod === "delivery") {
-          return deliveryDate; // No time slot needed for delivery (daily run)
+        if (fulfillmentMethod === "pickup") {
+          return true;
+        } else if (fulfillmentMethod === "delivery") {
+          return !!deliveryDate;
+        } else {
+          // For shipping, no scheduling needed - ships ASAP
+          return true;
         }
-        return deliveryDate && deliveryTimeSlot;
       case "review":
         return true;
       default:
@@ -383,7 +388,10 @@ export default function CheckoutPage() {
                         name="fulfillment"
                         value="pickup"
                         checked={fulfillmentMethod === "pickup"}
-                        onChange={() => setFulfillmentMethod("pickup")}
+                        onChange={() => {
+                          setFulfillmentMethod("pickup");
+                          setDeliveryDate(""); // Clear date for pickup
+                        }}
                         className="mt-1 text-primary focus:ring-primary"
                       />
                       <div className="ml-3 flex-1">
@@ -413,7 +421,12 @@ export default function CheckoutPage() {
                         name="fulfillment"
                         value="delivery"
                         checked={fulfillmentMethod === "delivery"}
-                        onChange={() => setFulfillmentMethod("delivery")}
+                        onChange={() => {
+                          setFulfillmentMethod("delivery");
+                          // Set default delivery date for local delivery
+                          const nextDate = getLocalDeliveryDate();
+                          setDeliveryDate(nextDate.toISOString().split("T")[0]);
+                        }}
                         className="mt-1 text-primary focus:ring-primary"
                       />
                       <div className="ml-3 flex-1">
@@ -448,7 +461,10 @@ export default function CheckoutPage() {
                         name="fulfillment"
                         value="shipping"
                         checked={fulfillmentMethod === "shipping"}
-                        onChange={() => setFulfillmentMethod("shipping")}
+                        onChange={() => {
+                          setFulfillmentMethod("shipping");
+                          setDeliveryDate(""); // Clear date for shipping (ships ASAP)
+                        }}
                         className="mt-1 text-primary focus:ring-primary"
                       />
                       <div className="ml-3 flex-1">
@@ -730,9 +746,9 @@ export default function CheckoutPage() {
                             )}
                           </>
                         )}
-                        {fulfillmentMethod === "shipping" && deliveryDate && (
-                          <p className="text-sm text-primary mt-2">
-                            {new Date(deliveryDate).toLocaleDateString("en-CA", { weekday: "long", month: "long", day: "numeric" })}
+                        {fulfillmentMethod === "shipping" && (
+                          <p className="text-sm text-text-muted mt-2">
+                            Ships via Canada Post Xpresspost • 2-5 business days
                           </p>
                         )}
                       </>

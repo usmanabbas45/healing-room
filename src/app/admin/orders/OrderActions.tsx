@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { ConfirmationDialog } from "@/components/admin/ConfirmationDialog";
+import { TrackingNumberDialog } from "@/components/admin/TrackingNumberDialog";
 
 interface Order {
   id: string;
@@ -43,7 +45,14 @@ export function OrderActions({ order }: { order: Order }) {
   const [isLoading, setIsLoading] = useState(false);
   const [showNoteInput, setShowNoteInput] = useState(false);
   const [note, setNote] = useState("");
-  const [paymentRef, setPaymentRef] = useState("");
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [showTrackingDialog, setShowTrackingDialog] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<{
+    type: string;
+    title: string;
+    description: string;
+    variant: "danger" | "success" | "default";
+  } | null>(null);
 
   const availableActions = statusFlow[order.status] || [];
 
@@ -77,34 +86,61 @@ export function OrderActions({ order }: { order: Order }) {
   };
 
   const handleStatusChange = async (newStatus: string) => {
-    // If marking as paid, prompt for payment reference
-    if (newStatus === "paid" && order.paymentStatus !== "confirmed") {
-      const ref = window.prompt(`Enter e-Transfer reference/confirmation number:\n\nTIP: Check if customer included order number "${order.orderNumber}" in e-transfer message (REQUIRED for order confirmation)`);
-      
-      // If admin cancels the prompt, don't proceed
-      if (ref === null) {
-        return; // User cancelled
-      }
-      
-      // If admin provides empty string, require actual input
-      if (!ref.trim()) {
-        toast.error("E-Transfer confirmation/reference is required to mark as paid.");
-        return;
-      }
-      
-      await updateOrder(newStatus, { 
-        paymentStatus: "confirmed", 
-        paymentReference: ref.trim(),
-        paidAt: new Date().toISOString(),
+    // If marking as shipped, show tracking number dialog
+    if (newStatus === "shipped") {
+      setShowTrackingDialog(true);
+    }
+    // If marking as paid, show confirmation dialog
+    else if (newStatus === "paid" && order.paymentStatus !== "confirmed") {
+      setConfirmAction({
+        type: "paid",
+        title: "Mark Order as Paid",
+        description: `Confirm payment received for order #${order.orderNumber}. Make sure customer included order number in e-Transfer message.`,
+        variant: "success",
       });
-    } else if (newStatus === "cancelled" || newStatus === "refunded") {
-      const confirmed = window.confirm(`Are you sure you want to ${newStatus === "cancelled" ? "cancel" : "refund"} this order?`);
-      if (confirmed) {
-        await updateOrder(newStatus);
-      }
+      setShowConfirmDialog(true);
+    } else if (newStatus === "cancelled") {
+      setConfirmAction({
+        type: "cancelled",
+        title: "Cancel Order",
+        description: `Are you sure you want to cancel order #${order.orderNumber}? This action cannot be undone.`,
+        variant: "danger",
+      });
+      setShowConfirmDialog(true);
+    } else if (newStatus === "refunded") {
+      setConfirmAction({
+        type: "refunded",
+        title: "Refund Order",
+        description: `Are you sure you want to refund order #${order.orderNumber}? Make sure you've issued the refund before confirming.`,
+        variant: "danger",
+      });
+      setShowConfirmDialog(true);
     } else {
       await updateOrder(newStatus);
     }
+  };
+
+  const handleConfirm = async () => {
+    if (!confirmAction) return;
+
+    if (confirmAction.type === "paid") {
+      await updateOrder("paid", { 
+        paymentStatus: "confirmed", 
+        paymentReference: `Confirmed on ${new Date().toLocaleDateString()}`,
+        paidAt: new Date().toISOString(),
+      });
+    } else {
+      await updateOrder(confirmAction.type);
+    }
+    
+    setConfirmAction(null);
+  };
+
+  const handleTrackingSubmit = async (trackingNumber: string) => {
+    await updateOrder("shipped", {
+      trackingNumber: trackingNumber,
+      shippedAt: new Date().toISOString(),
+    });
   };
 
   const addStaffNote = async () => {
@@ -137,70 +173,100 @@ export function OrderActions({ order }: { order: Order }) {
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-2 pt-4 border-t border-border-primary">
-      {/* Status Actions */}
-      {availableActions.map((status) => (
-        <button
-          key={status}
-          onClick={() => handleStatusChange(status)}
-          disabled={isLoading}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 ${
-            status === "cancelled" || status === "refunded"
-              ? "bg-red-100 text-red-700 hover:bg-red-200"
-              : status === "paid"
-              ? "bg-green-100 text-green-700 hover:bg-green-200"
-              : "bg-primary/10 text-primary hover:bg-primary/20"
-          }`}
-        >
-          {statusLabels[status]}
-        </button>
-      ))}
-
-      {/* Add Note */}
-      {!showNoteInput ? (
-        <button
-          onClick={() => setShowNoteInput(true)}
-          className="px-4 py-2 rounded-lg text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
-        >
-          + Add Note
-        </button>
-      ) : (
-        <div className="flex gap-2 flex-1 min-w-[200px]">
-          <input
-            type="text"
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder="Add staff note..."
-            className="flex-1 px-3 py-2 border border-border-primary rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+    <>
+      <div className="flex flex-wrap items-center gap-2 pt-4 border-t border-border-primary">
+        {/* Status Actions */}
+        {availableActions.map((status) => (
+          <button
+            key={status}
+            onClick={() => handleStatusChange(status)}
             disabled={isLoading}
-          />
-          <button
-            onClick={addStaffNote}
-            disabled={isLoading || !note.trim()}
-            className="px-4 py-2 rounded-lg text-sm font-medium bg-primary text-white hover:bg-primary-dark disabled:opacity-50"
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 ${
+              status === "cancelled" || status === "refunded"
+                ? "bg-red-100 text-red-700 hover:bg-red-200"
+                : status === "paid"
+                ? "bg-green-100 text-green-700 hover:bg-green-200"
+                : "bg-primary/10 text-primary hover:bg-primary/20"
+            }`}
           >
-            Save
+            {statusLabels[status]}
           </button>
+        ))}
+
+        {/* Add Note */}
+        {!showNoteInput ? (
           <button
-            onClick={() => {
-              setShowNoteInput(false);
-              setNote("");
-            }}
-            className="px-3 py-2 rounded-lg text-sm text-gray-500 hover:bg-gray-100"
+            onClick={() => setShowNoteInput(true)}
+            className="px-4 py-2 rounded-lg text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
           >
-            ✕
+            + Add Note
           </button>
-        </div>
+        ) : (
+          <div className="flex gap-2 flex-1 min-w-[200px]">
+            <input
+              type="text"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="Add staff note..."
+              className="flex-1 px-3 py-2 border border-border-primary rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+              disabled={isLoading}
+            />
+            <button
+              onClick={addStaffNote}
+              disabled={isLoading || !note.trim()}
+              className="px-4 py-2 rounded-lg text-sm font-medium bg-primary text-white hover:bg-primary-dark disabled:opacity-50"
+            >
+              Save
+            </button>
+            <button
+              onClick={() => {
+                setShowNoteInput(false);
+                setNote("");
+              }}
+              className="px-3 py-2 rounded-lg text-sm text-gray-500 hover:bg-gray-100"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
+        {/* View Full Order Link */}
+        <a
+          href={`/admin/orders/${order.id}`}
+          className="px-4 py-2 rounded-lg text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors ml-auto"
+        >
+          View Details →
+        </a>
+      </div>
+
+      {/* Confirmation Dialog */}
+      {confirmAction && (
+        <ConfirmationDialog
+          isOpen={showConfirmDialog}
+          onClose={() => {
+            setShowConfirmDialog(false);
+            setConfirmAction(null);
+          }}
+          onConfirm={handleConfirm}
+          title={confirmAction.title}
+          description={confirmAction.description}
+          confirmText="yes"
+          confirmLabel="Confirm"
+          variant={confirmAction.variant}
+        />
       )}
 
-      {/* View Full Order Link */}
-      <a
-        href={`/admin/orders/${order.id}`}
-        className="px-4 py-2 rounded-lg text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors ml-auto"
-      >
-        View Details →
-      </a>
-    </div>
+      {/* Tracking Number Dialog */}
+      <TrackingNumberDialog
+        isOpen={showTrackingDialog}
+        onClose={() => setShowTrackingDialog(false)}
+        onConfirm={handleTrackingSubmit}
+        title="Mark Order as Shipped"
+        description={`Enter the Canada Post tracking number for order #${order.orderNumber}. This will be sent to the customer via email.`}
+        placeholder="e.g., 1234567890123456"
+        confirmLabel="Mark as Shipped"
+      />
+    </>
   );
 }
 

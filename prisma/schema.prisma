@@ -155,6 +155,10 @@ model Order {
   deliveryInstructions String?     // Special delivery instructions
   deliveryDistance     Float?      // Distance in km from store
   
+  // Shipping specifics
+  trackingNumber       String?     // Canada Post tracking number for shipped orders
+  shippedAt            DateTime?   // When the order was shipped
+  
   // Order notes (internal)
   notes                String?
   staffNotes           String?     // Notes from staff

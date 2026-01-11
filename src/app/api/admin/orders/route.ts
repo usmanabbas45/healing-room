@@ -22,7 +22,7 @@ export async function PATCH(request: NextRequest) {
     }
     
     const body = await request.json();
-    const { orderId, status, paymentStatus, paymentReference, paidAt, staffNotes } = body;
+    const { orderId, status, paymentStatus, paymentReference, paidAt, staffNotes, trackingNumber, shippedAt } = body;
     
     if (!orderId) {
       return NextResponse.json({ message: "Order ID required" }, { status: 400 });
@@ -49,6 +49,14 @@ export async function PATCH(request: NextRequest) {
     
     if (staffNotes !== undefined) {
       updateData.staffNotes = staffNotes;
+    }
+    
+    if (trackingNumber !== undefined) {
+      updateData.trackingNumber = trackingNumber;
+    }
+    
+    if (shippedAt) {
+      updateData.shippedAt = new Date(shippedAt);
     }
     
     // Update the order

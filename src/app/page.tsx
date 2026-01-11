@@ -166,6 +166,9 @@ const faqCategories = [
 ];
 
 export default function Home() {
+  // Flatten categories for JSON-LD schema
+  const faqs = faqCategories.flatMap(category => category.questions);
+  
   return (
     <>
       <FAQJsonLd faqs={faqs} />
