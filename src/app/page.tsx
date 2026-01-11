@@ -5,126 +5,163 @@ import InteractiveMap from "@/components/map/InteractiveMap";
 import { FAQJsonLd } from "@/components/seo/JsonLd";
 import SpecialDeals from "@/components/deals/SpecialDeals";
 
-// FAQ data for SEO - Comprehensive customer support questions
-const faqs = [
-  // Ordering & Payment
+// FAQ data organized by categories for better navigation
+const faqCategories = [
   {
-    question: "Is it safe to order?",
-    answer: "Yes. Orders are handled securely, shipped discreetly, and customer privacy is taken seriously.",
+    category: "Ordering & Payment",
+    icon: (
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+    ),
+    questions: [
+      {
+        question: "Is it safe to order?",
+        answer: "Yes. Orders are handled securely, shipped discreetly, and customer privacy is taken seriously.",
+      },
+      {
+        question: "Who is eligible to purchase?",
+        answer: "You must be 19 years of age or older and reside in Canada to place an order.",
+      },
+      {
+        question: "What payment methods are accepted?",
+        answer: "Payments are accepted through Interac e-Transfer only.",
+      },
+      {
+        question: "Are taxes included in the prices?",
+        answer: "Yes. All listed prices already include applicable taxes.",
+      },
+      {
+        question: "How do I place an order?",
+        answer: "Create an account, add products to your cart, and complete checkout using Interac e-Transfer. Once payment is confirmed, your order is processed and shipped.",
+      },
+      {
+        question: "Can I change or cancel my order?",
+        answer: "If the order has not yet been processed or shipped, cancellation may be possible. Once processing begins, changes may not be allowed.",
+      },
+      {
+        question: "Is my personal information secure?",
+        answer: "Yes. Customer information is protected using secure servers and encrypted systems.",
+      },
+      {
+        question: "What if I don't receive my order?",
+        answer: "If your package has not arrived within 48 hours of the expected delivery date, contact customer support for assistance.",
+      },
+      {
+        question: "Why didn't I receive any emails?",
+        answer: "Check your spam or junk folder, as automated emails may sometimes be filtered.",
+      },
+    ],
   },
   {
-    question: "Who is eligible to purchase?",
-    answer: "You must be 19 years of age or older and reside in Canada to place an order.",
+    category: "Discounts & Policies",
+    icon: (
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    ),
+    questions: [
+      {
+        question: "Do you offer bulk discounts?",
+        answer: "Yes. Bulk pricing is available. Please contact us directly for bulk discount pricing and availability.",
+      },
+      {
+        question: "Are there scams or impersonators to watch out for?",
+        answer: "Customers should only place orders through the official website. Payments are never accepted via gift cards, credit cards, phone orders, or social media.",
+      },
+    ],
   },
   {
-    question: "What payment methods are accepted?",
-    answer: "Payments are accepted through Interac e-Transfer only.",
+    category: "Product & Quality",
+    icon: (
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+    ),
+    questions: [
+      {
+        question: "What if I'm unhappy with the product quality?",
+        answer: "Contact support with your order number, product name, description of the issue, and photos or videos if available. Issues should be reported shortly after delivery.",
+      },
+      {
+        question: "What should I do if there is an issue with my order?",
+        answer: "Reach out to customer support with full order details and documentation so the issue can be reviewed and resolved.",
+      },
+    ],
   },
   {
-    question: "Are taxes included in the prices?",
-    answer: "Yes. All listed prices already include applicable taxes.",
+    category: "Refunds & Exchanges",
+    icon: (
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+    ),
+    questions: [
+      {
+        question: "Do you offer refunds or exchanges?",
+        answer: "All consumable products are final sale. In some cases, store credit may be offered for verified issues reported shortly after delivery.",
+      },
+    ],
   },
   {
-    question: "How do I place an order?",
-    answer: "Create an account, add products to your cart, and complete checkout using Interac e-Transfer. Once payment is confirmed, your order is processed and shipped.",
+    category: "Shipping",
+    icon: (
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+    ),
+    questions: [
+      {
+        question: "What are the shipping fees?",
+        answer: "Shipping is free on qualifying orders. Smaller orders may be subject to a flat shipping fee.",
+      },
+      {
+        question: "Do you ship outside of Canada?",
+        answer: "No. Shipping is available within Canada only.",
+      },
+      {
+        question: "How long does shipping take?",
+        answer: "Most orders arrive within 1–3 business days. Rural or remote areas may take slightly longer.",
+      },
+      {
+        question: "When does my order ship?",
+        answer: "Orders paid before the daily cutoff time typically ship the same business day. Later payments ship the next business day.",
+      },
+      {
+        question: "Why isn't my tracking number active yet?",
+        answer: "Tracking may take up to 24 hours to update after the package is scanned by the carrier.",
+      },
+      {
+        question: "Is a signature required upon delivery?",
+        answer: "Orders above a certain value may require a signature. Customers may request no signature, but responsibility transfers once delivered.",
+      },
+      {
+        question: "What happens if my package is lost or stolen?",
+        answer: "Lost packages are investigated. Depending on the situation and location, a replacement or store credit may be issued.",
+      },
+      {
+        question: "What if I entered the wrong shipping address?",
+        answer: "Customers are responsible for providing accurate shipping information. Orders sent to incorrect addresses may not be recoverable.",
+      },
+    ],
   },
   {
-    question: "Can I change or cancel my order?",
-    answer: "If the order has not yet been processed or shipped, cancellation may be possible. Once processing begins, changes may not be allowed.",
-  },
-  {
-    question: "Is my personal information secure?",
-    answer: "Yes. Customer information is protected using secure servers and encrypted systems.",
-  },
-  {
-    question: "What if I don't receive my order?",
-    answer: "If your package has not arrived within 48 hours of the expected delivery date, contact customer support for assistance.",
-  },
-  {
-    question: "Why didn't I receive any emails?",
-    answer: "Check your spam or junk folder, as automated emails may sometimes be filtered.",
-  },
-  
-  // Discounts & Policies
-  {
-    question: "Do you offer bulk discounts?",
-    answer: "Yes. Bulk pricing is available. Please contact us directly for bulk discount pricing and availability.",
-  },
-  {
-    question: "Are there scams or impersonators to watch out for?",
-    answer: "Customers should only place orders through the official website. Payments are never accepted via gift cards, credit cards, phone orders, or social media.",
-  },
-  
-  // Product & Quality
-  {
-    question: "What if I'm unhappy with the product quality?",
-    answer: "Contact support with your order number, product name, description of the issue, and photos or videos if available. Issues should be reported shortly after delivery.",
-  },
-  {
-    question: "What should I do if there is an issue with my order?",
-    answer: "Reach out to customer support with full order details and documentation so the issue can be reviewed and resolved.",
-  },
-  
-  // Refunds & Exchanges
-  {
-    question: "Do you offer refunds or exchanges?",
-    answer: "All consumable products are final sale. In some cases, store credit may be offered for verified issues reported shortly after delivery.",
-  },
-  
-  // Shipping
-  {
-    question: "What are the shipping fees?",
-    answer: "Shipping is free on qualifying orders. Smaller orders may be subject to a flat shipping fee.",
-  },
-  {
-    question: "Do you ship outside of Canada?",
-    answer: "No. Shipping is available within Canada only.",
-  },
-  {
-    question: "How long does shipping take?",
-    answer: "Most orders arrive within 1–3 business days. Rural or remote areas may take slightly longer.",
-  },
-  {
-    question: "When does my order ship?",
-    answer: "Orders paid before the daily cutoff time typically ship the same business day. Later payments ship the next business day.",
-  },
-  {
-    question: "Why isn't my tracking number active yet?",
-    answer: "Tracking may take up to 24 hours to update after the package is scanned by the carrier.",
-  },
-  {
-    question: "Is a signature required upon delivery?",
-    answer: "Orders above a certain value may require a signature. Customers may request no signature, but responsibility transfers once delivered.",
-  },
-  {
-    question: "What happens if my package is lost or stolen?",
-    answer: "Lost packages are investigated. Depending on the situation and location, a replacement or store credit may be issued.",
-  },
-  {
-    question: "What if I entered the wrong shipping address?",
-    answer: "Customers are responsible for providing accurate shipping information. Orders sent to incorrect addresses may not be recoverable.",
-  },
-  
-  // Cannabis Education
-  {
-    question: "What is Indica?",
-    answer: "Indica strains are typically associated with relaxing, body-focused effects.",
-  },
-  {
-    question: "What is Sativa?",
-    answer: "Sativa strains are known for uplifting, energetic, and creativity-enhancing effects.",
-  },
-  {
-    question: "What is a Hybrid strain?",
-    answer: "Hybrid strains combine characteristics of both Indica and Sativa for balanced effects.",
-  },
-  {
-    question: "What is THC?",
-    answer: "THC is the primary psychoactive compound in cannabis responsible for producing euphoric effects.",
-  },
-  {
-    question: "What is CBD?",
-    answer: "CBD is a non-intoxicating cannabinoid commonly used for wellness and relaxation.",
+    category: "Cannabis Education",
+    icon: (
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+    ),
+    questions: [
+      {
+        question: "What is Indica?",
+        answer: "Indica strains are typically associated with relaxing, body-focused effects.",
+      },
+      {
+        question: "What is Sativa?",
+        answer: "Sativa strains are known for uplifting, energetic, and creativity-enhancing effects.",
+      },
+      {
+        question: "What is a Hybrid strain?",
+        answer: "Hybrid strains combine characteristics of both Indica and Sativa for balanced effects.",
+      },
+      {
+        question: "What is THC?",
+        answer: "THC is the primary psychoactive compound in cannabis responsible for producing euphoric effects.",
+      },
+      {
+        question: "What is CBD?",
+        answer: "CBD is a non-intoxicating cannabinoid commonly used for wellness and relaxation.",
+      },
+    ],
   },
 ];
 
@@ -839,25 +876,31 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="max-w-4xl mx-auto space-y-3">
-            {faqs.map((faq, index) => (
+          <div className="max-w-4xl mx-auto space-y-4">
+            {faqCategories.map((category, categoryIndex) => (
               <details
-                key={index}
-                className="group bg-gradient-to-br from-white to-[#fdfcfa] border border-border-primary rounded-2xl overflow-hidden hover:shadow-xl hover:border-primary/40 transition-all duration-300"
+                key={categoryIndex}
+                className="group/category bg-white border-2 border-border-primary rounded-2xl overflow-hidden hover:shadow-lg transition-all duration-300"
               >
-                <summary className="flex items-center justify-between p-6 cursor-pointer list-none hover:bg-primary/5">
-                  <div className="flex items-center gap-4 flex-1 pr-4">
-                    <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/30 flex items-center justify-center flex-shrink-0">
-                      <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                {/* Category Header */}
+                <summary className="flex items-center justify-between p-5 cursor-pointer list-none hover:bg-primary/5 bg-gradient-to-r from-primary/5 to-transparent">
+                  <div className="flex items-center gap-3 flex-1">
+                    <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/30 flex items-center justify-center flex-shrink-0">
+                      <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        {category.icon}
                       </svg>
                     </div>
-                    <span className="font-medium text-text-primary text-left">
-                      {faq.question}
-                    </span>
+                    <div>
+                      <h3 className="font-semibold text-text-primary text-lg">
+                        {category.category}
+                      </h3>
+                      <p className="text-xs text-text-muted mt-0.5">
+                        {category.questions.length} question{category.questions.length !== 1 ? 's' : ''}
+                      </p>
+                    </div>
                   </div>
                   <svg
-                    className="w-5 h-5 text-primary flex-shrink-0 transition-transform duration-300 group-open:rotate-180"
+                    className="w-6 h-6 text-primary flex-shrink-0 transition-transform duration-300 group-open/category:rotate-180"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -865,8 +908,32 @@ export default function Home() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
                 </summary>
-                <div className="px-6 pb-6 text-text-light leading-relaxed border-t border-border-primary pt-6 ml-12">
-                  {faq.answer}
+                
+                {/* Questions within category */}
+                <div className="px-5 pb-5 space-y-2 bg-gray-50/50">
+                  {category.questions.map((faq, faqIndex) => (
+                    <details
+                      key={faqIndex}
+                      className="group bg-white border border-border-primary rounded-xl overflow-hidden hover:shadow-md hover:border-primary/40 transition-all"
+                    >
+                      <summary className="flex items-center justify-between p-4 cursor-pointer list-none hover:bg-primary/5">
+                        <span className="font-medium text-text-primary text-sm text-left pr-4">
+                          {faq.question}
+                        </span>
+                        <svg
+                          className="w-4 h-4 text-primary flex-shrink-0 transition-transform duration-300 group-open:rotate-180"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </summary>
+                      <div className="px-4 pb-4 text-sm text-text-muted leading-relaxed border-t border-border-primary pt-4">
+                        {faq.answer}
+                      </div>
+                    </details>
+                  ))}
                 </div>
               </details>
             ))}
