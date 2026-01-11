@@ -42,7 +42,7 @@ async function getUsers() {
 export default async function UsersPage() {
   const session = await getServerSession(authOptions);
 
-  if (!session?.user) {
+  if (!session?.user?.email) {
     redirect("/login");
   }
 
