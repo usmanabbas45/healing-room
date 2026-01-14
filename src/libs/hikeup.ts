@@ -1254,6 +1254,17 @@ export function transformHikeupProduct(product: any) {
       console.log(`   - FINAL PRICE: ${variantPrice}`);
     }
     
+    // Extract variant-specific images (similar format to additional_images)
+    let variantImages: string[] = [];
+    if (v.variant_images && Array.isArray(v.variant_images) && v.variant_images.length > 0) {
+      variantImages = v.variant_images.map((img: any) => {
+        // If it's already a string URL, use it
+        if (typeof img === 'string') return img;
+        // Otherwise extract from thumbnail fields (same format as additional_images)
+        return img['500_thumbnail'] || img['240_thumbnail'] || img['50_thumbnail'] || img.image_url;
+      }).filter(Boolean);
+    }
+    
     return {
       _id: String(v.prod_variant_id || v.id),
       priceId: String(v.prod_variant_id || v.id),
@@ -1262,7 +1273,7 @@ export function transformHikeupProduct(product: any) {
       fullName: v.variant_name || '',
       sku: v.sku || '',
       barcode: v.barcode || '',
-      images: v.variant_images?.length > 0 ? v.variant_images : imageUrls,
+      images: variantImages.length > 0 ? variantImages : imageUrls, // Use variant images if available, else parent images
       inventory: variantOutlet?.available_inventory || 0,
       price: variantPrice,
     };
