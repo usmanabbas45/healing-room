@@ -1825,18 +1825,19 @@ export async function syncProductsToDatabase(): Promise<void> {
     console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
     // ============ END SCHEMA LOGGING ============
     
-    // ============ FILTER OUT VARIANT PRODUCTS ============
-    // Products with parentId !== null are variants, we only want parent products
-    console.log(`\n🔍 FILTERING VARIANTS:`);
+    // ============ CACHE ALL PRODUCTS (PARENTS + VARIANTS) ============
+    // We cache both parent products and variant products
+    // Variants will have parentId !== null
+    console.log(`\n🔍 ANALYZING PRODUCTS:`);
     const beforeCount = allProducts.length;
     const parentProducts = allProducts.filter((product: any) => product.parentId === null);
-    const variantProductsCount = beforeCount - parentProducts.length;
+    const variantProducts = allProducts.filter((product: any) => product.parentId !== null);
     console.log(`   Total from Hikeup: ${beforeCount}`);
-    console.log(`   ✅ Parent/Standalone products (parentId = null): ${parentProducts.length}`);
-    console.log(`   ❌ Variant products (parentId != null): ${variantProductsCount} - EXCLUDED from shop\n`);
+    console.log(`   📦 Parent/Standalone products (parentId = null): ${parentProducts.length} - SHOW on shop`);
+    console.log(`   🏷️ Variant products (parentId != null): ${variantProducts.length} - Cache but hide from shop\n`);
     
-    // Prepare bulk upsert data (only parent products)
-    const cacheRecords = parentProducts.map((product: any) => {
+    // Prepare bulk upsert data (ALL products - both parent and variants)
+    const cacheRecords = allProducts.map((product: any) => {
       // Extract product types for filtering
       const productTypes = (product.product_type || []).map((pt: any) => 
         (pt.type_name || pt.name || '').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
@@ -1844,6 +1845,7 @@ export async function syncProductsToDatabase(): Promise<void> {
       
       return {
         hikeupId: Number(product.id),
+        parentId: product.parentId ? Number(product.parentId) : null, // Store parent reference
         name: product.name || '',
         rawData: JSON.stringify(product),
         productTypes,
@@ -1867,6 +1869,7 @@ export async function syncProductsToDatabase(): Promise<void> {
         prisma.hikeupProductCache.upsert({
           where: { hikeupId: record.hikeupId },
           update: {
+            parentId: record.parentId,
             name: record.name,
             rawData: record.rawData,
             productTypes: record.productTypes,
@@ -1919,9 +1922,10 @@ export async function getProductsFromDatabase(
   try {
     const skip = (page - 1) * pageSize;
     
+    // ALWAYS filter to only parent products (parentId IS NULL) for shop display
     const where = typeFilter === 'all' 
-      ? { isActive: true }
-      : { isActive: true, productTypes: { has: typeFilter } };
+      ? { isActive: true, parentId: null } // Only parent products
+      : { isActive: true, parentId: null, productTypes: { has: typeFilter } }; // Parent products of specific type
     
     const [products, totalCount] = await Promise.all([
       prisma.hikeupProductCache.findMany({
@@ -1936,7 +1940,7 @@ export async function getProductsFromDatabase(
     // Parse rawData back to objects
     const parsedProducts = products.map(p => JSON.parse(p.rawData));
     
-    console.log(`📦 [DB CACHE] Retrieved ${products.length} products (${totalCount} total) for type "${typeFilter}"`);
+    console.log(`📦 [DB CACHE] Retrieved ${products.length} parent products (${totalCount} total) for type "${typeFilter}"`);
     
     return {
       products: parsedProducts,
@@ -1953,9 +1957,9 @@ export async function getProductsFromDatabase(
  */
 export async function getProductTypesFromDatabase(): Promise<{ id: string; name: string; count: number }[]> {
   try {
-    // Get all unique product types
+    // Get all unique product types (ONLY from parent products)
     const products = await prisma.hikeupProductCache.findMany({
-      where: { isActive: true },
+      where: { isActive: true, parentId: null }, // Only count parent products
       select: { productTypes: true },
     });
     

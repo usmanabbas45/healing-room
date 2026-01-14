@@ -232,6 +232,7 @@ model HikeupLog {
 model HikeupProductCache {
   id               String   @id @default(cuid())
   hikeupId         Int      @unique // Hikeup product ID
+  parentId         Int?     // If not null, this is a variant product (parent's hikeupId)
   name             String   // For search
   rawData          String   // Full JSON product data from Hikeup
   productTypes     String[] // Array of type names for filtering (e.g., ["nicotine", "vape"])
@@ -242,6 +243,7 @@ model HikeupProductCache {
   updatedAt        DateTime @updatedAt
   
   @@index([hikeupId])
+  @@index([parentId]) // Index for fetching variants by parent
   @@index([isActive])
   @@index([productTypes])
   @@index([lastModified])
