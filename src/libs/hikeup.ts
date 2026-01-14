@@ -703,30 +703,12 @@ export async function getHikeupProductsWithMeta(
       totalCount = response.total || products.length;
     }
     
-    // Deduplicate: Remove variant products (keep only parent products with product_variants)
-    const productGroups = new Map<string, any[]>();
+    // Filter out variant products (keep only parent products where parentId = null)
+    const beforeFilter = products.length;
+    const deduplicatedProducts = products.filter((product: any) => product.parentId === null);
+    const variantsFiltered = beforeFilter - deduplicatedProducts.length;
     
-    products.forEach((product: any) => {
-      const productName = product.name || '';
-      const baseName = productName.split(' / ')[0].trim().toLowerCase();
-      
-      if (!productGroups.has(baseName)) {
-        productGroups.set(baseName, []);
-      }
-      productGroups.get(baseName)!.push(product);
-    });
-    
-    const deduplicatedProducts = Array.from(productGroups.values()).map(group => {
-      if (group.length === 1) {
-        return group[0];
-      }
-      
-      // Pick parent product (one with product_variants array)
-      const parent = group.find(p => p.product_variants && p.product_variants.length > 0);
-      return parent || group[0];
-    });
-    
-    console.log(`✅ Fetched ${deduplicatedProducts.length} unique products (deduplicated from ${products.length})`);
+    console.log(`✅ Fetched ${deduplicatedProducts.length} parent products (filtered out ${variantsFiltered} variants from ${beforeFilter} total)`);
     
     // Use Hikeup's 'next' field from response, or calculate based on raw product count
     let nextPage: string | null = null;
@@ -1155,31 +1137,11 @@ export async function searchHikeupProducts(query: string): Promise<HikeupProduct
     
     console.log(`🔍 Raw search results: ${results.length} products`);
     
-    // DEDUPLICATE: Group by base product name and keep only parent products
-    const productGroups = new Map<string, any[]>();
+    // FILTER: Remove variant products (keep only parent products where parentId = null)
+    const deduplicated = results.filter((product: any) => product.parentId === null);
+    const variantsFiltered = results.length - deduplicated.length;
     
-    results.forEach((product: any) => {
-      const productName = product.name || '';
-      const baseName = productName.split(' / ')[0].trim().toLowerCase();
-      
-      if (!productGroups.has(baseName)) {
-        productGroups.set(baseName, []);
-      }
-      productGroups.get(baseName)!.push(product);
-    });
-    
-    // For each group, pick the parent product
-    const deduplicated = Array.from(productGroups.values()).map(group => {
-      if (group.length === 1) {
-        return group[0];
-      }
-      
-      // Pick parent (one with product_variants)
-      const parent = group.find(p => p.product_variants && p.product_variants.length > 0);
-      return parent || group[0];
-    });
-    
-    console.log(`✅ Search complete: ${deduplicated.length} unique products (from ${results.length} raw results)`);
+    console.log(`✅ Search complete: ${deduplicated.length} parent products (filtered out ${variantsFiltered} variants)`);
     return deduplicated;
   } catch (error) {
     console.error('❌ Error searching products:', error);
@@ -1802,7 +1764,21 @@ export async function syncProductsToDatabase(): Promise<void> {
       console.log(`   Number of variants: ${(sample.product_variants || []).length}`);
       console.log(`\n   🔑 ALL TOP-LEVEL KEYS:`);
       console.log(`   ${Object.keys(sample).join(', ')}\n`);
-      console.log(`   📋 FULL PRODUCT STRUCTURE:`);
+      
+      // Log first variant structure in detail
+      if (sample.product_variants && sample.product_variants.length > 0) {
+        const firstVariant = sample.product_variants[0];
+        console.log(`   🏷️ FIRST VARIANT STRUCTURE:`);
+        console.log(`   Variant Keys: ${Object.keys(firstVariant).join(', ')}`);
+        console.log(`   Has variant_images: ${!!firstVariant.variant_images}`);
+        if (firstVariant.variant_images) {
+          console.log(`   variant_images count: ${firstVariant.variant_images.length}`);
+        }
+        console.log(`\n   📋 FULL VARIANT STRUCTURE:`);
+        console.log(JSON.stringify(firstVariant, null, 2));
+      }
+      
+      console.log(`\n   📋 FULL PRODUCT STRUCTURE:`);
       console.log(JSON.stringify(sample, null, 2));
       console.log('\n');
     }
@@ -1849,8 +1825,18 @@ export async function syncProductsToDatabase(): Promise<void> {
     console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
     // ============ END SCHEMA LOGGING ============
     
-    // Prepare bulk upsert data
-    const cacheRecords = allProducts.map((product: any) => {
+    // ============ FILTER OUT VARIANT PRODUCTS ============
+    // Products with parentId !== null are variants, we only want parent products
+    console.log(`\n🔍 FILTERING VARIANTS:`);
+    const beforeCount = allProducts.length;
+    const parentProducts = allProducts.filter((product: any) => product.parentId === null);
+    const variantProductsCount = beforeCount - parentProducts.length;
+    console.log(`   Total from Hikeup: ${beforeCount}`);
+    console.log(`   ✅ Parent/Standalone products (parentId = null): ${parentProducts.length}`);
+    console.log(`   ❌ Variant products (parentId != null): ${variantProductsCount} - EXCLUDED from shop\n`);
+    
+    // Prepare bulk upsert data (only parent products)
+    const cacheRecords = parentProducts.map((product: any) => {
       // Extract product types for filtering
       const productTypes = (product.product_type || []).map((pt: any) => 
         (pt.type_name || pt.name || '').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
