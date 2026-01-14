@@ -41,8 +41,18 @@ export const Images = ({
   // Validate the image URL - fallback to logo if invalid
   const imageSrc = isValidImageUrl(rawSrc) ? rawSrc : '/logo.png';
 
+  console.log('🖼️ Images component:', {
+    name,
+    rawSrc,
+    imageSrc,
+    isValid: isValidImageUrl(rawSrc),
+    imageError,
+    imageLoaded,
+  });
+
   // If image failed or is fallback, show placeholder
   if (imageError || imageSrc === '/logo.png') {
+    console.log('⚠️ Images: Showing placeholder (error or fallback)');
     return (
       <div className="w-full aspect-square bg-white rounded-lg flex items-center justify-center">
         <Image
