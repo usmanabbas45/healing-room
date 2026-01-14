@@ -344,7 +344,58 @@ export const getProduct = async (id: string) => {
       const hikeupProduct = await getHikeupProduct(id);
       if (hikeupProduct) {
         // Transform raw Hikeup product to website format with discount data
-        return transformHikeupProductWithDiscount(hikeupProduct, offers);
+        const transformedProduct = transformHikeupProductWithDiscount(hikeupProduct, offers);
+        
+        // FETCH VARIANT PRODUCTS FROM DATABASE to get their actual images
+        // Variants in product_variants array don't have image data, but the separate variant products do
+        const variantProducts = await prisma.hikeupProductCache.findMany({
+          where: {
+            parentId: parseInt(id),
+            isActive: true,
+          },
+        });
+        
+        console.log(`🔍 Found ${variantProducts.length} variant products in database for parent ${id}`);
+        
+        // Merge variant images into the transformed product
+        if (variantProducts.length > 0 && transformedProduct.variants) {
+          transformedProduct.variants = transformedProduct.variants.map((variant: any) => {
+            // Find matching variant product by SKU or name
+            const variantProduct = variantProducts.find((vp) => {
+              const vpData = JSON.parse(vp.rawData);
+              return vpData.sku === variant.sku || vpData.name.includes(variant.name) || vpData.name.includes(variant.color);
+            });
+            
+            if (variantProduct) {
+              const vpData = JSON.parse(variantProduct.rawData);
+              // Extract images from the variant product
+              const variantImages: string[] = [];
+              
+              // Add primary_image if it exists
+              if (vpData.primary_image) {
+                variantImages.push(vpData.primary_image);
+              }
+              
+              // Add additional_images if they exist
+              if (vpData.additional_images && Array.isArray(vpData.additional_images)) {
+                vpData.additional_images.forEach((img: any) => {
+                  const imgUrl = img['500_thumbnail'] || img['240_thumbnail'] || img['50_thumbnail'] || img.image_url;
+                  if (imgUrl) variantImages.push(imgUrl);
+                });
+              }
+              
+              // Use variant images if we found any, otherwise keep existing
+              if (variantImages.length > 0) {
+                console.log(`   ✅ Found ${variantImages.length} images for variant "${variant.name || variant.color}"`);
+                variant.images = variantImages;
+              }
+            }
+            
+            return variant;
+          });
+        }
+        
+        return transformedProduct;
       }
       console.log(`❌ Product ${id} not found in Hikeup`);
     }
