@@ -1849,6 +1849,29 @@ export async function syncProductsToDatabase(): Promise<void> {
     console.log(`   📦 Parent/Standalone products (parentId = null): ${parentProducts.length} - SHOW on shop`);
     console.log(`   🏷️ Variant products (parentId != null): ${variantProducts.length} - Cache but hide from shop\n`);
     
+    // DEBUG: Log the "test" variant to see what image fields Hikeup is sending
+    const testVariant = allProducts.find((p: any) => p.name && p.name.toLowerCase().includes('test') && p.parentId === 315);
+    if (testVariant) {
+      console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log('🔍 DEBUG: "test" variant RAW DATA FROM HIKEUP:');
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log('   ID:', testVariant.id);
+      console.log('   Name:', testVariant.name);
+      console.log('   SKU:', testVariant.sku);
+      console.log('   parentId:', testVariant.parentId);
+      console.log('   primary_image:', testVariant.primary_image);
+      console.log('   variant_picture:', testVariant.variant_picture);
+      console.log('   additional_images length:', testVariant.additional_images?.length || 0);
+      if (testVariant.additional_images?.length > 0) {
+        console.log('   additional_images:', JSON.stringify(testVariant.additional_images, null, 2));
+      }
+      console.log('\n   🔑 ALL TOP-LEVEL KEYS:');
+      console.log('  ', Object.keys(testVariant).sort().join(', '));
+      console.log('\n   📋 FULL PRODUCT OBJECT:');
+      console.log(JSON.stringify(testVariant, null, 2));
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+    }
+    
     // Prepare bulk upsert data (ALL products - both parent and variants)
     const cacheRecords = allProducts.map((product: any) => {
       // Extract product types for filtering
