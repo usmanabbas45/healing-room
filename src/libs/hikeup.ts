@@ -703,12 +703,11 @@ export async function getHikeupProductsWithMeta(
       totalCount = response.total || products.length;
     }
     
-    // Filter out variant products (keep only parent products where parentId = null)
-    const beforeFilter = products.length;
-    const deduplicatedProducts = products.filter((product: any) => product.parentId === null);
-    const variantsFiltered = beforeFilter - deduplicatedProducts.length;
+    // Return ALL products (both parents and variants) for caching
+    const parentCount = products.filter((p: any) => p.parentId === null).length;
+    const variantCount = products.filter((p: any) => p.parentId !== null).length;
     
-    console.log(`✅ Fetched ${deduplicatedProducts.length} parent products (filtered out ${variantsFiltered} variants from ${beforeFilter} total)`);
+    console.log(`✅ Fetched ${products.length} products (${parentCount} parents + ${variantCount} variants)`);
     
     // Use Hikeup's 'next' field from response, or calculate based on raw product count
     let nextPage: string | null = null;
@@ -719,7 +718,7 @@ export async function getHikeupProductsWithMeta(
     }
     
     return {
-      products: deduplicatedProducts,
+      products: products, // Return ALL products (parents + variants)
       next: nextPage,
       totalCount: totalCount,
     };
@@ -777,9 +776,12 @@ export async function getAllHikeupProducts(outletId?: number): Promise<HikeupPro
       }
     }
     
-    console.log(`✅ Fetched total of ${allProducts.length} unique parent products`);
-    console.log(`   (Hikeup reported ${totalCount} total products including variants)`);
-    console.log(`   Deduplication removed ${totalCount - allProducts.length} variant products`)
+    const parentProductsCount = allProducts.filter((p: any) => p.parentId === null).length;
+    const variantProductsCount = allProducts.filter((p: any) => p.parentId !== null).length;
+    
+    console.log(`✅ Fetched total of ${allProducts.length} products from Hikeup`);
+    console.log(`   📦 ${parentProductsCount} parent products (will show on shop)`);
+    console.log(`   🏷️ ${variantProductsCount} variant products (cached for product details page)`)
     
     return allProducts;
   } catch (error) {
