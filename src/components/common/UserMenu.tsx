@@ -14,7 +14,7 @@ import Link from "next/link";
 import { Session } from "next-auth";
 import dynamic from "next/dynamic";
 import SignOutButton from "../account/SignOutButton";
-import { User, Package } from "lucide-react";
+import { User, Package, Shield } from "lucide-react";
 
 const EditProfile = dynamic(() => import("./EditProfile"), {
   ssr: false,
@@ -63,6 +63,14 @@ export function UserMenu({ fastSession }: { fastSession: Session }) {
                 <span>View orders</span>
               </Link>
             </DropdownMenuItem>
+            {fastSession.user.role === "staff" && (
+              <DropdownMenuItem className="text-text-primary cursor-pointer">
+                <Link className="flex items-center w-full h-full" href="/admin">
+                  <Shield size={16} className="mr-2" />
+                  <span>Admin Panel</span>
+                </Link>
+              </DropdownMenuItem>
+            )}
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
           <DropdownMenuItem className="text-text-primary cursor-pointer">
