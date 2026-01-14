@@ -391,19 +391,21 @@ export const getProduct = async (id: string) => {
               // Extract images from the variant product
               const variantImages: string[] = [];
               
-              // Add primary_image if it exists
-              if (vpData.primary_image) {
-                console.log(`   📸 Found primary_image: ${vpData.primary_image}`);
-                variantImages.push(vpData.primary_image);
-              }
-              
-              // Add additional_images if they exist
+              // Extract images from additional_images array (these have the actual URLs)
               if (vpData.additional_images && Array.isArray(vpData.additional_images)) {
                 console.log(`   📸 Found ${vpData.additional_images.length} additional_images`);
                 vpData.additional_images.forEach((img: any) => {
                   const imgUrl = img['500_thumbnail'] || img['240_thumbnail'] || img['50_thumbnail'] || img.image_url;
-                  if (imgUrl) variantImages.push(imgUrl);
+                  if (imgUrl) {
+                    console.log(`   📸 Adding image URL: ${imgUrl}`);
+                    variantImages.push(imgUrl);
+                  }
                 });
+              }
+              
+              // Note: primary_image is just an ID, not a URL, so we use additional_images instead
+              if (vpData.primary_image && variantImages.length === 0) {
+                console.log(`   ⚠️ primary_image exists but no additional_images found (primary_image is just ID: ${vpData.primary_image})`);
               }
               
               // Use variant images if we found any, otherwise keep existing
@@ -411,7 +413,7 @@ export const getProduct = async (id: string) => {
                 console.log(`   ✅ Replacing variant images with ${variantImages.length} images from database product`);
                 variant.images = variantImages;
               } else {
-                console.log(`   ⚠️ No images found in database variant product`);
+                console.log(`   ⚠️ No image URLs found in database variant product`);
               }
             }
             
