@@ -49,7 +49,7 @@ export default function ChatWidget() {
     if (isOpen && !hasGreeted && messages.length === 0) {
       setMessages([{
         role: "assistant",
-        content: "Hey! 👋 Welcome to Healing Room. What can I help you find today?"
+        content: "Welcome to Healing Room. I'm here to assist you with product information and recommendations. How may I help you today?"
       }]);
       setHasGreeted(true);
     }
@@ -88,7 +88,7 @@ export default function ChatWidget() {
       console.error("Chat error:", error);
       setMessages([...newMessages, {
         role: "assistant",
-        content: "I'm sorry, I'm having trouble connecting right now. Please try again in a moment, or email us at info@healingroomsixnations.ca for immediate assistance.",
+        content: "I apologize, but I'm currently experiencing connection difficulties. Please try again in a moment, or contact us directly at info@healingroomsixnations.ca for immediate assistance.",
       }]);
     } finally {
       setIsLoading(false);
@@ -224,7 +224,7 @@ export default function ChatWidget() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyPress}
-              placeholder={isLoading ? "Thinking..." : "Ask me anything..."}
+              placeholder={isLoading ? "Processing..." : "Type your question here..."}
               className="flex-1 px-4 py-3 bg-bg-alt rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 border border-transparent focus:border-primary transition-all"
             />
             <button

@@ -1773,6 +1773,82 @@ export async function syncProductsToDatabase(): Promise<void> {
     const allProducts = await getAllHikeupProducts();
     console.log(`📥 Fetched ${allProducts.length} products from Hikeup`);
     
+    // ============ DETAILED SCHEMA LOGGING FOR VARIANTS ============
+    console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('🔬 ANALYZING HIKEUP PRODUCT & VARIANT SCHEMA');
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+    
+    // Find products with variants
+    const productsWithVariants = allProducts.filter((p: any) => 
+      (p.product_variants || []).length > 0
+    );
+    
+    // Find products that might be variants (no product_variants array)
+    const productsWithoutVariants = allProducts.filter((p: any) => 
+      (p.product_variants || []).length === 0
+    );
+    
+    console.log(`📊 STATISTICS:`);
+    console.log(`   Total products: ${allProducts.length}`);
+    console.log(`   Products WITH variants array: ${productsWithVariants.length}`);
+    console.log(`   Products WITHOUT variants array: ${productsWithoutVariants.length}\n`);
+    
+    // Log sample parent product (with variants)
+    if (productsWithVariants.length > 0) {
+      const sample = productsWithVariants[0];
+      console.log(`📦 SAMPLE PARENT PRODUCT (HAS VARIANTS):`);
+      console.log(`   ID: ${sample.id}`);
+      console.log(`   Name: ${sample.name}`);
+      console.log(`   Number of variants: ${(sample.product_variants || []).length}`);
+      console.log(`\n   🔑 ALL TOP-LEVEL KEYS:`);
+      console.log(`   ${Object.keys(sample).join(', ')}\n`);
+      console.log(`   📋 FULL PRODUCT STRUCTURE:`);
+      console.log(JSON.stringify(sample, null, 2));
+      console.log('\n');
+    }
+    
+    // Log sample potential variant product (without variants array)
+    if (productsWithoutVariants.length > 0) {
+      const sample = productsWithoutVariants[0];
+      console.log(`📦 SAMPLE PRODUCT WITHOUT VARIANTS ARRAY:`);
+      console.log(`   ID: ${sample.id}`);
+      console.log(`   Name: ${sample.name}`);
+      console.log(`\n   🔑 ALL TOP-LEVEL KEYS:`);
+      console.log(`   ${Object.keys(sample).join(', ')}\n`);
+      console.log(`   📋 FULL PRODUCT STRUCTURE:`);
+      console.log(JSON.stringify(sample, null, 2));
+      console.log('\n');
+    }
+    
+    // Look for patterns in product names
+    console.log(`🔍 LOOKING FOR NAMING PATTERNS:`);
+    const productNames = allProducts.map((p: any) => p.name).slice(0, 20);
+    console.log(`   First 20 product names:`);
+    productNames.forEach((name: string, idx: number) => {
+      const hasSlash = name.includes(' / ');
+      const marker = hasSlash ? '  [HAS /]' : '';
+      console.log(`   ${idx + 1}. "${name}"${marker}`);
+    });
+    console.log('\n');
+    
+    // Check if there are any parent-child relationship fields
+    console.log(`🔗 CHECKING FOR PARENT-CHILD FIELDS:`);
+    const sampleProduct: any = allProducts[0] || {};
+    const potentialParentFields = [
+      'parent_id', 'parent_product_id', 'parent_product', 'base_product_id',
+      'is_variant', 'variant_of', 'master_product_id', 'product_id'
+    ];
+    
+    console.log(`   Looking for these fields in product structure:`);
+    potentialParentFields.forEach(field => {
+      const exists = field in sampleProduct;
+      const value = exists ? sampleProduct[field] : 'N/A';
+      console.log(`   - ${field}: ${exists ? `✅ EXISTS (${value})` : '❌ Not found'}`);
+    });
+    
+    console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+    // ============ END SCHEMA LOGGING ============
+    
     // Prepare bulk upsert data
     const cacheRecords = allProducts.map((product: any) => {
       // Extract product types for filtering
