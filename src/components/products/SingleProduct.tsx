@@ -22,14 +22,6 @@ export const SingleProduct = ({ product, session }: SingleProduct) => {
     productPlainObject.variants[0]
   );
 
-  console.log('📦 SingleProduct rendering:', {
-    productName: productPlainObject.name,
-    variantsCount: productPlainObject.variants?.length || 0,
-    selectedVariantName: selectedVariant?.name || selectedVariant?.color,
-    selectedVariantImages: selectedVariant?.images?.length || 0,
-    selectedVariantImagesData: selectedVariant?.images,
-  });
-
   if (!product) {
     return <div className="text-text-primary">Product not found</div>;
   }

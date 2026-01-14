@@ -359,61 +359,28 @@ export const getProduct = async (id: string) => {
         
         // Merge variant images into the transformed product
         if (variantProducts.length > 0 && transformedProduct.variants) {
-          console.log(`🔍 Attempting to match ${transformedProduct.variants.length} variants with ${variantProducts.length} variant products from database`);
-          
-          transformedProduct.variants = transformedProduct.variants.map((variant: any, idx: number) => {
-            console.log(`\n🔍 VARIANT #${idx + 1}: "${variant.name || variant.color}"`);
-            console.log(`   SKU: ${variant.sku}`);
-            console.log(`   Full Name: ${variant.fullName}`);
-            
+          transformedProduct.variants = transformedProduct.variants.map((variant: any) => {
             // Find matching variant product by SKU or name
             const variantProduct = variantProducts.find((vp) => {
               const vpData = JSON.parse(vp.rawData);
-              const matches = vpData.sku === variant.sku || vpData.name.includes(variant.name) || vpData.name.includes(variant.color);
-              
-              if (matches) {
-                console.log(`   ✅ MATCHED with database product: "${vpData.name}" (SKU: ${vpData.sku})`);
-              }
-              
-              return matches;
+              return vpData.sku === variant.sku || vpData.name.includes(variant.name) || vpData.name.includes(variant.color);
             });
-            
-            if (!variantProduct) {
-              console.log(`   ❌ NO MATCH found in database`);
-              console.log(`   Database variants available:`, variantProducts.map(vp => {
-                const vpData = JSON.parse(vp.rawData);
-                return `"${vpData.name}" (SKU: ${vpData.sku})`;
-              }));
-            }
             
             if (variantProduct) {
               const vpData = JSON.parse(variantProduct.rawData);
-              // Extract images from the variant product
               const variantImages: string[] = [];
               
-              // Extract images from additional_images array (these have the actual URLs)
+              // Extract images from additional_images array
               if (vpData.additional_images && Array.isArray(vpData.additional_images)) {
-                console.log(`   📸 Found ${vpData.additional_images.length} additional_images`);
                 vpData.additional_images.forEach((img: any) => {
                   const imgUrl = img['500_thumbnail'] || img['240_thumbnail'] || img['50_thumbnail'] || img.image_url;
-                  if (imgUrl) {
-                    console.log(`   📸 Adding image URL: ${imgUrl}`);
-                    variantImages.push(imgUrl);
-                  }
+                  if (imgUrl) variantImages.push(imgUrl);
                 });
               }
               
-              // Note: primary_image is just an ID, not a URL, so we use additional_images instead
-              if (vpData.primary_image && variantImages.length === 0) {
-                console.log(`   ⚠️ primary_image exists but no additional_images found (primary_image is just ID: ${vpData.primary_image})`);
-              }
-              
-              // Use variant images if we found any, otherwise keep existing
+              // Use variant images if we found any
               if (variantImages.length > 0) {
-                console.log(`   ✅ Replacing variant images with ${variantImages.length} images from database product`);
                 variant.images = variantImages;
-              } else {
-                console.log(`   ⚠️ No image URLs found in database variant product`);
               }
             }
             

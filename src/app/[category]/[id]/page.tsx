@@ -111,21 +111,10 @@ const AllProducts = async ({ id, category }: { id: string; category: string }) =
     notFound();
   }
   
-  console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log(`📦 PRODUCT DETAILS PAGE - Loading Product ID: ${id}`);
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log(`🏷️ Product Name: ${product.name}`);
-  console.log(`📁 Category: ${category}`);
-  console.log(`🔢 Number of variants: ${product.variants?.length || 0}`);
-  
   const randomProducts = await getRandomProducts(id);
   
   // Get product images (could be 'images' or 'image' depending on source)
   const productImagesArray = (product as any).images || (product as any).image || [];
-  console.log(`\n🖼️ PARENT PRODUCT IMAGES (${productImagesArray.length}):`);
-  productImagesArray.forEach((img: string, idx: number) => {
-    console.log(`   ${idx + 1}. ${img?.substring(0, 80)}${img?.length > 80 ? '...' : ''}`);
-  });
   
   // Transform product for SingleProduct component
   const productForComponent = {

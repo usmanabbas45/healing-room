@@ -15,23 +15,12 @@ interface ProductImages {
 }
 
 export const ProductImages = ({ name, selectedVariant }: ProductImages) => {
-  console.log('🖼️ ProductImages rendering:', {
-    name,
-    hasVariant: !!selectedVariant,
-    variantName: selectedVariant?.name || selectedVariant?.color,
-    hasImages: !!selectedVariant?.images,
-    imageCount: selectedVariant?.images?.length || 0,
-    images: selectedVariant?.images,
-  });
-
   if (!selectedVariant || !selectedVariant.images || selectedVariant.images.length === 0) {
-    console.log('⚠️ ProductImages: No images available, showing skeleton');
     return (
       <Skeleton className="w-full rounded-lg aspect-square min-w-[250px] lg:min-w-[400px]" />
     );
   }
 
-  console.log('✅ ProductImages: Rendering', selectedVariant.images.length, 'images');
   return (
     <>
       <div className="flex lg:hidden">
