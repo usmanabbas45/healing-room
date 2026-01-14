@@ -111,10 +111,21 @@ const AllProducts = async ({ id, category }: { id: string; category: string }) =
     notFound();
   }
   
+  console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.log(`📦 PRODUCT DETAILS PAGE - Loading Product ID: ${id}`);
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.log(`🏷️ Product Name: ${product.name}`);
+  console.log(`📁 Category: ${category}`);
+  console.log(`🔢 Number of variants: ${product.variants?.length || 0}`);
+  
   const randomProducts = await getRandomProducts(id);
   
   // Get product images (could be 'images' or 'image' depending on source)
   const productImagesArray = (product as any).images || (product as any).image || [];
+  console.log(`\n🖼️ PARENT PRODUCT IMAGES (${productImagesArray.length}):`);
+  productImagesArray.forEach((img: string, idx: number) => {
+    console.log(`   ${idx + 1}. ${img?.substring(0, 80)}${img?.length > 80 ? '...' : ''}`);
+  });
   
   // Transform product for SingleProduct component
   const productForComponent = {
@@ -127,19 +138,36 @@ const AllProducts = async ({ id, category }: { id: string; category: string }) =
     discountPercentage: (product as any).discountPercentage,
     discountAmount: (product as any).discountAmount,
     offerName: (product as any).offerName,
-    variants: product.variants.map((v: any) => ({
-      _id: v._id,
-      priceId: v.priceId,
-      color: v.color,
-      name: v.name,
-      fullName: v.fullName,
-      images: v.images,
-      price: v.price,
-      inventory: v.inventory,
-      sku: v.sku,
-      barcode: v.barcode,
-    })),
+    variants: product.variants.map((v: any, idx: number) => {
+      console.log(`\n🏷️ VARIANT #${idx + 1}: "${v.name || v.color}"`);
+      console.log(`   Full Name: ${v.fullName}`);
+      console.log(`   Price: $${v.price}`);
+      console.log(`   Inventory: ${v.inventory}`);
+      console.log(`   Images (${v.images?.length || 0}):`);
+      if (v.images && v.images.length > 0) {
+        v.images.forEach((img: string, imgIdx: number) => {
+          console.log(`      ${imgIdx + 1}. ${img?.substring(0, 80)}${img?.length > 80 ? '...' : ''}`);
+        });
+      } else {
+        console.log(`      (No variant-specific images - will use parent images)`);
+      }
+      
+      return {
+        _id: v._id,
+        priceId: v.priceId,
+        color: v.color,
+        name: v.name,
+        fullName: v.fullName,
+        images: v.images,
+        price: v.price,
+        inventory: v.inventory,
+        sku: v.sku,
+        barcode: v.barcode,
+      };
+    }),
   };
+  
+  console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
   
   const productJSON = JSON.stringify(productForComponent);
   
