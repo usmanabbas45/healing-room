@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/libs/auth";
-import { redirect, notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 import prisma from "@/libs/prisma";
 import UserManagement from "./UserManagement";
 
@@ -46,13 +46,13 @@ export default async function UsersPage() {
     redirect("/login");
   }
 
-  // Check if user is staff - show 404 if not
+  // Check if user is staff
   const user = await prisma.user.findUnique({
     where: { email: session.user.email },
   });
 
   if (!user || user.role !== "staff") {
-    notFound();
+    redirect("/");
   }
 
   const users = await getUsers();

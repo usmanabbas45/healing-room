@@ -1,6 +1,6 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/libs/auth";
-import { redirect, notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 import prisma from "@/libs/prisma";
 import Link from "next/link";
 
@@ -9,13 +9,8 @@ export const dynamic = "force-dynamic";
 export default async function HikeupLogsPage() {
   const session = await getServerSession(authOptions);
 
-  if (!session?.user) {
+  if (!session || session.user.role !== "staff") {
     redirect("/login");
-  }
-
-  // Check if user is staff - show 404 if not
-  if (session.user.role !== "staff") {
-    notFound();
   }
 
   // Fetch logs from database (most recent first)
