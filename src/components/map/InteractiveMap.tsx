@@ -8,7 +8,7 @@ export default function InteractiveMap() {
   return (
     <div className="relative h-[350px] rounded-2xl overflow-hidden">
       <iframe
-        src="https://www.openstreetmap.org/export/embed.html?bbox=-80.1150%2C42.9550%2C-80.0950%2C42.9700&layer=mapnik&marker=42.9625%2C-80.1050"
+        src="https://www.openstreetmap.org/export/embed.html?bbox=-80.1450%2C42.9225%2C-80.0650%2C43.0025&layer=mapnik&marker=42.9625%2C-80.1050"
         width="100%"
         height="100%"
         style={{ border: 0, pointerEvents: isInteractive ? "auto" : "none" }}
