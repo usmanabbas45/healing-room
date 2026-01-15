@@ -1,63 +1,55 @@
-import { withAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/libs/auth";
 
-export default withAuth(
-  function middleware(req) {
-    // Additional check for admin routes - require staff role
-    if (req.nextUrl.pathname.startsWith("/admin")) {
-      const token = req.nextauth.token;
-      
-      console.log("🔒 [MIDDLEWARE] Admin route access attempt:", {
-        path: req.nextUrl.pathname,
-        hasToken: !!token,
-        tokenRole: token?.role,
-        tokenEmail: token?.email,
-        fullToken: token,
-      });
-      
-      if (!token || token.role !== "staff") {
-        console.log("❌ [MIDDLEWARE] Access denied - redirecting to 404", {
-          hasToken: !!token,
-          role: token?.role,
-          expected: "staff",
-        });
-        // Redirect to home instead of showing 404 or login
-        // This prevents revealing that an admin panel exists
-        return NextResponse.rewrite(new URL("/404", req.url));
-      }
-      
-      console.log("✅ [MIDDLEWARE] Access granted to admin panel");
-    }
-    
+export async function middleware(req: NextRequest) {
+  const path = req.nextUrl.pathname;
+  
+  // Protected routes that require authentication
+  const isProtectedRoute = 
+    path.startsWith("/admin") ||
+    path.startsWith("/account") ||
+    path === "/create" ||
+    path === "/result";
+  
+  if (!isProtectedRoute) {
     return NextResponse.next();
-  },
-  {
-    callbacks: {
-      // Allow access if authenticated for non-admin routes
-      // For admin routes, the middleware function above will check role
-      authorized: ({ token, req }) => {
-        console.log("🔐 [MIDDLEWARE-AUTHORIZED] Checking authorization:", {
-          path: req.nextUrl.pathname,
-          hasToken: !!token,
-          tokenRole: token?.role,
-          tokenEmail: token?.email,
-        });
-        
-        // Admin routes require authentication (role check happens in middleware function)
-        if (req.nextUrl.pathname.startsWith("/admin")) {
-          const authorized = !!token;
-          console.log("🔐 [MIDDLEWARE-AUTHORIZED] Admin route check:", {
-            authorized,
-            willProceedToRoleCheck: authorized,
-          });
-          return authorized;
-        }
-        // Other protected routes just need authentication
-        return !!token;
-      },
-    },
   }
-);
+  
+  // Get session directly - this works in middleware in Next.js 14+
+  const session = await getServerSession(authOptions);
+  
+  console.log("🔐 [MIDDLEWARE] Route access attempt:", {
+    path,
+    hasSession: !!session,
+    userRole: session?.user?.role,
+    userEmail: session?.user?.email,
+  });
+  
+  // If no session, redirect to login
+  if (!session) {
+    console.log("❌ [MIDDLEWARE] No session - redirecting to login");
+    const loginUrl = new URL("/login", req.url);
+    loginUrl.searchParams.set("callbackUrl", path);
+    return NextResponse.redirect(loginUrl);
+  }
+  
+  // Admin routes require staff role
+  if (path.startsWith("/admin")) {
+    if (session.user.role !== "staff") {
+      console.log("❌ [MIDDLEWARE] Not staff - access denied", {
+        role: session.user.role,
+        expected: "staff",
+      });
+      // Redirect to home to prevent revealing admin panel exists
+      return NextResponse.redirect(new URL("/", req.url));
+    }
+    console.log("✅ [MIDDLEWARE] Staff access granted to admin");
+  }
+  
+  return NextResponse.next();
+}
 
 export const config = { 
   matcher: [
