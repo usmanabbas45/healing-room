@@ -24,6 +24,7 @@ export default function AddToCart({
   const [selectedSize, setSelectedSize] = useState<string>(() => 
     product.sizes?.length === 1 ? product.sizes[0] : ""
   );
+  const [quantity, setQuantity] = useState<number>(1);
   const [isPending, startTransition] = useTransition();
   
   // Auto-select first variant if only one option
@@ -67,16 +68,18 @@ export default function AddToCart({
         (product as any).originalPrice,
         (product as any).discountPercentage,
         (product as any).discountAmount,
-        (product as any).offerName
+        (product as any).offerName,
+        quantity
       );
       
       if (result.success) {
-        toast.success("Added to cart!");
+        toast.success(`Added ${quantity} ${quantity === 1 ? 'item' : 'items'} to cart!`);
+        setQuantity(1); // Reset quantity after adding
       } else {
         toast.error(result.error || "Failed to add to cart.");
       }
     });
-  }, [session, selectedVariant, selectedSize, product, startTransition]);
+  }, [session, selectedVariant, selectedSize, product, quantity, startTransition]);
 
   // Check if we have multiple variants with different options
   const hasMultipleVariants = product.variants.length > 1;
@@ -124,6 +127,49 @@ export default function AddToCart({
             )}
           </div>
         )}
+        
+        {/* Quantity Selector */}
+        {selectedVariant && (selectedVariant.inventory ?? 1) > 0 && (
+          <div className="flex items-center gap-3 pt-3">
+            <label className="text-sm font-medium text-text-primary">Quantity:</label>
+            <div className="flex items-center border border-border-primary rounded-md">
+              <button
+                type="button"
+                onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                disabled={quantity <= 1}
+                className="px-3 py-2 text-text-primary hover:bg-bg-alt disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                aria-label="Decrease quantity"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                </svg>
+              </button>
+              <input
+                type="number"
+                min="1"
+                max={selectedVariant.inventory || 99}
+                value={quantity}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value) || 1;
+                  const maxQty = selectedVariant.inventory || 99;
+                  setQuantity(Math.min(Math.max(1, val), maxQty));
+                }}
+                className="w-16 text-center py-2 border-x border-border-primary text-sm font-medium text-text-primary focus:outline-none"
+              />
+              <button
+                type="button"
+                onClick={() => setQuantity(Math.min((selectedVariant.inventory || 99), quantity + 1))}
+                disabled={quantity >= (selectedVariant.inventory || 99)}
+                className="px-3 py-2 text-text-primary hover:bg-bg-alt disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                aria-label="Increase quantity"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="border-t border-solid border-border-primary">
@@ -139,7 +185,7 @@ export default function AddToCart({
         >
           {isPending ? <Loader height={20} width={20} /> : 
             (selectedVariant?.inventory ?? 1) <= 0 ? "Out of Stock" : 
-            `Add To Cart - $${(selectedVariant?.price || product.price).toFixed(2)}`}
+            `Add ${quantity} to Cart - $${((selectedVariant?.price || product.price) * quantity).toFixed(2)}`}
         </button>
       </div>
     </>

@@ -195,6 +195,7 @@ export async function addItem(
   discountPercentage?: number,
   discountAmount?: number,
   offerName?: string,
+  quantity: number = 1,
 ): Promise<AddItemResult> {
   const session: Session | null = await getServerSession(authOptions);
 
@@ -231,7 +232,7 @@ export async function addItem(
           );
           
           const currentCartQty = existingItem?.quantity || 0;
-          const requestedQty = currentCartQty + 1;
+          const requestedQty = currentCartQty + quantity;
           
           if (variant.inventory <= 0) {
             return { success: false, error: "This item is out of stock." };
@@ -266,7 +267,7 @@ export async function addItem(
             productId,
             variantId: variantId || null,
             size,
-            quantity: 1,
+            quantity: quantity,
             price,
             productName: productName || '',
             category: category || '',
@@ -293,7 +294,7 @@ export async function addItem(
       await prisma.cartItem.update({
         where: { id: existingItem.id },
         data: { 
-          quantity: existingItem.quantity + 1,
+          quantity: existingItem.quantity + quantity,
           // Update price and discount info in case they changed
           price,
           originalPrice: originalPrice || null,
@@ -309,7 +310,7 @@ export async function addItem(
           productId,
           variantId: variantId || null,
           size,
-          quantity: 1,
+          quantity: quantity,
           price,
           productName: productName || '',
           category: category || '',
