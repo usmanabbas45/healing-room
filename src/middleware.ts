@@ -26,12 +26,22 @@ export async function middleware(req: NextRequest) {
     const host = req.headers.get('host');
     const checkUrl = `${protocol}://${host}/api/auth/check-role`;
     
-    console.log("🔐 [MIDDLEWARE] Checking auth via API:", checkUrl);
+    // Get all cookies from the request
+    const cookieHeader = req.headers.get('cookie') || '';
+    
+    console.log("🔐 [MIDDLEWARE] Checking auth via API:", {
+      url: checkUrl,
+      hasCookies: !!cookieHeader,
+      cookiePreview: cookieHeader.substring(0, 100),
+    });
     
     const response = await fetch(checkUrl, {
+      method: 'GET',
       headers: {
-        cookie: req.headers.get('cookie') || '',
+        'Cookie': cookieHeader,
+        'Content-Type': 'application/json',
       },
+      credentials: 'include',
     });
     
     const data = await response.json();
@@ -40,6 +50,7 @@ export async function middleware(req: NextRequest) {
       path,
       authenticated: data.authenticated,
       role: data.role,
+      responseStatus: response.status,
     });
     
     // If not authenticated, redirect to login
