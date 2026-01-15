@@ -2,7 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
@@ -12,7 +12,11 @@ const Signin = () => {
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { data: session } = useSession();
+  
+  // Get the callback URL from query params
+  const callbackUrl = searchParams.get("callbackUrl") || "/";
 
   useEffect(() => {
     if (session?.user) {
@@ -35,10 +39,11 @@ const Signin = () => {
       }
 
       if (!res?.error) {
-        return router.push("/");
+        // Redirect to callbackUrl after successful login
+        return router.push(callbackUrl);
       }
     },
-    []
+    [callbackUrl, router]
   );
 
   return (
