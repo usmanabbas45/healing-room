@@ -69,7 +69,7 @@ export default function InteractiveMap() {
           
           {/* Get Directions */}
           <a
-            href="https://www.google.com/maps/search/?api=1&query=Healing+Room+Six+Nations"
+            href="https://www.google.com/maps/place/Healing+Room/@43.0279134,-80.23136,17z/data=!3m1!4b1!4m6!3m5!1s0x882c5d9d68a8dd8d:0xb21026991cd26f5!8m2!3d43.0279134!4d-80.23136!16s%2Fg%2F11yg0d8yfx"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-2 flex-1 justify-center sm:justify-end text-primary hover:text-primary-dark text-sm font-medium transition-colors"
