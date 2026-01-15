@@ -7,6 +7,16 @@ export default withAuth(
     if (req.nextUrl.pathname.startsWith("/admin")) {
       const token = req.nextauth.token;
       
+      // Debug log for production troubleshooting
+      if (process.env.NODE_ENV === "production") {
+        console.log("Admin access attempt:", {
+          path: req.nextUrl.pathname,
+          hasToken: !!token,
+          role: token?.role,
+          email: token?.email,
+        });
+      }
+      
       if (!token || token.role !== "staff") {
         // Redirect to home instead of showing 404 or login
         // This prevents revealing that an admin panel exists
@@ -21,6 +31,15 @@ export default withAuth(
       // Allow access if authenticated for non-admin routes
       // For admin routes, the middleware function above will check role
       authorized: ({ token, req }) => {
+        // Debug log for production troubleshooting
+        if (req.nextUrl.pathname.startsWith("/admin") && process.env.NODE_ENV === "production") {
+          console.log("Middleware authorized callback:", {
+            path: req.nextUrl.pathname,
+            hasToken: !!token,
+            role: token?.role,
+          });
+        }
+        
         // Admin routes require authentication (role check happens in middleware function)
         if (req.nextUrl.pathname.startsWith("/admin")) {
           return !!token;

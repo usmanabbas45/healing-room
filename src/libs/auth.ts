@@ -91,6 +91,22 @@ export const authOptions: NextAuthOptions = {
           return null as any;
         }
         
+        // Fetch fresh user data to ensure role is up-to-date
+        if (token.id) {
+          try {
+            const user = await prisma.user.findUnique({
+              where: { id: token.id as string },
+              select: { role: true },
+            });
+            
+            if (user) {
+              token.role = user.role;
+            }
+          } catch (error) {
+            console.error("Failed to fetch user role:", error);
+          }
+        }
+        
       return {
         ...session,
         user: {
