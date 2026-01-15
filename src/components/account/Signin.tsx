@@ -24,17 +24,23 @@ const Signin = () => {
     async (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
       const formData = new FormData(event.currentTarget);
+      console.log("🔵 [SIGNIN] Attempting login for:", formData.get("email"));
+      
       const res = await signIn("credentials", {
         email: formData.get("email"),
         password: formData.get("password"),
         redirect: false,
       });
 
+      console.log("🔵 [SIGNIN] Sign in response:", res);
+
       if (res?.error) {
+        console.log("❌ [SIGNIN] Sign in error:", res.error);
         setError(res.error as string);
       }
 
       if (!res?.error) {
+        console.log("✅ [SIGNIN] Sign in successful, redirecting to home");
         return router.push("/");
       }
     },

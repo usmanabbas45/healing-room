@@ -28,6 +28,13 @@ export const authOptions: NextAuthOptions = {
 
         if (!passwordMatch) throw new Error("Invalid Password");
         
+        console.log("🔐 [AUTH] User authorized:", {
+          id: userFound.id,
+          email: userFound.email,
+          name: userFound.name,
+          role: userFound.role,
+        });
+        
         return {
           id: userFound.id,
           email: userFound.email,
@@ -73,12 +80,23 @@ export const authOptions: NextAuthOptions = {
       // Handle new login
       if (user) {
         const u = user as unknown as any;
+        console.log("🔑 [JWT] Creating token from user:", {
+          id: u.id,
+          email: u.email,
+          role: u.role,
+        });
         return {
           ...token,
           id: u.id,
           role: u.role,
         };
       }
+      
+      console.log("🔑 [JWT] Returning existing token:", {
+        id: token.id,
+        email: token.email,
+        role: token.role,
+      });
       
       return token;
     },
@@ -87,11 +105,17 @@ export const authOptions: NextAuthOptions = {
       try {
         // If token is missing critical data, return null to force logout
         if (!token?.id || !token?.email) {
-          console.log("Invalid token detected, session will be cleared");
+          console.log("❌ [SESSION] Invalid token detected, session will be cleared");
           return null as any;
         }
         
-      return {
+        console.log("✅ [SESSION] Creating session from token:", {
+          tokenId: token.id,
+          tokenEmail: token.email,
+          tokenRole: token.role,
+        });
+        
+      const finalSession = {
         ...session,
         user: {
           ...session.user,
@@ -100,9 +124,18 @@ export const authOptions: NextAuthOptions = {
           role: token.role as string,
         },
       };
+      
+      console.log("✅ [SESSION] Final session object:", {
+        userId: finalSession.user._id,
+        userEmail: finalSession.user.email,
+        userName: finalSession.user.name,
+        userRole: finalSession.user.role,
+      });
+      
+      return finalSession;
       } catch (error) {
         // Silently fail and clear session
-        console.log("Session validation error, clearing session");
+        console.log("❌ [SESSION] Session validation error, clearing session");
         return null as any;
       }
     },

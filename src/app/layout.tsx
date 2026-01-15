@@ -200,6 +200,15 @@ export default async function RootLayout({
   children: React.ReactNode;
 }) {
   const session: Session | null = await getServerSession(authOptions);
+  
+  console.log("🟡 [LAYOUT] Session from getServerSession:", {
+    hasSession: !!session,
+    hasUser: !!session?.user,
+    userEmail: session?.user?.email,
+    userRole: session?.user?.role,
+    fullSession: session,
+  });
+  
   const totalItemsCart = await getTotalItems(session);
   const totalItemsWishlists = await getTotalWishlist();
 

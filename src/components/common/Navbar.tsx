@@ -25,6 +25,14 @@ interface Navbar {
 
 export const Navbar = ({ session, totalItemsCart, totalWishlists }: Navbar) => {
   const [isHeaderOpen, setIsHeaderOpen] = useState(false);
+  
+  console.log("🟢 [NAVBAR] Received session prop:", {
+    hasSession: !!session,
+    hasUser: !!session?.user,
+    userEmail: session?.user?.email,
+    userRole: session?.user?.role,
+    fullSession: session,
+  });
 
   const toggleHeader = () => {
     document.body.style.overflow = "auto";

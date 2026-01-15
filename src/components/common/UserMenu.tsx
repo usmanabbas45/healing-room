@@ -21,6 +21,15 @@ const EditProfile = dynamic(() => import("./EditProfile"), {
 });
 
 export function UserMenu({ fastSession }: { fastSession: Session }) {
+  console.log("🟣 [USERMENU] Received fastSession prop:", {
+    hasSession: !!fastSession,
+    hasUser: !!fastSession?.user,
+    userEmail: fastSession?.user?.email,
+    userRole: fastSession?.user?.role,
+    isStaff: fastSession?.user?.role === "staff",
+    fullUser: fastSession?.user,
+  });
+  
   return (
     <Dialog>
       <DropdownMenu>
