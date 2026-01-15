@@ -5,6 +5,9 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  // For production, use connection pooling URL if available
+  // Railway: Use the "Postgres Connection URL" (includes pgbouncer)
+  // Example: postgresql://user:pass@host:port/db?pgbouncer=true
 }
 
 model User {

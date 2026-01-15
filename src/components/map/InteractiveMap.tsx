@@ -69,7 +69,7 @@ export default function InteractiveMap() {
           
           {/* Get Directions */}
           <a
-            href="https://www.google.com/maps/search/?api=1&query=7147+Indian+Line+Rd+Norfolk+County+ON+N0E+1Z0"
+            href="https://www.google.com/maps/search/?api=1&query=Healing+Room+Six+Nations"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-2 flex-1 justify-center sm:justify-end text-primary hover:text-primary-dark text-sm font-medium transition-colors"
