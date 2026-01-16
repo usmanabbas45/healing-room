@@ -230,8 +230,8 @@ export default async function RootLayout({
       </head>
       <Providers>
         <body className={GeistSans.className}>
-          {/* Coming Soon Overlay - Shows when enabled until password is entered */}
-          {process.env.NEXT_PUBLIC_ENABLE_COMING_SOON === 'true' && <ComingSoonOverlay />}
+          {/* Coming Soon Overlay - Mandatory in production, password: "forbidden" */}
+          <ComingSoonOverlay />
           
           <AgeVerification />
           <Navbar

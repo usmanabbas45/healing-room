@@ -10,6 +10,13 @@ export default function ComingSoonOverlay() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // Don't show in development
+    if (process.env.NODE_ENV === 'development') {
+      setIsUnlocked(true);
+      setIsLoading(false);
+      return;
+    }
+
     // Check if user has already unlocked in this session
     const unlocked = sessionStorage.getItem("site_unlocked");
     if (unlocked === "true") {
