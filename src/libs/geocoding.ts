@@ -1,10 +1,7 @@
-// Geocoding utilities using OpenStreetMap Nominatim API (FREE)
-// No API key required!
+// Geocoding utilities using Google Maps Geocoding API
 
-const NOMINATIM_BASE_URL = "https://nominatim.openstreetmap.org";
-
-// User agent required by Nominatim terms of service
-const USER_AGENT = "HealingRoomSixNations/1.0";
+const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
+const GEOCODING_BASE_URL = "https://maps.googleapis.com/maps/api/geocode/json";
 
 export interface GeocodingResult {
   lat: number;
@@ -22,7 +19,7 @@ export interface GeocodingError {
 }
 
 /**
- * Geocode a Canadian address using Nominatim (OpenStreetMap)
+ * Geocode a Canadian address using Google Maps Geocoding API
  * @param address - Address object with components
  * @returns Coordinates and formatted address
  */
@@ -46,22 +43,15 @@ export async function geocodeAddress(address: {
     
     const searchQuery = addressParts.join(", ");
     
-    // Nominatim API request
+    // Google Maps Geocoding API request
     const params = new URLSearchParams({
-      q: searchQuery,
-      format: "json",
-      addressdetails: "1",
-      limit: "1",
-      countrycodes: "ca", // Canada only
+      address: searchQuery,
+      key: GOOGLE_MAPS_API_KEY || "",
+      region: "ca", // Canada
     });
     
     const response = await fetch(
-      `${NOMINATIM_BASE_URL}/search?${params.toString()}`,
-      {
-        headers: {
-          "User-Agent": USER_AGENT,
-        },
-      }
+      `${GEOCODING_BASE_URL}?${params.toString()}`
     );
     
     if (!response.ok) {
@@ -70,23 +60,41 @@ export async function geocodeAddress(address: {
     
     const data = await response.json();
     
-    if (!data || data.length === 0) {
+    if (data.status !== "OK" || !data.results || data.results.length === 0) {
       return {
         error: "address_not_found",
         message: "Unable to locate this address. Please verify the address is correct.",
       };
     }
     
-    const result = data[0];
+    const result = data.results[0];
+    const { geometry, address_components, formatted_address } = result;
+    
+    // Extract address components
+    let city, province, postalCode, country;
+    
+    for (const component of address_components) {
+      const types = component.types;
+      
+      if (types.includes("locality")) {
+        city = component.long_name;
+      } else if (types.includes("administrative_area_level_1")) {
+        province = component.long_name;
+      } else if (types.includes("postal_code")) {
+        postalCode = component.long_name;
+      } else if (types.includes("country")) {
+        country = component.long_name;
+      }
+    }
     
     return {
-      lat: parseFloat(result.lat),
-      lng: parseFloat(result.lon),
-      displayName: result.display_name,
-      city: result.address?.city || result.address?.town || result.address?.village,
-      province: result.address?.state,
-      postalCode: result.address?.postcode,
-      country: result.address?.country,
+      lat: geometry.location.lat,
+      lng: geometry.location.lng,
+      displayName: formatted_address,
+      city,
+      province,
+      postalCode,
+      country,
     };
   } catch (error) {
     console.error("Geocoding error:", error);
@@ -98,7 +106,7 @@ export async function geocodeAddress(address: {
 }
 
 /**
- * Reverse geocode coordinates to get address
+ * Reverse geocode coordinates to get address using Google Maps
  * @param lat - Latitude
  * @param lng - Longitude
  * @returns Address information
@@ -109,35 +117,55 @@ export async function reverseGeocode(
 ): Promise<GeocodingResult | GeocodingError> {
   try {
     const params = new URLSearchParams({
-      lat: lat.toString(),
-      lon: lng.toString(),
-      format: "json",
-      addressdetails: "1",
+      latlng: `${lat},${lng}`,
+      key: GOOGLE_MAPS_API_KEY || "",
     });
     
     const response = await fetch(
-      `${NOMINATIM_BASE_URL}/reverse?${params.toString()}`,
-      {
-        headers: {
-          "User-Agent": USER_AGENT,
-        },
-      }
+      `${GEOCODING_BASE_URL}?${params.toString()}`
     );
     
     if (!response.ok) {
       throw new Error(`Reverse geocoding API error: ${response.status}`);
     }
     
-    const result = await response.json();
+    const data = await response.json();
+    
+    if (data.status !== "OK" || !data.results || data.results.length === 0) {
+      return {
+        error: "reverse_geocoding_failed",
+        message: "Unable to determine location.",
+      };
+    }
+    
+    const result = data.results[0];
+    const { address_components, formatted_address } = result;
+    
+    // Extract address components
+    let city, province, postalCode, country;
+    
+    for (const component of address_components) {
+      const types = component.types;
+      
+      if (types.includes("locality")) {
+        city = component.long_name;
+      } else if (types.includes("administrative_area_level_1")) {
+        province = component.long_name;
+      } else if (types.includes("postal_code")) {
+        postalCode = component.long_name;
+      } else if (types.includes("country")) {
+        country = component.long_name;
+      }
+    }
     
     return {
-      lat: parseFloat(result.lat),
-      lng: parseFloat(result.lon),
-      displayName: result.display_name,
-      city: result.address?.city || result.address?.town,
-      province: result.address?.state,
-      postalCode: result.address?.postcode,
-      country: result.address?.country,
+      lat,
+      lng,
+      displayName: formatted_address,
+      city,
+      province,
+      postalCode,
+      country,
     };
   } catch (error) {
     console.error("Reverse geocoding error:", error);

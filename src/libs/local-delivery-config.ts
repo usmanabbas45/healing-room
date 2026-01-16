@@ -1,5 +1,5 @@
 // Local Delivery Configuration for Healing Room
-// Uses OpenStreetMap/Nominatim for free geocoding
+// Uses Google Maps API for geocoding and distance calculations
 
 export const STORE_LOCATION = {
   address: "7147 Indian Line Rd, Norfolk County, ON N0E 1Z0",
@@ -125,7 +125,7 @@ export function getNextDeliveryDate(): Date {
 }
 
 /**
- * Calculate DRIVING distance between two coordinates using OSRM (OpenStreetMap routing)
+ * Calculate DRIVING distance between two coordinates using Google Maps Distance Matrix API
  * This returns actual road distance, not straight-line distance
  * @param lat1 - Latitude of point 1
  * @param lng1 - Longitude of point 1
@@ -140,37 +140,52 @@ export async function calculateDistance(
   lng2: number = STORE_LOCATION.lng
 ): Promise<number> {
   try {
-    // OSRM public API - free, no key needed, unlimited usage
-    // Format: lng,lat (OSRM uses lng,lat order, not lat,lng!)
-    const url = `https://router.project-osrm.org/route/v1/driving/${lng2},${lat2};${lng1},${lat1}?overview=false`;
+    const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
     
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'HealingRoomSixNations/1.0',
-      },
+    if (!GOOGLE_MAPS_API_KEY) {
+      console.error('❌ Google Maps API key not configured');
+      return calculateStraightLineDistance(lat1, lng1, lat2, lng2) * 1.5;
+    }
+    
+    // Google Maps Distance Matrix API
+    const params = new URLSearchParams({
+      origins: `${lat2},${lng2}`, // Store location
+      destinations: `${lat1},${lng1}`, // Customer address
+      key: GOOGLE_MAPS_API_KEY,
+      units: "metric",
     });
     
+    const url = `https://maps.googleapis.com/maps/api/distancematrix/json?${params.toString()}`;
+    
+    const response = await fetch(url);
+    
     if (!response.ok) {
-      console.error('❌ OSRM routing error:', response.status);
-      // Fallback to straight-line distance with road factor
+      console.error('❌ Google Distance Matrix API error:', response.status);
       return calculateStraightLineDistance(lat1, lng1, lat2, lng2) * 1.5;
     }
     
     const data = await response.json();
     
-    if (data.code !== 'Ok' || !data.routes || data.routes.length === 0) {
-      console.error('❌ OSRM no route found');
-      // Fallback to straight-line distance with road factor
+    if (
+      data.status !== 'OK' || 
+      !data.rows || 
+      data.rows.length === 0 || 
+      !data.rows[0].elements ||
+      data.rows[0].elements.length === 0 ||
+      data.rows[0].elements[0].status !== 'OK'
+    ) {
+      console.error('❌ Google Distance Matrix: no route found', data.status);
       return calculateStraightLineDistance(lat1, lng1, lat2, lng2) * 1.5;
     }
     
-    // OSRM returns distance in meters, convert to km
-    const distanceKm = data.routes[0].distance / 1000;
-    console.log(`🚗 OSRM driving distance: ${distanceKm.toFixed(1)} km`);
+    // Distance is returned in meters, convert to km
+    const distanceMeters = data.rows[0].elements[0].distance.value;
+    const distanceKm = distanceMeters / 1000;
+    
+    console.log(`🚗 Google Maps driving distance: ${distanceKm.toFixed(1)} km`);
     return Math.round(distanceKm * 10) / 10; // Round to 1 decimal
   } catch (error) {
     console.error('❌ Error calculating driving distance:', error);
-    // Fallback to straight-line distance with road factor
     return calculateStraightLineDistance(lat1, lng1, lat2, lng2) * 1.5;
   }
 }

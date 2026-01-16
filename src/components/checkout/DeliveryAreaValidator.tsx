@@ -107,7 +107,7 @@ export default function DeliveryAreaValidator({
           <Loader height={20} width={20} />
           <div>
             <p className="text-sm font-medium text-blue-900">Calculating delivery distance...</p>
-            <p className="text-xs text-blue-700 mt-1">Using OpenStreetMap geocoding</p>
+            <p className="text-xs text-blue-700 mt-1">Using Google Maps for accurate distance</p>
           </div>
         </div>
       </div>
@@ -183,7 +183,7 @@ export default function DeliveryAreaValidator({
         {showMap && coords && (
           <div className="relative h-[250px] rounded-lg overflow-hidden border border-border-primary">
             <iframe
-              src={`https://www.openstreetmap.org/export/embed.html?bbox=${coords.lng - 0.05}%2C${coords.lat - 0.05}%2C${coords.lng + 0.05}%2C${coords.lat + 0.05}&layer=mapnik&marker=${coords.lat}%2C${coords.lng}`}
+              src={`https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&q=${coords.lat},${coords.lng}&zoom=14`}
               width="100%"
               height="100%"
               style={{ border: 0 }}

@@ -114,7 +114,7 @@ export function getNextDeliveryDate(): Date {
   return result;
 }
 
-// Calculate DRIVING distance between two coordinates using OSRM
+// Calculate DRIVING distance between two coordinates using Google Maps Distance Matrix API
 // Re-export from local-delivery-config for consistency
 export { calculateDistance } from './local-delivery-config';
 

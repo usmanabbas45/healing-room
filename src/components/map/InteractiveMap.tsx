@@ -2,13 +2,20 @@
 
 import { useState } from "react";
 
+const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+const STORE_LAT = 43.02805;
+const STORE_LNG = -80.23135;
+
 export default function InteractiveMap() {
   const [isInteractive, setIsInteractive] = useState(false);
+
+  // Google Maps Embed URL
+  const mapUrl = `https://www.google.com/maps/embed/v1/place?key=${GOOGLE_MAPS_API_KEY}&q=Healing+Room+Six+Nations,7147+Indian+Line+Rd,Norfolk+County,ON&center=${STORE_LAT},${STORE_LNG}&zoom=13`;
 
   return (
     <div className="relative h-[350px] rounded-2xl overflow-hidden">
       <iframe
-        src="https://www.openstreetmap.org/export/embed.html?bbox=-80.1450%2C42.9225%2C-80.0650%2C43.0025&layer=mapnik&marker=42.9625%2C-80.1050"
+        src={mapUrl}
         width="100%"
         height="100%"
         style={{ border: 0, pointerEvents: isInteractive ? "auto" : "none" }}

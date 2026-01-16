@@ -4,8 +4,8 @@ import { calculateDistance, STORE_LOCATION } from "@/libs/delivery-config";
 import { calculateLocalDeliveryFee, isWithinDeliveryArea } from "@/libs/local-delivery-config";
 
 /**
- * Server-side geocoding API to avoid CORS and rate limit issues
- * Nominatim requires server-side requests with proper User-Agent
+ * Server-side geocoding API using Google Maps
+ * Handles address geocoding and distance calculations
  */
 export async function POST(request: NextRequest) {
   try {
