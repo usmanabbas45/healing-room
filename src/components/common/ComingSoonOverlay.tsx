@@ -72,7 +72,7 @@ export default function ComingSoonOverlay() {
             Coming Soon
           </h1>
           <p className="text-text-light text-sm md:text-base">
-            We're putting the finishing touches on our new website. 
+            We&apos;re putting the finishing touches on our new website. 
             Enter the access code to preview.
           </p>
         </div>
