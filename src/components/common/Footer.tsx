@@ -132,6 +132,24 @@ export const Footer = () => {
         </div>
       </nav>
 
+      {/* Bottom Attribution */}
+      <div className="mt-12 pt-6 border-t border-border-primary text-center">
+        <p className="text-xs text-text-muted">
+          © {new Date().getFullYear()} Healing Room Six Nations. All rights reserved.
+        </p>
+        <p className="text-xs text-text-muted mt-2">
+          Powered by{" "}
+          <a
+            href="https://zerasoftwarestudio.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-text-light hover:text-primary transition-colors"
+          >
+            Zera Software Studio
+          </a>
+        </p>
+      </div>
+
     </footer>
   );
 };
