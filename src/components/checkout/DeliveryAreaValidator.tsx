@@ -155,9 +155,8 @@ export default function DeliveryAreaValidator({
                 return;
               }
               
-              // Calculate delivery fee
-              const fee = LOCAL_DELIVERY_CONFIG.baseFee + 
-                          (distanceKm * 2 * LOCAL_DELIVERY_CONFIG.perKilometerRate);
+              // Calculate delivery fee (round-trip)
+              const fee = distanceKm * 2 * LOCAL_DELIVERY_CONFIG.perKilometerRate;
               
               setDeliveryFee(fee);
               
