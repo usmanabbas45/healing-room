@@ -9,7 +9,7 @@ export const Footer = () => {
   const liStyles = "my-1.5";
 
   return (
-    <footer className="px-6 py-16 border-t border-solid pointer-events-auto bg-bg-alt border-border-primary">
+    <footer className="px-6 pt-16 pb-6 border-t border-solid pointer-events-auto bg-bg-alt border-border-primary">
       <nav className="flex flex-wrap justify-around gap-8 mx-auto max-w-screen-2xl">
         {/* Brand Section */}
         <div className="flex flex-col items-center justify-center w-full max-w-xs gap-4">
