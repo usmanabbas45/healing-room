@@ -1,10 +1,18 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import Script from "next/script";
 import { getEstimatedDeliveryTime } from "@/libs/geocoding";
 import { LOCAL_DELIVERY_CONFIG } from "@/libs/local-delivery-config";
 import { STORE_LOCATION } from "@/libs/delivery-config";
 import { Loader } from "@/components/common/Loader";
+
+// Declare Google Maps types
+declare global {
+  interface Window {
+    google: any;
+  }
+}
 
 interface DeliveryAreaValidatorProps {
   address: {
@@ -31,7 +39,18 @@ export default function DeliveryAreaValidator({
   const [error, setError] = useState<string | null>(null);
   const [showMap, setShowMap] = useState(false);
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [isGoogleLoaded, setIsGoogleLoaded] = useState(false);
+  const geocoderRef = useRef<any>(null);
+  const distanceServiceRef = useRef<any>(null);
   
+  // Initialize Google Maps services once loaded
+  useEffect(() => {
+    if (isGoogleLoaded && window.google?.maps) {
+      geocoderRef.current = new window.google.maps.Geocoder();
+      distanceServiceRef.current = new window.google.maps.DistanceMatrixService();
+    }
+  }, [isGoogleLoaded]);
+
   useEffect(() => {
     // Only validate when explicitly triggered (e.g., user clicks "Continue")
     if (triggerValidation && address.line1 && address.city && address.province && address.postalCode) {
@@ -49,60 +68,126 @@ export default function DeliveryAreaValidator({
   }, [address.line1, address.city, address.province, address.postalCode]);
   
   const validateDeliveryArea = async () => {
+    if (!geocoderRef.current || !distanceServiceRef.current) {
+      setError("Maps service not loaded yet. Please try again.");
+      onValidationError("Maps not loaded");
+      return;
+    }
+
     setIsValidating(true);
     setError(null);
     setDistance(null);
     setDeliveryFee(null);
     
     try {
-      // Call server-side geocoding API to avoid CORS and rate limiting issues
-      const response = await fetch('/api/geocode', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      // Build address string
+      const addressParts = [
+        address.line1,
+        address.line2,
+        address.city,
+        address.province,
+        address.postalCode,
+        "Canada",
+      ].filter(Boolean);
+      
+      const addressString = addressParts.join(", ");
+      
+      // Geocode address using Google Maps JavaScript API
+      geocoderRef.current.geocode(
+        {
+          address: addressString,
+          region: 'ca',
         },
-        body: JSON.stringify(address),
-      });
-      
-      const result = await response.json();
-      
-      if (!response.ok || !result.success) {
-        setError(result.error || "Unable to verify address");
-        onValidationError(result.error || "Geocoding failed");
-        return;
-      }
-      
-      const { coords, distance: dist, isValid, fee } = result;
-      
-      setDistance(dist);
-      setCoords(coords);
-      
-      // Check if within delivery radius
-      if (!isValid) {
-        setError(
-          `Address is ${dist.toFixed(1)} km away (maximum ${LOCAL_DELIVERY_CONFIG.maxDeliveryDistance} km). Please email us at ${STORE_LOCATION.email} for a custom delivery quote.`
-        );
-        onValidationError("Outside delivery area");
-        return;
-      }
-      
-      setDeliveryFee(fee);
-      
-      // Notify parent component
-      onDistanceCalculated(dist, fee, coords);
-      
+        async (results: any[], status: string) => {
+          if (status !== window.google.maps.GeocoderStatus.OK || !results || results.length === 0) {
+            setError("Unable to locate this address. Please verify the address is correct.");
+            onValidationError("Address not found");
+            setIsValidating(false);
+            return;
+          }
+          
+          const result = results[0];
+          const location = result.geometry.location;
+          const lat = location.lat();
+          const lng = location.lng();
+          
+          setCoords({ lat, lng });
+          
+          // Calculate driving distance using Distance Matrix API
+          distanceServiceRef.current.getDistanceMatrix(
+            {
+              origins: [{ lat, lng }],
+              destinations: [{ lat: STORE_LOCATION.lat, lng: STORE_LOCATION.lng }],
+              travelMode: window.google.maps.TravelMode.DRIVING,
+              unitSystem: window.google.maps.UnitSystem.METRIC,
+            },
+            (response: any, status: string) => {
+              if (status !== window.google.maps.DistanceMatrixStatus.OK) {
+                setError("Unable to calculate delivery distance. Please try again.");
+                onValidationError("Distance calculation failed");
+                setIsValidating(false);
+                return;
+              }
+              
+              const element = response.rows[0].elements[0];
+              
+              if (element.status !== 'OK') {
+                setError("Unable to calculate driving distance to this address.");
+                onValidationError("No route found");
+                setIsValidating(false);
+                return;
+              }
+              
+              // Distance is in meters, convert to kilometers
+              const distanceKm = element.distance.value / 1000;
+              
+              setDistance(distanceKm);
+              
+              // Check if within delivery radius
+              const isValid = distanceKm <= LOCAL_DELIVERY_CONFIG.maxDeliveryDistance;
+              
+              if (!isValid) {
+                setError(
+                  `Address is ${distanceKm.toFixed(1)} km away (maximum ${LOCAL_DELIVERY_CONFIG.maxDeliveryDistance} km). Please email us at ${STORE_LOCATION.email} for a custom delivery quote.`
+                );
+                onValidationError("Outside delivery area");
+                setIsValidating(false);
+                return;
+              }
+              
+              // Calculate delivery fee
+              const fee = LOCAL_DELIVERY_CONFIG.baseFee + 
+                          (distanceKm * 2 * LOCAL_DELIVERY_CONFIG.perKilometerRate);
+              
+              setDeliveryFee(fee);
+              
+              // Notify parent component
+              onDistanceCalculated(distanceKm, fee, { lat, lng });
+              
+              setIsValidating(false);
+            }
+          );
+        }
+      );
     } catch (err) {
       console.error("Validation error:", err);
       setError("Unable to validate address. Please verify your address or contact us.");
       onValidationError("Validation failed");
-    } finally {
       setIsValidating(false);
     }
   };
   
-  if (isValidating) {
-    return (
-      <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
+  return (
+    <>
+      {/* Load Google Maps JavaScript API */}
+      <Script
+        src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`}
+        onLoad={() => setIsGoogleLoaded(true)}
+        strategy="lazyOnload"
+      />
+
+      {isValidating && (
+        <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
         <div className="flex items-center gap-3">
           <Loader height={20} width={20} />
           <div>
@@ -111,12 +196,10 @@ export default function DeliveryAreaValidator({
           </div>
         </div>
       </div>
-    );
-  }
+      )}
   
-  if (error) {
-    return (
-      <div className="mt-4 bg-red-50 border-2 border-red-200 rounded-lg p-4">
+      {error && (
+        <div className="mt-4 bg-red-50 border-2 border-red-200 rounded-lg p-4">
         <div className="flex items-start gap-3">
           <svg className="w-5 h-5 text-red-600 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
             <path
@@ -131,12 +214,10 @@ export default function DeliveryAreaValidator({
           </div>
         </div>
       </div>
-    );
-  }
+      )}
   
-  if (distance !== null && deliveryFee !== null) {
-    return (
-      <div className="mt-4 space-y-3">
+      {distance !== null && deliveryFee !== null && (
+        <div className="mt-4 space-y-3">
         <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4">
           <div className="flex items-start gap-3">
             <svg className="w-5 h-5 text-green-600 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
@@ -192,10 +273,9 @@ export default function DeliveryAreaValidator({
             />
           </div>
         )}
-      </div>
-    );
-  }
-  
-  return null;
+        </div>
+      )}
+    </>
+  );
 }
 

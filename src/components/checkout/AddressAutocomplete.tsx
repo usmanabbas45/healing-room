@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useDebounce } from "@/hooks/useDebounce";
+import Script from "next/script";
 
 interface AddressSuggestion {
   displayName: string;
@@ -12,6 +13,7 @@ interface AddressSuggestion {
   postalCode: string;
   lat: number;
   lng: number;
+  placeId: string;
 }
 
 interface AddressAutocompleteProps {
@@ -27,6 +29,13 @@ interface AddressAutocompleteProps {
   className?: string;
 }
 
+// Declare Google Maps types
+declare global {
+  interface Window {
+    google: any;
+  }
+}
+
 export default function AddressAutocomplete({
   value,
   onChange,
@@ -38,12 +47,25 @@ export default function AddressAutocomplete({
   const [isLoading, setIsLoading] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [isGoogleLoaded, setIsGoogleLoaded] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const autocompleteServiceRef = useRef<any>(null);
+  const placesServiceRef = useRef<any>(null);
 
   const debouncedValue = useDebounce(value, 300);
 
-  // Search for address suggestions
+  // Initialize Google Maps services once loaded
+  useEffect(() => {
+    if (isGoogleLoaded && window.google?.maps?.places) {
+      autocompleteServiceRef.current = new window.google.maps.places.AutocompleteService();
+      // PlacesService requires a div element
+      const div = document.createElement('div');
+      placesServiceRef.current = new window.google.maps.places.PlacesService(div);
+    }
+  }, [isGoogleLoaded]);
+
+  // Search for address suggestions using Google Places API
   useEffect(() => {
     const searchAddress = async () => {
       if (!debouncedValue || debouncedValue.length < 3) {
@@ -52,29 +74,98 @@ export default function AddressAutocomplete({
         return;
       }
 
+      if (!autocompleteServiceRef.current || !placesServiceRef.current) {
+        return;
+      }
+
       setIsLoading(true);
       try {
-        const response = await fetch(`/api/autocomplete-address?q=${encodeURIComponent(debouncedValue)}`);
-        const data = await response.json();
+        // Get autocomplete predictions
+        autocompleteServiceRef.current.getPlacePredictions(
+          {
+            input: debouncedValue,
+            componentRestrictions: { country: 'ca' }, // Canada only
+            types: ['address'], // Only addresses
+          },
+          async (predictions: any[], status: string) => {
+            if (status !== window.google.maps.places.PlacesServiceStatus.OK || !predictions) {
+              setSuggestions([]);
+              setShowDropdown(false);
+              setIsLoading(false);
+              return;
+            }
 
-        if (data.success && data.suggestions) {
-          setSuggestions(data.suggestions);
-          setShowDropdown(data.suggestions.length > 0);
-        } else {
-          setSuggestions([]);
-          setShowDropdown(false);
-        }
+            // Get details for each prediction (limit to 8)
+            const detailsPromises = predictions.slice(0, 8).map((prediction) => 
+              new Promise<AddressSuggestion | null>((resolve) => {
+                placesServiceRef.current.getDetails(
+                  {
+                    placeId: prediction.place_id,
+                    fields: ['address_components', 'geometry'],
+                  },
+                  (place: any, status: string) => {
+                    if (status !== window.google.maps.places.PlacesServiceStatus.OK || !place) {
+                      resolve(null);
+                      return;
+                    }
+
+                    // Parse address components
+                    let streetNumber = '';
+                    let street = '';
+                    let city = '';
+                    let province = '';
+                    let postalCode = '';
+
+                    for (const component of place.address_components) {
+                      const types = component.types;
+
+                      if (types.includes('street_number')) {
+                        streetNumber = component.long_name;
+                      } else if (types.includes('route')) {
+                        street = component.long_name;
+                      } else if (types.includes('locality')) {
+                        city = component.long_name;
+                      } else if (types.includes('administrative_area_level_1')) {
+                        province = component.short_name; // e.g., "ON"
+                      } else if (types.includes('postal_code')) {
+                        postalCode = component.long_name;
+                      }
+                    }
+
+                    resolve({
+                      displayName: prediction.description,
+                      streetNumber,
+                      street,
+                      city,
+                      province,
+                      postalCode,
+                      lat: place.geometry.location.lat(),
+                      lng: place.geometry.location.lng(),
+                      placeId: prediction.place_id,
+                    });
+                  }
+                );
+              })
+            );
+
+            const results = await Promise.all(detailsPromises);
+            const validSuggestions = results.filter((s): s is AddressSuggestion => s !== null);
+            
+            setSuggestions(validSuggestions);
+            setShowDropdown(validSuggestions.length > 0);
+            setIsLoading(false);
+          }
+        );
       } catch (error) {
         console.error("Address autocomplete error:", error);
         setSuggestions([]);
         setShowDropdown(false);
-      } finally {
         setIsLoading(false);
       }
     };
 
     searchAddress();
-  }, [debouncedValue]);
+  }, [debouncedValue, isGoogleLoaded]);
 
   // Handle click outside
   useEffect(() => {
@@ -140,8 +231,16 @@ export default function AddressAutocomplete({
   };
 
   return (
-    <div className="relative">
-      <input
+    <>
+      {/* Load Google Maps JavaScript API */}
+      <Script
+        src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`}
+        onLoad={() => setIsGoogleLoaded(true)}
+        strategy="lazyOnload"
+      />
+
+      <div className="relative">
+        <input
         ref={inputRef}
         type="text"
         value={value}
@@ -222,7 +321,8 @@ export default function AddressAutocomplete({
           </p>
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }
 
