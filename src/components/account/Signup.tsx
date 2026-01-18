@@ -23,10 +23,11 @@ const Signup = () => {
       event.preventDefault();
       try {
         const formData = new FormData(event.currentTarget);
+        const email = (formData.get("email") as string)?.toLowerCase().trim();
         const signupResponse = await axios.post(
           `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/signup`,
           {
-            email: formData.get("email"),
+            email: email,
             password: formData.get("password"),
             name: formData.get("name"),
           }

@@ -24,10 +24,11 @@ const Signin = () => {
     async (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
       const formData = new FormData(event.currentTarget);
-      console.log("🔵 [SIGNIN] Attempting login for:", formData.get("email"));
+      const email = (formData.get("email") as string)?.toLowerCase().trim();
+      console.log("🔵 [SIGNIN] Attempting login for:", email);
       
       const res = await signIn("credentials", {
-        email: formData.get("email"),
+        email: email,
         password: formData.get("password"),
         redirect: false,
       });

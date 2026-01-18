@@ -15,6 +15,9 @@ export async function POST(request: NextRequest) {
 
   try {
     const { name, email, password } = await request.json();
+    
+    // Normalize email to lowercase for case-insensitive lookups
+    const normalizedEmail = email.toLowerCase().trim();
 
     if (password.length < 6) {
       return NextResponse.json(
@@ -25,7 +28,7 @@ export async function POST(request: NextRequest) {
 
     // Check if user already exists in our database
     const userFound = await prisma.user.findUnique({
-      where: { email },
+      where: { email: normalizedEmail },
     });
 
     if (userFound) {
@@ -45,10 +48,10 @@ export async function POST(request: NextRequest) {
     let hikeupCustomerId: number | null = null;
 
     if (hikeupConnected) {
-      console.log(`📋 Checking Hikeup for existing customer: ${email}`);
+      console.log(`📋 Checking Hikeup for existing customer: ${normalizedEmail}`);
       
       // Check if customer already exists on Hikeup
-      const existingHikeupCustomer = await getHikeupCustomerByEmail(email);
+      const existingHikeupCustomer = await getHikeupCustomerByEmail(normalizedEmail);
       
       if (existingHikeupCustomer) {
         // Customer exists on Hikeup - just use their ID, don't create
@@ -56,14 +59,14 @@ export async function POST(request: NextRequest) {
         hikeupCustomerId = existingHikeupCustomer.id;
       } else {
         // Customer doesn't exist on Hikeup - create them
-        console.log(`📝 Creating new customer on Hikeup: ${name} (${email})`);
+        console.log(`📝 Creating new customer on Hikeup: ${name} (${normalizedEmail})`);
         
         // Parse name into first/last
         const nameParts = name.trim().split(/\s+/);
         const firstName = nameParts[0] || 'Customer';
         const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : undefined;
         
-        const newHikeupCustomer = await createHikeupCustomer(email, firstName, lastName);
+        const newHikeupCustomer = await createHikeupCustomer(normalizedEmail, firstName, lastName);
         
         if (!newHikeupCustomer) {
           // Hikeup customer creation failed - roll back (don't create local user)
@@ -86,7 +89,7 @@ export async function POST(request: NextRequest) {
     const savedUser = await prisma.user.create({
       data: {
         name,
-        email,
+        email: normalizedEmail,
         password: hashedPassword,
         // Store Hikeup customer ID if available (for future order syncing)
         hikeupCustomerId: hikeupCustomerId ? String(hikeupCustomerId) : null,
@@ -152,7 +155,7 @@ export async function PUT(request: Request) {
     // SECURITY: Only allow updating specific fields (prevent role escalation)
     const updateData: any = {};
     if (name) updateData.name = name;
-    if (email) updateData.email = email;
+    if (email) updateData.email = email.toLowerCase().trim();
     if (password) {
       updateData.password = await bcrypt.hash(password, 12);
     }

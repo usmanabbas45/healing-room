@@ -13,8 +13,11 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
+        // Normalize email to lowercase for case-insensitive login
+        const normalizedEmail = credentials?.email?.toLowerCase().trim();
+        
         const userFound = await prisma.user.findUnique({
-          where: { email: credentials?.email },
+          where: { email: normalizedEmail },
         });
 
         if (!userFound) throw new Error("Invalid Email");

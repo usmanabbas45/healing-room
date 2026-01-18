@@ -22,12 +22,15 @@ export default function ForgotPasswordPage() {
     }
 
     setIsLoading(true);
+    
+    // Normalize email to lowercase
+    const normalizedEmail = email.toLowerCase().trim();
 
     try {
       const response = await fetch("/api/auth/forgot-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email: normalizedEmail }),
       });
 
       const data = await response.json();
@@ -35,8 +38,8 @@ export default function ForgotPasswordPage() {
       if (response.ok) {
         setEmailSent(true);
         toast.success("Check your email for the verification code!");
-        // Store email for the reset page
-        sessionStorage.setItem("resetEmail", email);
+        // Store normalized email for the reset page
+        sessionStorage.setItem("resetEmail", normalizedEmail);
         // Redirect to reset page after a short delay
         setTimeout(() => {
           router.push("/reset-password");
