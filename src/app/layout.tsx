@@ -241,7 +241,15 @@ export default async function RootLayout({
           />
           <main className="pointer-events-auto">
             {children}
-            <Toaster position="top-right" />
+            <Toaster 
+              position="top-right"
+              offset="80px"
+              toastOptions={{
+                style: {
+                  zIndex: 40,
+                },
+              }}
+            />
           </main>
           <Footer />
           <ChatWidget />
