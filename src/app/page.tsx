@@ -4,6 +4,7 @@ import { ContactButton } from "@/components/contact/ContactButton";
 import InteractiveMap from "@/components/map/InteractiveMap";
 import { FAQJsonLd } from "@/components/seo/JsonLd";
 import SpecialDeals from "@/components/deals/SpecialDeals";
+import StorePhotoCarousel from "@/components/common/StorePhotoCarousel";
 
 // FAQ data organized by categories for better navigation
 const faqCategories = [
@@ -545,37 +546,7 @@ export default function Home() {
           <div className="grid lg:grid-cols-2 gap-16 lg:gap-24 items-center">
             {/* Image Side */}
             <div className="relative order-2 lg:order-1">
-              <div className="relative">
-                {/* Store interior image */}
-                <div className="aspect-[4/5] rounded-3xl overflow-hidden shadow-2xl relative">
-                  <Image
-                    src="/store-interior.webp"
-                    alt="Healing Room Store Interior"
-                    fill
-                    sizes="(max-width: 768px) 100vw, 50vw"
-                    className="object-cover"
-                  />
-                </div>
-                
-                {/* Overlapping accent card */}
-                <div className="absolute -bottom-8 -right-8 bg-white rounded-2xl shadow-xl p-6 max-w-[240px] border border-border-primary/10">
-                  <div className="flex items-start gap-4">
-                    <div className="w-14 h-14 bg-primary/10 rounded-xl flex items-center justify-center flex-shrink-0">
-                      <svg className="w-7 h-7 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-text-primary mb-1">Six Nations</h4>
-                      <p className="text-sm text-text-light">Proudly serving our community</p>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Decorative element */}
-                <div className="absolute -top-6 -left-6 w-24 h-24 border-2 border-primary/20 rounded-2xl" />
-              </div>
+              <StorePhotoCarousel />
             </div>
             
             {/* Content Side */}
