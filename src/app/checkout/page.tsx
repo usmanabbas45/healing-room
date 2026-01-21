@@ -971,8 +971,12 @@ export default function CheckoutPage() {
                       </span>
                     )}
                   </div>
-                  <span className={deliveryFee === 0 ? "text-green-600" : "text-text-primary"}>
-                    {deliveryFee === 0 ? "FREE" : `$${deliveryFee.toFixed(2)}`}
+                  <span className={deliveryFee === 0 && fulfillmentMethod === "pickup" ? "text-green-600" : "text-text-primary"}>
+                    {fulfillmentMethod === "pickup" ? "FREE" : 
+                     fulfillmentMethod === "delivery" && calculatedDeliveryFee === null ? (
+                       <span className="text-text-muted italic text-xs">Enter address to calculate</span>
+                     ) :
+                     deliveryFee === 0 ? <span className="text-green-600 font-medium">FREE</span> : `$${deliveryFee.toFixed(2)}`}
                   </span>
                 </div>
                 {fulfillmentMethod === "shipping" && deliveryFee > 0 && SHIPPING_FEES.freeShippingMinimum && subtotal < SHIPPING_FEES.freeShippingMinimum && (
@@ -981,9 +985,18 @@ export default function CheckoutPage() {
                   </div>
                 )}
                 <div className="flex justify-between text-lg font-semibold pt-2 border-t border-border-primary">
-                  <span className="text-text-primary">Total</span>
-                  <span className="text-primary">${total.toFixed(2)}</span>
+                  <span className="text-text-primary">
+                    {fulfillmentMethod === "delivery" && calculatedDeliveryFee === null ? "Subtotal" : "Total"}
+                  </span>
+                  <span className="text-primary">
+                    ${fulfillmentMethod === "delivery" && calculatedDeliveryFee === null ? subtotal.toFixed(2) : total.toFixed(2)}
+                  </span>
                 </div>
+                {fulfillmentMethod === "delivery" && calculatedDeliveryFee === null && (
+                  <div className="text-xs text-center text-text-muted italic">
+                    Final total will be calculated after entering address
+                  </div>
+                )}
                 {totalSavings > 0 && (
                   <div className="text-xs text-center text-green-600 font-medium">
                     You saved ${totalSavings.toFixed(2)} with active deals!
@@ -1001,10 +1014,15 @@ export default function CheckoutPage() {
           {/* Price Summary */}
           <div className="flex items-center justify-between mb-3">
             <div>
-              <p className="text-xs text-text-muted">Total</p>
-              <p className="text-xl font-bold text-primary">${total.toFixed(2)}</p>
+              <p className="text-xs text-text-muted">
+                {fulfillmentMethod === "delivery" && calculatedDeliveryFee === null ? "Subtotal" : "Total"}
+              </p>
+              <p className="text-xl font-bold text-primary">${fulfillmentMethod === "delivery" && calculatedDeliveryFee === null ? subtotal.toFixed(2) : total.toFixed(2)}</p>
+              {fulfillmentMethod === "delivery" && calculatedDeliveryFee === null && (
+                <p className="text-xs text-text-muted italic">+ delivery fee (TBD)</p>
+              )}
             </div>
-            {deliveryFee === 0 && fulfillmentMethod !== "pickup" && (
+            {deliveryFee === 0 && fulfillmentMethod !== "pickup" && calculatedDeliveryFee !== null && (
               <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">
                 Free {fulfillmentMethod === "delivery" ? "Delivery" : "Shipping"}
               </span>
