@@ -9,6 +9,7 @@ import dynamic from "next/dynamic";
 import { EnrichedProducts } from "@/types/types";
 import DeleteButton from "@/components/cart/DeleteButton";
 import ProductCartInfo from "@/components/cart/ProductCartInfo";
+import { calculateShippingFee, SHIPPING_FEES } from "@/libs/delivery-config";
 
 const ButtonCheckout = dynamic(
   () => import("../../../components/cart/ButtonCheckout"),
@@ -73,6 +74,11 @@ const ProductsCart = async ({ session }: { session: Session }) => {
 
   const totalItems = filteredCart?.reduce((sum, item) => sum + item.quantity, 0) || 0;
   const subtotal = filteredCart ? calculateTotalPrice(filteredCart) : 0;
+  const shippingFee = calculateShippingFee(subtotal);
+  const total = subtotal + shippingFee;
+  const amountUntilFreeShipping = SHIPPING_FEES.freeShippingMinimum && subtotal < SHIPPING_FEES.freeShippingMinimum 
+    ? SHIPPING_FEES.freeShippingMinimum - subtotal 
+    : 0;
 
   if (filteredCart && filteredCart.length > 0) {
     return (
@@ -103,12 +109,21 @@ const ProductsCart = async ({ session }: { session: Session }) => {
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-text-muted">Shipping</span>
-                  <span className="text-green-600 font-medium">Free</span>
+                  {shippingFee === 0 ? (
+                    <span className="text-green-600 font-medium">Free</span>
+                  ) : (
+                    <span className="text-text-primary font-medium">${shippingFee.toFixed(2)}</span>
+                  )}
                 </div>
+                {amountUntilFreeShipping > 0 && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs text-blue-800">
+                    💡 Add ${amountUntilFreeShipping.toFixed(2)} more for free shipping!
+                  </div>
+                )}
                 <div className="border-t border-border-primary pt-3">
                   <div className="flex justify-between">
                     <span className="text-text-primary font-semibold">Total</span>
-                    <span className="text-xl font-bold text-primary">${subtotal.toFixed(2)}</span>
+                    <span className="text-xl font-bold text-primary">${total.toFixed(2)}</span>
                   </div>
                 </div>
               </div>
@@ -120,10 +135,18 @@ const ProductsCart = async ({ session }: { session: Session }) => {
         
         {/* Mobile Bottom Bar */}
         <div className="fixed lg:hidden left-0 right-0 bottom-0 z-20 bg-white border-t border-border-primary shadow-[0_-4px_20px_rgba(0,0,0,0.1)] p-4">
+          {amountUntilFreeShipping > 0 && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 text-xs text-blue-800 mb-3">
+              💡 Add ${amountUntilFreeShipping.toFixed(2)} more for free shipping!
+            </div>
+          )}
           <div className="flex items-center justify-between mb-3">
             <div>
-              <p className="text-xs text-text-muted">Total ({totalItems} items)</p>
-              <p className="text-xl font-bold text-primary">${subtotal.toFixed(2)}</p>
+              <p className="text-xs text-text-muted">
+                Total ({totalItems} items)
+                {shippingFee > 0 && <span className="ml-1">+ ${shippingFee.toFixed(2)} shipping</span>}
+              </p>
+              <p className="text-xl font-bold text-primary">${total.toFixed(2)}</p>
             </div>
             <div className="w-1/2">
               <ButtonCheckout session={session} cartWithProducts={filteredCart} />

@@ -15,6 +15,7 @@ import {
   DELIVERY_RADIUS_KM,
   isSameDayDeliveryAvailable,
   getNextDeliveryDate,
+  calculateShippingFee,
 } from "@/libs/delivery-config";
 import { 
   calculateLocalDeliveryFee,
@@ -98,7 +99,7 @@ export default function CheckoutPage() {
   const deliveryFee = fulfillmentMethod === "pickup" ? 0 :
     fulfillmentMethod === "delivery" ? 
       (calculatedDeliveryFee !== null ? calculatedDeliveryFee : 0) : // Use calculated fee for delivery
-      SHIPPING_FEES.xpresspost; // Flat $25 Xpresspost rate
+      calculateShippingFee(subtotal); // $25 Xpresspost rate, free for orders $200+
   const total = subtotal + deliveryFee;
   
   // Load cart and user data
@@ -471,14 +472,14 @@ export default function CheckoutPage() {
                         <div className="flex items-center justify-between">
                           <span className="font-medium text-text-primary">Canada Post Xpresspost</span>
                           <span className="text-text-primary font-medium">
-                            ${SHIPPING_FEES.xpresspost.toFixed(2)}
+                            {calculateShippingFee(subtotal) === 0 ? "FREE" : `$${SHIPPING_FEES.xpresspost.toFixed(2)}`}
                           </span>
                         </div>
                         <p className="text-sm text-text-muted mt-1">
                           Shipping anywhere in Canada
                         </p>
                         <p className="text-xs text-text-muted mt-1">
-                          2-5 business days • Includes tracking
+                          2-5 business days • Includes tracking • Free for orders $200+
                         </p>
                       </div>
                     </label>
@@ -974,6 +975,11 @@ export default function CheckoutPage() {
                     {deliveryFee === 0 ? "FREE" : `$${deliveryFee.toFixed(2)}`}
                   </span>
                 </div>
+                {fulfillmentMethod === "shipping" && deliveryFee > 0 && SHIPPING_FEES.freeShippingMinimum && subtotal < SHIPPING_FEES.freeShippingMinimum && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 text-xs text-blue-800">
+                    💡 Add ${(SHIPPING_FEES.freeShippingMinimum - subtotal).toFixed(2)} more for free shipping!
+                  </div>
+                )}
                 <div className="flex justify-between text-lg font-semibold pt-2 border-t border-border-primary">
                   <span className="text-text-primary">Total</span>
                   <span className="text-primary">${total.toFixed(2)}</span>

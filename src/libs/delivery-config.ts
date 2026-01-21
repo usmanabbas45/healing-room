@@ -34,7 +34,7 @@ export const DELIVERY_FEES = {
 // Shipping fees - Canada Post Xpresspost
 export const SHIPPING_FEES = {
   xpresspost: 25.00, // Flat rate Xpresspost with tracking (Canada-wide)
-  freeShippingMinimum: null, // No free shipping threshold - always $25
+  freeShippingMinimum: 200.00, // Free shipping for orders $200 or more
 };
 
 // Available delivery time slots
@@ -72,9 +72,13 @@ export function calculateDeliveryFee(distanceKm: number, orderTotal: number): nu
   return -1; // Indicates delivery not available
 }
 
-// Calculate shipping fee - flat $25 Xpresspost rate for all Canadian addresses
+// Calculate shipping fee - $25 Xpresspost rate, free for orders $200+
 export function calculateShippingFee(orderTotal: number): number {
-  // Always $25 - no free shipping threshold
+  // Free shipping for orders $200 or more
+  if (SHIPPING_FEES.freeShippingMinimum && orderTotal >= SHIPPING_FEES.freeShippingMinimum) {
+    return 0;
+  }
+  // Otherwise $25 flat rate
   return SHIPPING_FEES.xpresspost;
 }
 
