@@ -979,11 +979,6 @@ export default function CheckoutPage() {
                      deliveryFee === 0 ? <span className="text-green-600 font-medium">FREE</span> : `$${deliveryFee.toFixed(2)}`}
                   </span>
                 </div>
-                {fulfillmentMethod === "shipping" && deliveryFee > 0 && SHIPPING_FEES.freeShippingMinimum && subtotal < SHIPPING_FEES.freeShippingMinimum && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 text-xs text-blue-800">
-                    💡 Add ${(SHIPPING_FEES.freeShippingMinimum - subtotal).toFixed(2)} more for free shipping!
-                  </div>
-                )}
                 <div className="flex justify-between text-lg font-semibold pt-2 border-t border-border-primary">
                   <span className="text-text-primary">
                     {fulfillmentMethod === "delivery" && calculatedDeliveryFee === null ? "Subtotal" : "Total"}
