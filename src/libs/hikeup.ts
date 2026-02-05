@@ -2163,45 +2163,114 @@ export async function getHikeupOffers(): Promise<HikeupOffer[]> {
     console.log(`📊 Total offers found: ${offers.length}`);
     
     if (offers.length > 0) {
-      console.log('📋 Sample offer (full object):', JSON.stringify(offers[0], null, 2));
+      console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log('🎁 COMPLETE HIKEUP OFFERS API RESPONSE ANALYSIS');
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
       
-      // Detailed logging for DATE FIELDS
-      console.log('\n📅 DATE FIELD ANALYSIS:');
       offers.forEach((offer, idx) => {
-        console.log(`\nOffer ${idx + 1}: "${offer.name}"`);
-        console.log(`  - validFrom (raw): ${JSON.stringify(offer.validFrom)}`);
-        console.log(`  - validFrom (type): ${typeof offer.validFrom}`);
-        console.log(`  - validTo (raw): ${JSON.stringify(offer.validTo)}`);
-        console.log(`  - validTo (type): ${typeof offer.validTo}`);
-        console.log(`  - isActive: ${offer.isActive}`);
-        console.log(`  - offerType: ${offer.offerType}`);
-        console.log(`  - isPercentage: ${offer.isPercentage}`);
-        console.log(`  - offerValue: ${offer.offerValue}`);
-        console.log(`  - offerAmount: ${offer.offerAmount}`);
+        console.log(`\n📦 OFFER ${idx + 1}: "${offer.name}"`);
+        console.log('─────────────────────────────────────────────');
+        console.log('\n🔍 ALL FIELDS FROM HIKEUP:');
         
-        // Try parsing the dates
+        // Show ALL fields with their values and types
+        Object.entries(offer).forEach(([key, value]) => {
+          const valueType = Array.isArray(value) ? 'array' : typeof value;
+          const displayValue = value === null ? 'NULL' : 
+                              value === undefined ? 'UNDEFINED' :
+                              Array.isArray(value) ? `[${value.length} items]` :
+                              typeof value === 'object' ? '[object]' :
+                              JSON.stringify(value);
+          
+          console.log(`  ${key.padEnd(25)} = ${displayValue} (${valueType})`);
+        });
+        
+        // Show nested structures in detail
+        console.log('\n🔬 DETAILED NESTED STRUCTURES:');
+        
+        if (offer.offerItems && Array.isArray(offer.offerItems) && offer.offerItems.length > 0) {
+          console.log(`\n  📋 offerItems (${offer.offerItems.length} items):`);
+          offer.offerItems.forEach((item: any, itemIdx: number) => {
+            console.log(`    Item ${itemIdx + 1}:`);
+            Object.entries(item).forEach(([key, value]) => {
+              console.log(`      ${key}: ${JSON.stringify(value)}`);
+            });
+          });
+        } else {
+          console.log('  📋 offerItems: EMPTY or NULL');
+        }
+        
+        if (offer.offerOutlets && Array.isArray(offer.offerOutlets) && offer.offerOutlets.length > 0) {
+          console.log(`\n  🏪 offerOutlets (${offer.offerOutlets.length} items):`);
+          offer.offerOutlets.forEach((outlet: any, outletIdx: number) => {
+            console.log(`    Outlet ${outletIdx + 1}:`, JSON.stringify(outlet));
+          });
+        } else {
+          console.log('  🏪 offerOutlets: EMPTY or NULL');
+        }
+        
+        if (offer.offerCustomerGroups && Array.isArray(offer.offerCustomerGroups) && offer.offerCustomerGroups.length > 0) {
+          console.log(`\n  👥 offerCustomerGroups (${offer.offerCustomerGroups.length} items):`);
+          offer.offerCustomerGroups.forEach((group: any, groupIdx: number) => {
+            console.log(`    Group ${groupIdx + 1}:`, JSON.stringify(group));
+          });
+        } else {
+          console.log('  👥 offerCustomerGroups: EMPTY or NULL');
+        }
+        
+        // Date parsing analysis
+        console.log('\n📅 DATE PARSING:');
         try {
           const parsedFrom = new Date(offer.validFrom);
-          console.log(`  - Parsed validFrom: ${parsedFrom.toISOString()} (valid: ${!isNaN(parsedFrom.getTime())})`);
+          console.log(`  validFrom: "${offer.validFrom}" → ${parsedFrom.toISOString()}`);
+          console.log(`  validFrom readable: ${parsedFrom.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`);
           
           if (offer.validTo === null) {
-            console.log(`  - Parsed validTo: NULL (no expiry date set)`);
-            console.log(`  - Human readable validTo: "No expiry date" ✅`);
+            console.log(`  validTo: NULL → No expiry date ✅`);
           } else {
             const parsedTo = new Date(offer.validTo);
-            const isValidDate = !isNaN(parsedTo.getTime()) && parsedTo.getTime() > 86400000; // After Jan 1, 1970
-            console.log(`  - Parsed validTo: ${parsedTo.toISOString()} (valid: ${isValidDate})`);
+            const isValidDate = !isNaN(parsedTo.getTime()) && parsedTo.getTime() > 86400000;
+            console.log(`  validTo: "${offer.validTo}" → ${parsedTo.toISOString()} (valid: ${isValidDate})`);
             if (isValidDate) {
-              console.log(`  - Human readable validTo: ${parsedTo.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`);
-            } else {
-              console.log(`  - Human readable validTo: Invalid date (Unix epoch detected)`);
+              console.log(`  validTo readable: ${parsedTo.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`);
             }
           }
         } catch (e) {
-          console.log(`  - ❌ Error parsing dates: ${e}`);
+          console.log(`  ❌ Error parsing dates: ${e}`);
         }
+        
+        // Discount type analysis
+        console.log('\n💰 DISCOUNT ANALYSIS:');
+        console.log(`  offerType: ${offer.offerType}`);
+        console.log(`  isPercentage: ${offer.isPercentage}`);
+        console.log(`  offerValue: ${offer.offerValue}`);
+        console.log(`  offerAmount: ${offer.offerAmount}`);
+        console.log(`  buyX: ${offer.buyX ?? 'N/A'}`);
+        console.log(`  getX: ${offer.getX ?? 'N/A'}`);
+        console.log(`  minimumQuantity: ${offer.minimumQuantity ?? 'N/A'}`);
+        console.log(`  maximumQuantity: ${offer.maximumQuantity ?? 'N/A'}`);
+        
+        // What we're currently using
+        console.log('\n✅ FIELDS WE CURRENTLY USE:');
+        console.log(`  - id, name, description`);
+        console.log(`  - isActive, isPercentage`);
+        console.log(`  - offerValue, offerAmount`);
+        console.log(`  - validFrom, validTo`);
+        console.log(`  - offerItems (for product matching)`);
+        
+        console.log('\n⚠️ FIELDS WE ARE NOT USING:');
+        const unusedFields = ['offerType', 'buyX', 'getX', 'minimumQuantity', 'maximumQuantity', 
+                             'priority', 'sku', 'barCode', 'taxID', 'taxName', 'taxRate',
+                             'offerOutlets', 'offerCustomerGroups', 'isOfferOnAllCustomer', 'isOfferOnAllOutlet'];
+        unusedFields.forEach(field => {
+          if (field in offer) {
+            console.log(`  - ${field}: ${JSON.stringify((offer as any)[field])}`);
+          }
+        });
       });
-      console.log('\n');
+      
+      console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log('END OF HIKEUP OFFERS ANALYSIS');
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
     }
 
     // Filter only active offers

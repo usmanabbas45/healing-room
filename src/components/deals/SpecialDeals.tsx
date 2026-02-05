@@ -9,11 +9,47 @@ export default async function SpecialDeals() {
     return null;
   }
 
-  // Debug: Log offer dates
-  console.log('🎁 Special Deals - Offer dates from Hikeup:');
-  offers.forEach(offer => {
-    console.log(`  "${offer.name}": validFrom="${offer.validFrom}", validTo=${offer.validTo === null ? 'NULL (no expiry)' : `"${offer.validTo}"`}`);
+  // Debug: Log complete offer data
+  console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.log('🎁 SPECIAL DEALS - COMPLETE DATA FROM HIKEUP');
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+  
+  offers.forEach((offer, index) => {
+    console.log(`\n📋 OFFER ${index + 1}: "${offer.name}"`);
+    console.log('─────────────────────────────────────────────');
+    
+    // Loop through ALL fields in the offer object
+    Object.entries(offer).forEach(([key, value]) => {
+      // Special formatting for different types
+      if (value === null) {
+        console.log(`  ${key}: NULL`);
+      } else if (value === undefined) {
+        console.log(`  ${key}: UNDEFINED`);
+      } else if (Array.isArray(value)) {
+        console.log(`  ${key}: [Array with ${value.length} items]`);
+        if (value.length > 0) {
+          console.log(`    First item:`, JSON.stringify(value[0], null, 2).split('\n').join('\n    '));
+          if (value.length > 1) {
+            console.log(`    ... and ${value.length - 1} more item(s)`);
+          }
+        }
+      } else if (typeof value === 'object') {
+        console.log(`  ${key}:`, JSON.stringify(value, null, 2).split('\n').join('\n    '));
+      } else {
+        console.log(`  ${key}: ${value} (type: ${typeof value})`);
+      }
+    });
+    
+    console.log('\n  📊 FIELD SUMMARY:');
+    console.log(`    Total fields: ${Object.keys(offer).length}`);
+    console.log(`    Null fields: ${Object.values(offer).filter(v => v === null).length}`);
+    console.log(`    Array fields: ${Object.values(offer).filter(v => Array.isArray(v)).length}`);
+    console.log(`    Object fields: ${Object.values(offer).filter(v => v !== null && typeof v === 'object' && !Array.isArray(v)).length}`);
   });
+  
+  console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.log('END OF SPECIAL DEALS DATA');
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
   // Display all active offers
   const displayOffers = offers;
