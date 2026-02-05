@@ -42,12 +42,14 @@ export const Products = async ({
           price,
           purchased,
         } = product;
+        const isAvailable = (product as any).isAvailable !== false;
         const productLink = `/${category}/${quantity ? productId : _id}`;
         const containerClassname = [
           "flex justify-between border border-solid border-border-primary rounded-md overflow-hidden bg-white shadow-sm hover:shadow-md transition-shadow",
           extraClassname === "cart-ord-mobile"
             ? "flex-row sm:flex-col"
             : "flex-col",
+          !isAvailable && "opacity-75",
         ]
           .filter(Boolean)
           .join(" ");
@@ -66,31 +68,59 @@ export const Products = async ({
         
         return (
           <div className={containerClassname} key={index}>
-            <Link href={productLink} className={`${linkClassname} relative`}>
-              {/* Discount Badge */}
-              {hasDiscount && product.discountPercentage && (
-                <div className="absolute top-2 right-2 z-10 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded-md shadow-lg">
-                  {product.discountPercentage}% OFF
+            {isAvailable ? (
+              <Link href={productLink} className={`${linkClassname} relative`}>
+                {/* Discount Badge */}
+                {hasDiscount && product.discountPercentage && (
+                  <div className="absolute top-2 right-2 z-10 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded-md shadow-lg">
+                    {product.discountPercentage}% OFF
+                  </div>
+                )}
+                <Images
+                  image={image}
+                  name={name}
+                  width={280}
+                  height={425}
+                  priority={index === 0}
+                  sizes="(max-width: 640px) 100vw, (max-width: 1154px) 33vw, (max-width: 1536px) 25vw, 20vw"
+                />
+              </Link>
+            ) : (
+              <div className={`${linkClassname} relative`}>
+                {/* Unavailable Overlay */}
+                <div className="absolute inset-0 bg-black/60 z-20 flex items-center justify-center">
+                  <div className="text-center px-4">
+                    <div className="bg-red-600 text-white text-sm font-bold px-3 py-2 rounded-md shadow-lg">
+                      NO LONGER AVAILABLE
+                    </div>
+                  </div>
                 </div>
-              )}
-              <Images
-                image={image}
-                name={name}
-                width={280}
-                height={425}
-                priority={index === 0}
-                sizes="(max-width: 640px) 100vw, (max-width: 1154px) 33vw, (max-width: 1536px) 25vw, 20vw"
-              />
-            </Link>
+                <Images
+                  image={image}
+                  name={name}
+                  width={280}
+                  height={425}
+                  priority={index === 0}
+                  sizes="(max-width: 640px) 100vw, (max-width: 1154px) 33vw, (max-width: 1536px) 25vw, 20vw"
+                />
+              </div>
+            )}
             <div className={infoClassname}>
               <div className="flex justify-between w-full">
-                <Link href={productLink} className="w-10/12 group/tooltip relative">
-                  <h2 className="text-sm font-semibold truncate text-text-primary">{name}</h2>
-                  <span className="absolute left-0 -top-10 z-50 hidden group-hover/tooltip:block bg-text-primary text-white text-xs px-3 py-2 rounded-md shadow-lg whitespace-normal max-w-[250px] pointer-events-none">
-                    {name}
-                    <span className="absolute left-4 top-full border-4 border-transparent border-t-text-primary"></span>
-                  </span>
-                </Link>
+                {isAvailable ? (
+                  <Link href={productLink} className="w-10/12 group/tooltip relative">
+                    <h2 className="text-sm font-semibold truncate text-text-primary">{name}</h2>
+                    <span className="absolute left-0 -top-10 z-50 hidden group-hover/tooltip:block bg-text-primary text-white text-xs px-3 py-2 rounded-md shadow-lg whitespace-normal max-w-[250px] pointer-events-none">
+                      {name}
+                      <span className="absolute left-4 top-full border-4 border-transparent border-t-text-primary"></span>
+                    </span>
+                  </Link>
+                ) : (
+                  <div className="w-10/12">
+                    <h2 className="text-sm font-semibold truncate text-text-muted line-through">{name}</h2>
+                    <p className="text-xs text-red-600 font-medium mt-0.5">Out of stock</p>
+                  </div>
+                )}
                 {quantity ? (
                   purchased ? (
                     quantity > 1 && <span className="text-sm text-text-light">{quantity}</span>
@@ -105,7 +135,7 @@ export const Products = async ({
                   />
                 )}
               </div>
-              {!purchased && (
+              {!purchased && isAvailable && (
                 <div className="flex flex-col gap-1">
                   {hasDiscount && product.originalPrice ? (
                     <>
@@ -128,6 +158,11 @@ export const Products = async ({
                       ${quantity ? (price * quantity).toFixed(2) : price.toFixed(2)}
                     </div>
                   )}
+                </div>
+              )}
+              {!isAvailable && (
+                <div className="text-xs text-text-muted">
+                  This product has been removed from our inventory
                 </div>
               )}
               {quantity > 0 && <ProductCartInfo product={product} />}

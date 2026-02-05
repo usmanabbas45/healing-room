@@ -25,51 +25,59 @@ export async function addItem(
 
   if (!session?.user._id) {
     console.error(`User Id not found.`);
-    return;
+    return { success: false, error: 'User not found' };
   }
 
   const userId = session.user._id;
 
-  // Get or create wishlist
-  let wishlist = await prisma.wishlist.findUnique({
-    where: { userId },
-    include: { items: true },
-  });
+  try {
+    // Get or create wishlist
+    let wishlist = await prisma.wishlist.findUnique({
+      where: { userId },
+      include: { items: true },
+    });
 
-  if (!wishlist) {
-    await prisma.wishlist.create({
-      data: {
-        userId,
-        items: {
-          create: { 
+    if (!wishlist) {
+      await prisma.wishlist.create({
+        data: {
+          userId,
+          items: {
+            create: { 
+              productId,
+              productName: productName || '',
+              category: category || '',
+              image: image || null,
+              price: price || 0,
+          },
+          },
+        },
+      });
+    } else {
+      // Check if item already exists
+      const exists = wishlist.items.some((item) => item.productId === productId);
+
+      if (!exists) {
+        await prisma.wishlistItem.create({
+          data: {
+            wishlistId: wishlist.id,
             productId,
             productName: productName || '',
             category: category || '',
             image: image || null,
             price: price || 0,
-        },
-        },
-      },
-    });
-  } else {
-    // Check if item already exists
-    const exists = wishlist.items.some((item) => item.productId === productId);
-
-    if (!exists) {
-      await prisma.wishlistItem.create({
-        data: {
-          wishlistId: wishlist.id,
-          productId,
-          productName: productName || '',
-          category: category || '',
-          image: image || null,
-          price: price || 0,
-        },
-      });
+          },
+        });
+      } else {
+        return { success: true, message: 'Item already in wishlist' };
+      }
     }
-  }
 
-  revalidatePath("/wishlist");
+    revalidatePath("/wishlist");
+    return { success: true };
+  } catch (error) {
+    console.error('Error adding to wishlist:', error);
+    return { success: false, error: 'Failed to add item' };
+  }
 }
 
 export async function getItems(userId: string) {
@@ -116,11 +124,36 @@ export async function getItems(userId: string) {
             size: transformed.sizes[0] || 'Default',
             quantity: 0,
             variantId: transformed.variants[0]?.priceId || item.productId,
+            isAvailable: true,
           };
-      }
+        } else {
+          // Product no longer exists in Hikeup - mark as unavailable
+          return {
+            _id: item.productId,
+            id: item.productId,
+            productId: item.productId,
+            name: item.productName || 'Product No Longer Available',
+            description: '',
+            price: item.price || 0,
+            category: item.category || 'uncategorized',
+            sizes: ['Default'],
+            image: item.image ? [item.image] : ['/logo.png'],
+            variants: [{
+              priceId: item.productId,
+              color: 'Default',
+              images: item.image ? [item.image] : ['/logo.png'],
+            }],
+            purchased: false,
+            color: 'Default',
+            size: 'Default',
+            quantity: 0,
+            variantId: item.productId,
+            isAvailable: false,
+          };
+        }
       }
 
-      // Fallback to stored info if Hikeup unavailable
+      // Fallback to stored info if Hikeup unavailable (assume available but show cached data)
       return {
         _id: item.productId,
         id: item.productId,
@@ -141,6 +174,7 @@ export async function getItems(userId: string) {
         size: 'Default',
         quantity: 0,
         variantId: item.productId,
+        isAvailable: true, // Assume available if Hikeup is down
       };
     })
   );
@@ -176,25 +210,31 @@ export async function delItem(productId: string) {
 
   if (!userId) {
     console.error("User not found.");
-    return;
+    return { success: false, error: 'User not found' };
   }
 
-  const wishlist = await prisma.wishlist.findUnique({
-    where: { userId },
-    include: { items: true },
-  });
+  try {
+    const wishlist = await prisma.wishlist.findUnique({
+      where: { userId },
+      include: { items: true },
+    });
 
-  if (wishlist) {
-    const itemToDelete = wishlist.items.find(
-      (item) => item.productId === productId
-    );
+    if (wishlist) {
+      const itemToDelete = wishlist.items.find(
+        (item) => item.productId === productId
+      );
 
-    if (itemToDelete) {
-      await prisma.wishlistItem.delete({
-        where: { id: itemToDelete.id },
-      });
+      if (itemToDelete) {
+        await prisma.wishlistItem.delete({
+          where: { id: itemToDelete.id },
+        });
+      }
     }
-  }
 
     revalidatePath("/wishlist");
+    return { success: true };
+  } catch (error) {
+    console.error('Error removing from wishlist:', error);
+    return { success: false, error: 'Failed to remove item' };
+  }
 }

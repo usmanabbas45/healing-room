@@ -10,6 +10,7 @@ import SingleProductSkeleton from "@/components/skeletons/SingleProductSkeleton"
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
 import { ProductJsonLd, BreadcrumbJsonLd } from "@/components/seo/JsonLd";
+import { getTotalWishlist } from "@/app/(carts)/wishlist/action";
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://healingroomsixnations.ca';
 
@@ -108,10 +109,53 @@ const AllProducts = async ({ id, category }: { id: string; category: string }) =
   const product = await getProduct(id);
   
   if (!product) {
-    notFound();
+    // Show a better error message instead of 404
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-16 text-center">
+        <div className="bg-white border border-border-primary rounded-lg shadow-sm p-8 md:p-12">
+          <div className="mb-6">
+            <svg
+              className="mx-auto h-16 w-16 text-text-muted"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </div>
+          <h1 className="text-2xl md:text-3xl font-bold text-text-primary mb-4">
+            Product No Longer Available
+          </h1>
+          <p className="text-text-light mb-6 max-w-md mx-auto">
+            This product has been removed from our inventory and is no longer available for purchase. 
+            It may have been discontinued or sold out.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <a
+              href="/shop"
+              className="inline-flex items-center justify-center bg-primary text-white px-6 py-3 rounded-lg font-medium hover:bg-primary-dark transition-colors"
+            >
+              Browse All Products
+            </a>
+            <a
+              href="/"
+              className="inline-flex items-center justify-center border border-border-primary text-text-primary px-6 py-3 rounded-lg font-medium hover:bg-bg-alt transition-colors"
+            >
+              Return Home
+            </a>
+          </div>
+        </div>
+      </div>
+    );
   }
   
   const randomProducts = await getRandomProducts(id);
+  const wishlist = session?.user ? await getTotalWishlist() : undefined;
   
   // Get product images (could be 'images' or 'image' depending on source)
   const productImagesArray = (product as any).images || (product as any).image || [];
@@ -195,7 +239,11 @@ const AllProducts = async ({ id, category }: { id: string; category: string }) =
         ]}
       />
       
-      <SingleProduct product={productJSON} session={session} />
+      <SingleProduct 
+        product={productJSON} 
+        session={session}
+        wishlistString={JSON.stringify(wishlist)}
+      />
 
       <h2 className="mt-24 mb-5 text-xl font-bold sm:text-2xl">
         YOU MIGHT ALSO LIKE...

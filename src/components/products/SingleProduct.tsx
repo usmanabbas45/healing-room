@@ -11,12 +11,14 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import AddToCart from "../cart/AddToCart";
+import WishlistButton from "../cart/WishlistButton";
 interface SingleProduct {
   product: string;
   session: Session | null;
+  wishlistString: string;
 }
 
-export const SingleProduct = ({ product, session }: SingleProduct) => {
+export const SingleProduct = ({ product, session, wishlistString }: SingleProduct) => {
   const productPlainObject: ProductDocument = JSON.parse(product);
   const [selectedVariant, setSelectedVariant] = useState<VariantsDocument>(
     productPlainObject.variants[0]
@@ -56,10 +58,19 @@ export const SingleProduct = ({ product, session }: SingleProduct) => {
             </div>
           )}
           
-          {/* Product Name */}
-          <h1 className="text-xl md:text-2xl font-bold text-text-primary">
-            {productPlainObject.name}
-          </h1>
+          {/* Product Name and Wishlist */}
+          <div className="flex items-start justify-between gap-3">
+            <h1 className="text-xl md:text-2xl font-bold text-text-primary flex-1">
+              {productPlainObject.name}
+            </h1>
+            <div className="flex-shrink-0 p-2 hover:bg-bg-alt rounded-md transition-colors">
+              <WishlistButton
+                session={session}
+                productId={JSON.stringify(productPlainObject._id || productPlainObject.id)}
+                wishlistString={wishlistString}
+              />
+            </div>
+          </div>
           
           {/* Price and Discount */}
           <div className="space-y-2">

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useCallback } from "react";
+import React, { useMemo, useCallback, useState, useTransition } from "react";
 import { Wishlists, delItem, addItem } from "@/app/(carts)/wishlist/action";
 import { Session } from "next-auth";
 import { toast } from "sonner";
@@ -16,6 +16,9 @@ const WishlistButton = ({
   productId,
   wishlistString,
 }: WishlistButtonProps) => {
+  const [isPending, startTransition] = useTransition();
+  const [optimisticFavorite, setOptimisticFavorite] = useState<boolean | null>(null);
+  
   const id: string = useMemo(() => {
     try {
       return JSON.parse(productId);
@@ -39,27 +42,64 @@ const WishlistButton = ({
     return false;
   }, [session, wishlistString, id]);
 
+  // Use optimistic state if available, otherwise use actual state
+  const displayFavorite = optimisticFavorite !== null ? optimisticFavorite : isFavorite;
+
   const handleFavorites = useCallback(async () => {
     if (session?.user?._id) {
-      if (isFavorite) {
-        await delItem(id);
+      // Optimistically update UI immediately
+      const newState = !displayFavorite;
+      setOptimisticFavorite(newState);
+      
+      // Show immediate feedback
+      if (newState) {
+        toast.success("Added to wishlist", { duration: 2000 });
       } else {
-        await addItem(id);
+        toast.success("Removed from wishlist", { duration: 2000 });
       }
+      
+      // Perform server action in background
+      startTransition(async () => {
+        try {
+          let result;
+          if (isFavorite) {
+            result = await delItem(id);
+          } else {
+            result = await addItem(id);
+          }
+          
+          // Check if server action succeeded
+          if (result && !result.success) {
+            // Revert optimistic update on error
+            setOptimisticFavorite(null);
+            toast.error(result.error || "Failed to update wishlist. Please try again.");
+          } else {
+            // Reset optimistic state after server confirms
+            setOptimisticFavorite(null);
+          }
+        } catch (error) {
+          // Revert optimistic update on error
+          setOptimisticFavorite(null);
+          toast.error("Failed to update wishlist. Please try again.");
+          console.error("Wishlist error:", error);
+        }
+      });
     } else {
       const warningMessage =
         "You must be registered to be able to add a product to the wishlist.";
       console.warn(warningMessage);
       toast.warning(warningMessage);
     }
-  }, [session, isFavorite, id]);
+  }, [session, isFavorite, displayFavorite, id]);
 
   return (
     <button
       onClick={handleFavorites}
-      title={isFavorite ? "Remove from favorites" : "Add to favorites"}
+      title={displayFavorite ? "Remove from favorites" : "Add to favorites"}
+      disabled={isPending}
+      className="transition-opacity hover:opacity-70 disabled:opacity-50"
     >
-      {isFavorite ? (
+      {displayFavorite ? (
         <svg
           data-testid="geist-icon"
           height="16"

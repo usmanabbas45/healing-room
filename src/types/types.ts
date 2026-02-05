@@ -27,6 +27,7 @@ export interface EnrichedProducts {
   discountAmount?: number;
   offerName?: string;
   dealExpired?: boolean; // True if deal was active but has now expired
+  isAvailable?: boolean; // False if product is no longer in inventory
   purchased: boolean;
   color: string;
   size: string;

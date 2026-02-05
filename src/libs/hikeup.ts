@@ -987,6 +987,112 @@ async function getHikeupProductTypes(): Promise<{ id: number; name: string }[]> 
 }
 
 /**
+ * Get specific brand by ID from Hikeup API
+ */
+export async function getHikeupBrand(brandId: number): Promise<{ id: number; name: string } | null> {
+  try {
+    console.log(`🔍 Fetching brand ID ${brandId} from Hikeup /brands/get/${brandId}...`);
+    
+    const response = await hikeupFetch<any>(`/brands/get/${brandId}`);
+    
+    console.log('📥 FULL Brand API response:');
+    console.log('   Response type:', typeof response);
+    console.log('   Response keys:', response ? Object.keys(response) : 'null');
+    console.log('   Full response:', JSON.stringify(response, null, 2));
+    
+    // Check all possible field names for brand info
+    const possibleIdFields = ['id', 'brand_id', 'brandId'];
+    const possibleNameFields = ['name', 'brand_name', 'brandName', 'bran_name'];
+    
+    let foundId = null;
+    let foundName = null;
+    
+    for (const field of possibleIdFields) {
+      if (response && response[field]) {
+        foundId = response[field];
+        console.log(`   ✅ Found brand ID in field "${field}": ${foundId}`);
+        break;
+      }
+    }
+    
+    for (const field of possibleNameFields) {
+      if (response && response[field]) {
+        foundName = response[field];
+        console.log(`   ✅ Found brand name in field "${field}": "${foundName}"`);
+        break;
+      }
+    }
+    
+    if (foundId && foundName) {
+      console.log(`✅ Fetched brand ${brandId}: "${foundName}"`);
+      return {
+        id: foundId,
+        name: foundName,
+      };
+    }
+    
+    console.log(`❌ Brand ${brandId} not found or missing required fields`);
+    return null;
+  } catch (error) {
+    console.error(`❌ Error fetching brand ${brandId}:`, error);
+    return null;
+  }
+}
+
+/**
+ * Get specific product type by ID from Hikeup API
+ */
+export async function getHikeupProductType(typeId: number): Promise<{ id: number; name: string } | null> {
+  try {
+    console.log(`🔍 Fetching product type ID ${typeId} from Hikeup /product_types/get/${typeId}...`);
+    
+    const response = await hikeupFetch<any>(`/product_types/get/${typeId}`);
+    
+    console.log('📥 FULL Product Type API response:');
+    console.log('   Response type:', typeof response);
+    console.log('   Response keys:', response ? Object.keys(response) : 'null');
+    console.log('   Full response:', JSON.stringify(response, null, 2));
+    
+    // Check all possible field names
+    const possibleIdFields = ['id', 'type_id', 'typeId'];
+    const possibleNameFields = ['name', 'type_name', 'typeName'];
+    
+    let foundId = null;
+    let foundName = null;
+    
+    for (const field of possibleIdFields) {
+      if (response && response[field]) {
+        foundId = response[field];
+        console.log(`   ✅ Found type ID in field "${field}": ${foundId}`);
+        break;
+      }
+    }
+    
+    for (const field of possibleNameFields) {
+      if (response && response[field]) {
+        foundName = response[field];
+        console.log(`   ✅ Found type name in field "${field}": "${foundName}"`);
+        break;
+      }
+    }
+    
+    if (foundId && foundName) {
+      console.log(`✅ Fetched product type ${typeId}: "${foundName}"`);
+      return {
+        id: foundId,
+        name: foundName,
+      };
+    }
+    
+    console.log(`❌ Product type ${typeId} not found or missing required fields`);
+    return null;
+  } catch (error) {
+    console.error(`❌ Error fetching product type ${typeId}:`, error);
+    return null;
+  }
+}
+
+/**
  * Get product types for filter dropdown (with caching)
  */
 export async function getProductTypesForFilter(): Promise<{ id: string; name: string; count: number }[]> {
@@ -2332,105 +2438,45 @@ export async function getHikeupOffers(): Promise<HikeupOffer[]> {
               console.log(`    ⚠️ Could not fetch product ${item.offerOnId}`);
             }
           } else if (item.offerOn === 1) {
-            // PRODUCT TYPE - Fetch type name from a sample product
+            // PRODUCT TYPE - Fetch from Hikeup product_types API
             console.log(`    📂 Type: PRODUCT TYPE (offerOn=1) - Product type ID ${item.offerOnId}`);
             console.log(`    ℹ️  Note: Product type deals apply to ALL products of this type`);
             
             enrichedOffer.applicableProductTypeIds!.push(item.offerOnId);
             
-            // Try to get product type name by fetching products with this type
+            // Fetch product type name from Hikeup API
             try {
-              // Get all cached products to find one with this product type
-              const cachedProducts = await prisma.hikeupProductCache.findMany({
-                where: { isActive: true },
-                take: 100,
-              });
-              
-              // Find a product with this product type ID
-              for (const cachedProduct of cachedProducts) {
-                const productData = JSON.parse(cachedProduct.rawData);
-                const productTypes = productData.product_type || [];
-                const matchingType = productTypes.find((pt: any) => 
-                  Number(pt.type_id || pt.id) === item.offerOnId
-                );
-                
-                if (matchingType) {
-                  const typeName = matchingType.type_name || matchingType.name || 'Unknown Type';
-                  enrichedOffer.applicableProductTypeNames!.push(typeName);
-                  console.log(`    ✅ Found product type name: "${typeName}"`);
-                  break;
-                }
-              }
-              
-              if (!enrichedOffer.applicableProductTypeNames || enrichedOffer.applicableProductTypeNames.length === 0) {
-                console.log(`    ⚠️ Could not find product type name for ID ${item.offerOnId}`);
+              const productType = await getHikeupProductType(item.offerOnId);
+              if (productType && productType.name) {
+                enrichedOffer.applicableProductTypeNames!.push(productType.name);
+                console.log(`    ✅ Fetched product type name: "${productType.name}"`);
+              } else {
+                console.log(`    ⚠️ Could not fetch product type name for ID ${item.offerOnId}`);
                 enrichedOffer.applicableProductTypeNames!.push('Selected product type');
               }
             } catch (error) {
-              console.log(`    ⚠️ Error fetching product type name:`, error);
+              console.log(`    ⚠️ Error fetching product type:`, error);
               enrichedOffer.applicableProductTypeNames!.push('Selected product type');
             }
           } else if (item.offerOn === 2) {
-            // BRAND - Note: offerOnId might be product ID, not brand ID
-            console.log(`    🏷️  Type: BRAND (offerOn=2) - offerOnId ${item.offerOnId}`);
+            // BRAND - Fetch from Hikeup brands API
+            console.log(`    🏷️  Type: BRAND (offerOn=2) - Brand ID ${item.offerOnId}`);
             console.log(`    ℹ️  Note: Brand deals apply to ALL products of this brand`);
-            console.log(`    🔍 Attempting to fetch brand name...`);
             
-            // First, try fetching the product directly (offerOnId might be a product ID that represents the brand)
-            let brandName: string | null = null;
-            let brandId: number | null = null;
+            enrichedOffer.applicableBrandIds!.push(item.offerOnId);
             
+            // Fetch brand name from Hikeup API
             try {
-              // Try fetching as a product first
-              const product = await getHikeupProduct(String(item.offerOnId));
-              if (product) {
-                brandId = (product as any).brand_id;
-                brandName = (product as any).bran_name || (product as any).brand_name;
-                console.log(`    📦 Fetched product ${item.offerOnId}: "${product.name}"`);
-                console.log(`    🏷️  Product's brand_id: ${brandId}`);
-                console.log(`    🏷️  Product's brand name: "${brandName}"`);
+              const brand = await getHikeupBrand(item.offerOnId);
+              if (brand && brand.name) {
+                enrichedOffer.applicableBrandNames!.push(brand.name);
+                console.log(`    ✅ Fetched brand name: "${brand.name}"`);
+              } else {
+                console.log(`    ⚠️ Could not fetch brand name for ID ${item.offerOnId}`);
+                enrichedOffer.applicableBrandNames!.push('Selected brand');
               }
             } catch (error) {
-              console.log(`    ⚠️ Could not fetch product ${item.offerOnId}:`, error);
-            }
-            
-            // If we still don't have brand name, try searching cached products by brand ID
-            if (!brandName && brandId) {
-              console.log(`    🔍 Searching cached products for brand ID ${brandId}...`);
-              try {
-                const cachedProducts = await prisma.hikeupProductCache.findMany({
-                  where: { isActive: true },
-                  take: 100,
-                });
-                
-                for (const cachedProduct of cachedProducts) {
-                  const productData = JSON.parse(cachedProduct.rawData);
-                  const productBrandId = Number(productData.brand_id);
-                  
-                  if (productBrandId === brandId) {
-                    brandName = productData.bran_name || productData.brand_name;
-                    console.log(`    ✅ Found brand name from cache: "${brandName}"`);
-                    break;
-                  }
-                }
-              } catch (error) {
-                console.log(`    ⚠️ Error searching cache:`, error);
-              }
-            }
-            
-            // Store brand ID and name
-            if (brandId) {
-              enrichedOffer.applicableBrandIds!.push(brandId);
-            } else {
-              // Fallback: assume offerOnId IS the brand ID
-              enrichedOffer.applicableBrandIds!.push(item.offerOnId);
-            }
-            
-            if (brandName) {
-              enrichedOffer.applicableBrandNames!.push(brandName);
-              console.log(`    ✅ Stored brand: "${brandName}" (ID: ${brandId || item.offerOnId})`);
-            } else {
-              console.log(`    ❌ Could not determine brand name for offerOnId ${item.offerOnId}`);
+              console.log(`    ⚠️ Error fetching brand:`, error);
               enrichedOffer.applicableBrandNames!.push('Selected brand');
             }
           } else {
