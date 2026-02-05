@@ -1704,6 +1704,8 @@ export interface HikeupOffer {
   offerCustomerGroups?: any[];
   buyX?: number | null; // For BOGO deals
   getX?: number | null; // For BOGO deals
+  minimumQuantity?: number | null;
+  maximumQuantity?: number | null;
   // Enriched data (added by our system)
   applicableProducts?: { id: number; name: string; image?: string }[];
   applicableCategories?: string[]; // Legacy: stores "product-type-{id}" or "brand-{id}"
