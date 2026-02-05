@@ -24,7 +24,7 @@ function checkDiscountFromOffers(productId: number, offers: HikeupOffer[]): {
   discountPercentage: number;
   discountAmount: number;
   offerName: string;
-  validUntil: string;
+  validUntil: string | null; // Can be null for offers with no expiry
 } | null {
   for (const offer of offers) {
     // Check if product is in applicable products

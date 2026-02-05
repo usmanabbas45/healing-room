@@ -12,7 +12,7 @@ export default async function SpecialDeals() {
   // Debug: Log offer dates
   console.log('🎁 Special Deals - Offer dates from Hikeup:');
   offers.forEach(offer => {
-    console.log(`  "${offer.name}": validFrom="${offer.validFrom}", validTo="${offer.validTo}"`);
+    console.log(`  "${offer.name}": validFrom="${offer.validFrom}", validTo=${offer.validTo === null ? 'NULL (no expiry)' : `"${offer.validTo}"`}`);
   });
 
   // Limit to first 3 offers for homepage
@@ -65,19 +65,22 @@ export default async function SpecialDeals() {
           {displayOffers.map((offer) => {
             // Parse dates with better error handling
             const startDate = new Date(offer.validFrom);
-            const endDate = new Date(offer.validTo);
             
-            // Check if dates are valid
-            const isValidEndDate = !isNaN(endDate.getTime());
+            // Check if validTo is null (no expiry date set in Hikeup)
+            const hasEndDate = offer.validTo !== null && offer.validTo !== undefined;
+            const endDate = hasEndDate ? new Date(offer.validTo) : null;
+            
+            // Check if dates are valid (and not Unix epoch for null dates)
+            const isValidEndDate = endDate && !isNaN(endDate.getTime()) && endDate.getTime() > 86400000; // After Jan 1, 1970
             const isExpiring = isValidEndDate && (endDate.getTime() - Date.now() < 7 * 24 * 60 * 60 * 1000); // Less than 7 days
             
             // Determine discount value - use offerValue if available, otherwise offerAmount
             const discountValue = offer.offerValue || offer.offerAmount || 0;
             
-            // Format end date with year
+            // Format end date with year, or show "No expiry" for null dates
             const endDateStr = isValidEndDate 
               ? endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-              : 'TBD';
+              : 'No expiry date';
 
             return (
               <div
@@ -188,7 +191,9 @@ export default async function SpecialDeals() {
                       <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
-                      <span className="font-medium">Until {endDateStr}</span>
+                      <span className="font-medium">
+                        {isValidEndDate ? `Until ${endDateStr}` : endDateStr}
+                      </span>
                     </div>
 
                     {/* CTA Button */}

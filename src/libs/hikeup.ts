@@ -1696,7 +1696,7 @@ export interface HikeupOffer {
   offerValue: number;
   offerAmount: number;
   validFrom: string;
-  validTo: string;
+  validTo: string | null; // Can be null when no expiry date is set
   isActive: boolean;
   offerImage: string | null;
   offerItems?: HikeupOfferItem[];
@@ -2182,10 +2182,21 @@ export async function getHikeupOffers(): Promise<HikeupOffer[]> {
         // Try parsing the dates
         try {
           const parsedFrom = new Date(offer.validFrom);
-          const parsedTo = new Date(offer.validTo);
           console.log(`  - Parsed validFrom: ${parsedFrom.toISOString()} (valid: ${!isNaN(parsedFrom.getTime())})`);
-          console.log(`  - Parsed validTo: ${parsedTo.toISOString()} (valid: ${!isNaN(parsedTo.getTime())})`);
-          console.log(`  - Human readable validTo: ${parsedTo.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`);
+          
+          if (offer.validTo === null) {
+            console.log(`  - Parsed validTo: NULL (no expiry date set)`);
+            console.log(`  - Human readable validTo: "No expiry date" ✅`);
+          } else {
+            const parsedTo = new Date(offer.validTo);
+            const isValidDate = !isNaN(parsedTo.getTime()) && parsedTo.getTime() > 86400000; // After Jan 1, 1970
+            console.log(`  - Parsed validTo: ${parsedTo.toISOString()} (valid: ${isValidDate})`);
+            if (isValidDate) {
+              console.log(`  - Human readable validTo: ${parsedTo.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`);
+            } else {
+              console.log(`  - Human readable validTo: Invalid date (Unix epoch detected)`);
+            }
+          }
         } catch (e) {
           console.log(`  - ❌ Error parsing dates: ${e}`);
         }
@@ -2284,7 +2295,7 @@ export async function getProductDiscount(productId: number): Promise<{
   discountPercentage: number;
   discountAmount: number;
   offerName: string;
-  validUntil: string;
+  validUntil: string | null; // Can be null for offers with no expiry
 } | null> {
   try {
     const offers = await getHikeupOffers();
