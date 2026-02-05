@@ -1739,6 +1739,7 @@ const PRODUCT_TYPES_CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 /**
  * Sync products from Hikeup to database cache
  * This replaces in-memory caching and works across all worker processes
+ * Ensures database reflects EXACTLY what's in Hikeup (deletes removed products)
  */
 export async function syncProductsToDatabase(): Promise<void> {
   try {
@@ -1803,9 +1804,27 @@ export async function syncProductsToDatabase(): Promise<void> {
       console.log(`   ✅ Upserted ${upserted}/${cacheRecords.length} products`);
     }
     
+    // DELETE products that no longer exist in Hikeup (real-time sync)
+    console.log('🗑️  Cleaning up products removed from Hikeup...');
+    const hikeupIds = cacheRecords.map(r => r.hikeupId);
+    
+    const deleteResult = await prisma.hikeupProductCache.deleteMany({
+      where: {
+        hikeupId: {
+          notIn: hikeupIds
+        }
+      }
+    });
+    
+    if (deleteResult.count > 0) {
+      console.log(`   🗑️  Deleted ${deleteResult.count} products that are no longer in Hikeup`);
+    } else {
+      console.log(`   ✅ No stale products to delete`);
+    }
+    
     const duration = Date.now() - startTime;
     console.log(`✅ [DB SYNC] Completed in ${duration}ms`);
-    console.log(`📊 Database cache: ${cacheRecords.length} products`);
+    console.log(`📊 Database cache: ${cacheRecords.length} products (deleted ${deleteResult.count} stale products)`);
     
     // Log type distribution
     const typeStats = new Map<string, number>();

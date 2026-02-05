@@ -980,7 +980,7 @@ export default function Home() {
                     <span className="text-sm">Facebook</span>
                   </a>
                   <a
-                    href="https://www.instagram.com/healingroomsixnations_/"
+                    href="https://www.instagram.com/healingroom519/"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="group flex items-center gap-3 text-white/60 hover:text-white transition-colors"
