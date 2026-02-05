@@ -60,7 +60,7 @@ export default async function SpecialDeals() {
             
             // Check if validTo is null (no expiry date set in Hikeup)
             const hasEndDate = offer.validTo !== null && offer.validTo !== undefined;
-            const endDate = hasEndDate ? new Date(offer.validTo) : null;
+            const endDate = hasEndDate && offer.validTo ? new Date(offer.validTo) : null;
             
             // Check if dates are valid (and not Unix epoch for null dates)
             const isValidEndDate = endDate && !isNaN(endDate.getTime()) && endDate.getTime() > 86400000; // After Jan 1, 1970
