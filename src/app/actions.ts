@@ -20,15 +20,23 @@ import {
 import { applyPriceMarkup } from "@/libs/pricing";
 
 // Check discount against pre-fetched offers (no API call)
-function checkDiscountFromOffers(productId: number, offers: HikeupOffer[]): {
+// Now accepts full product data to check product types and brands
+function checkDiscountFromOffers(product: any, offers: HikeupOffer[]): {
   discountPercentage: number;
   discountAmount: number;
   offerName: string;
   validUntil: string | null; // Can be null for offers with no expiry
 } | null {
+  const productId = Number(product.id);
+  
+  // Extract product type IDs and brand ID from the product
+  const productTypeIds = (product.product_type || []).map((pt: any) => Number(pt.type_id || pt.id));
+  const brandId = product.brand_id ? Number(product.brand_id) : null;
+  
   for (const offer of offers) {
-    // Check if product is in applicable products
+    // 1. Check if specific product ID matches (offerOn = 5)
     if (offer.applicableProducts && offer.applicableProducts.some(p => p.id === productId)) {
+      console.log(`✅ Product ${productId} matches offer "${offer.name}" (specific product)`);
       return {
         discountPercentage: offer.isPercentage ? (offer.offerValue || offer.offerAmount) : 0,
         discountAmount: !offer.isPercentage ? (offer.offerValue || offer.offerAmount) : 0,
@@ -37,9 +45,40 @@ function checkDiscountFromOffers(productId: number, offers: HikeupOffer[]): {
       };
     }
     
-    // Check if it's a store-wide offer
+    // 2. Check if product type matches (offerOn = 1)
+    if (offer.applicableProductTypeIds && offer.applicableProductTypeIds.length > 0) {
+      const hasMatchingType = productTypeIds.some((typeId: number) => 
+        offer.applicableProductTypeIds!.includes(typeId)
+      );
+      if (hasMatchingType) {
+        console.log(`✅ Product ${productId} matches offer "${offer.name}" (product type match)`);
+        return {
+          discountPercentage: offer.isPercentage ? (offer.offerValue || offer.offerAmount) : 0,
+          discountAmount: !offer.isPercentage ? (offer.offerValue || offer.offerAmount) : 0,
+          offerName: offer.name,
+          validUntil: offer.validTo,
+        };
+      }
+    }
+    
+    // 3. Check if brand matches (offerOn = 2)
+    if (brandId && offer.applicableBrandIds && offer.applicableBrandIds.length > 0) {
+      if (offer.applicableBrandIds.includes(brandId)) {
+        console.log(`✅ Product ${productId} matches offer "${offer.name}" (brand match)`);
+        return {
+          discountPercentage: offer.isPercentage ? (offer.offerValue || offer.offerAmount) : 0,
+          discountAmount: !offer.isPercentage ? (offer.offerValue || offer.offerAmount) : 0,
+          offerName: offer.name,
+          validUntil: offer.validTo,
+        };
+      }
+    }
+    
+    // 4. Check if it's a store-wide offer (no restrictions)
     if ((!offer.applicableProducts || offer.applicableProducts.length === 0) &&
-        (!offer.applicableCategories || offer.applicableCategories.length === 0)) {
+        (!offer.applicableProductTypeIds || offer.applicableProductTypeIds.length === 0) &&
+        (!offer.applicableBrandIds || offer.applicableBrandIds.length === 0)) {
+      console.log(`✅ Product ${productId} matches offer "${offer.name}" (store-wide)`);
       return {
         discountPercentage: offer.isPercentage ? (offer.offerValue || offer.offerAmount) : 0,
         discountAmount: !offer.isPercentage ? (offer.offerValue || offer.offerAmount) : 0,
@@ -56,8 +95,8 @@ function checkDiscountFromOffers(productId: number, offers: HikeupOffer[]): {
 function transformHikeupProductWithDiscount(product: any, offers: HikeupOffer[]) {
   const baseProduct = transformHikeupProduct(product);
   
-  // Check if product has an active discount
-  const discount = checkDiscountFromOffers(Number(product.id), offers);
+  // Check if product has an active discount (pass full product for type/brand matching)
+  const discount = checkDiscountFromOffers(product, offers);
   
   if (discount) {
     const originalPrice = baseProduct.price;

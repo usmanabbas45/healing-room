@@ -39,14 +39,30 @@ export type EnrichedCartItem = {
 };
 
 // Helper: Check if discount is still active
-function checkDiscountStillActive(productId: string, offers: HikeupOffer[]): {
+// Now async to fetch full product data for type/brand matching
+async function checkDiscountStillActive(productId: string, offers: HikeupOffer[]): Promise<{
   discountPercentage: number;
   discountAmount: number;
   offerName: string;
-} | null {
+} | null> {
+  // Fetch full product data to check types and brands
+  let product: any = null;
+  try {
+    product = await getHikeupProduct(productId);
+  } catch (error) {
+    console.error(`Error fetching product ${productId} for discount check:`, error);
+    return null;
+  }
+  
+  if (!product) return null;
+  
+  const numProductId = Number(productId);
+  const productTypeIds = (product.product_type || []).map((pt: any) => Number(pt.type_id || pt.id));
+  const brandId = product.brand_id ? Number(product.brand_id) : null;
+  
   for (const offer of offers) {
-    // Check if product matches
-    if (offer.applicableProducts && offer.applicableProducts.some(p => String(p.id) === String(productId))) {
+    // 1. Check specific product ID match
+    if (offer.applicableProducts && offer.applicableProducts.some(p => p.id === numProductId)) {
       return {
         discountPercentage: offer.isPercentage ? (offer.offerValue || offer.offerAmount) : 0,
         discountAmount: !offer.isPercentage ? (offer.offerValue || offer.offerAmount) : 0,
@@ -54,9 +70,35 @@ function checkDiscountStillActive(productId: string, offers: HikeupOffer[]): {
       };
     }
     
-    // Check if it's a store-wide offer
+    // 2. Check product type match
+    if (offer.applicableProductTypeIds && offer.applicableProductTypeIds.length > 0) {
+      const hasMatchingType = productTypeIds.some((typeId: number) => 
+        offer.applicableProductTypeIds!.includes(typeId)
+      );
+      if (hasMatchingType) {
+        return {
+          discountPercentage: offer.isPercentage ? (offer.offerValue || offer.offerAmount) : 0,
+          discountAmount: !offer.isPercentage ? (offer.offerValue || offer.offerAmount) : 0,
+          offerName: offer.name,
+        };
+      }
+    }
+    
+    // 3. Check brand match
+    if (brandId && offer.applicableBrandIds && offer.applicableBrandIds.length > 0) {
+      if (offer.applicableBrandIds.includes(brandId)) {
+        return {
+          discountPercentage: offer.isPercentage ? (offer.offerValue || offer.offerAmount) : 0,
+          discountAmount: !offer.isPercentage ? (offer.offerValue || offer.offerAmount) : 0,
+          offerName: offer.name,
+        };
+      }
+    }
+    
+    // 4. Check store-wide offer
     if ((!offer.applicableProducts || offer.applicableProducts.length === 0) &&
-        (!offer.applicableCategories || offer.applicableCategories.length === 0)) {
+        (!offer.applicableProductTypeIds || offer.applicableProductTypeIds.length === 0) &&
+        (!offer.applicableBrandIds || offer.applicableBrandIds.length === 0)) {
       return {
         discountPercentage: offer.isPercentage ? (offer.offerValue || offer.offerAmount) : 0,
         discountAmount: !offer.isPercentage ? (offer.offerValue || offer.offerAmount) : 0,
@@ -107,7 +149,7 @@ export async function getItems(userId: string): Promise<EnrichedCartItem[] | und
 
     // If item had a discount, check if it's still valid
     if (originalPrice && (discountPercentage || discountAmount)) {
-      const currentDiscount = checkDiscountStillActive(item.productId, activeOffers);
+      const currentDiscount = await checkDiscountStillActive(item.productId, activeOffers);
       
       if (currentDiscount && currentDiscount.offerName === offerName) {
         // Deal is still active with same offer

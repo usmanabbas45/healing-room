@@ -1702,9 +1702,13 @@ export interface HikeupOffer {
   offerItems?: HikeupOfferItem[];
   offerOutlets?: any[];
   offerCustomerGroups?: any[];
+  buyX?: number | null; // For BOGO deals
+  getX?: number | null; // For BOGO deals
   // Enriched data (added by our system)
   applicableProducts?: { id: number; name: string; image?: string }[];
-  applicableCategories?: string[];
+  applicableCategories?: string[]; // Legacy: stores "product-type-{id}" or "brand-{id}"
+  applicableProductTypeIds?: number[]; // Product type IDs this offer applies to
+  applicableBrandIds?: number[]; // Brand IDs this offer applies to
 }
 
 // Cache for offers
@@ -2297,11 +2301,16 @@ export async function getHikeupOffers(): Promise<HikeupOffer[]> {
 
         enrichedOffer.applicableProducts = [];
         enrichedOffer.applicableCategories = [];
+        enrichedOffer.applicableProductTypeIds = [];
+        enrichedOffer.applicableBrandIds = [];
 
         for (const item of offer.offerItems) {
-          // Try to fetch as a product by ID
-          let productFound = false;
-          if (item.offerOnId) {
+          console.log(`\n    🔍 Processing offer item: offerOn=${item.offerOn}, offerOnId=${item.offerOnId}`);
+          
+          // offerOn: 1 = Product Type, 2 = Brand, 5 = Product
+          if (item.offerOn === 5) {
+            // PRODUCT - Fetch specific product by ID
+            console.log(`    📦 Type: PRODUCT (offerOn=5) - Fetching product ID ${item.offerOnId}`);
             try {
               const product = await getHikeupProduct(String(item.offerOnId));
               if (product) {
@@ -2312,20 +2321,27 @@ export async function getHikeupOffers(): Promise<HikeupOffer[]> {
                   image: images[0] || '/logo.png',
                 });
                 console.log(`    ✅ Added product: ${product.name}`);
-                productFound = true;
               }
             } catch (error) {
               console.log(`    ⚠️ Could not fetch product ${item.offerOnId}`);
             }
+          } else if (item.offerOn === 1) {
+            // PRODUCT TYPE - Store product type ID for runtime matching
+            console.log(`    📂 Type: PRODUCT TYPE (offerOn=1) - Product type ID ${item.offerOnId}`);
+            console.log(`    ℹ️  Note: Product type deals apply to ALL products of this type`);
+            
+            enrichedOffer.applicableProductTypeIds!.push(item.offerOnId);
+            console.log(`    ✅ Stored product type ID: ${item.offerOnId} (will match products at runtime)`);
+          } else if (item.offerOn === 2) {
+            // BRAND - Store brand ID for runtime matching
+            console.log(`    🏷️  Type: BRAND (offerOn=2) - Brand ID ${item.offerOnId}`);
+            console.log(`    ℹ️  Note: Brand deals apply to ALL products of this brand`);
+            
+            enrichedOffer.applicableBrandIds!.push(item.offerOnId);
+            console.log(`    ✅ Stored brand ID: ${item.offerOnId} (will match products at runtime)`);
+          } else {
+            console.log(`    ⚠️  Unknown offerOn type: ${item.offerOn} - skipping`);
           }
-          
-          // Skip further processing if we found a product
-          if (productFound) {
-            continue;
-          }
-          
-          // If no product found, log and skip
-          console.log(`    ℹ️ No product found for offerOnId: ${item.offerOnId}`);
         }
 
         const productCount = enrichedOffer.applicableProducts?.length || 0;
