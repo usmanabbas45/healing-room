@@ -2371,38 +2371,66 @@ export async function getHikeupOffers(): Promise<HikeupOffer[]> {
               enrichedOffer.applicableProductTypeNames!.push('Selected product type');
             }
           } else if (item.offerOn === 2) {
-            // BRAND - Fetch brand name from a sample product
-            console.log(`    🏷️  Type: BRAND (offerOn=2) - Brand ID ${item.offerOnId}`);
+            // BRAND - Note: offerOnId might be product ID, not brand ID
+            console.log(`    🏷️  Type: BRAND (offerOn=2) - offerOnId ${item.offerOnId}`);
             console.log(`    ℹ️  Note: Brand deals apply to ALL products of this brand`);
+            console.log(`    🔍 Attempting to fetch brand name...`);
             
-            enrichedOffer.applicableBrandIds!.push(item.offerOnId);
+            // First, try fetching the product directly (offerOnId might be a product ID that represents the brand)
+            let brandName: string | null = null;
+            let brandId: number | null = null;
             
-            // Try to get brand name by fetching products with this brand
             try {
-              const cachedProducts = await prisma.hikeupProductCache.findMany({
-                where: { isActive: true },
-                take: 100,
-              });
-              
-              // Find a product with this brand ID
-              for (const cachedProduct of cachedProducts) {
-                const productData = JSON.parse(cachedProduct.rawData);
-                const productBrandId = Number(productData.brand_id);
-                
-                if (productBrandId === item.offerOnId) {
-                  const brandName = productData.bran_name || productData.brand_name || 'Unknown Brand';
-                  enrichedOffer.applicableBrandNames!.push(brandName);
-                  console.log(`    ✅ Found brand name: "${brandName}"`);
-                  break;
-                }
-              }
-              
-              if (!enrichedOffer.applicableBrandNames || enrichedOffer.applicableBrandNames.length === 0) {
-                console.log(`    ⚠️ Could not find brand name for ID ${item.offerOnId}`);
-                enrichedOffer.applicableBrandNames!.push('Selected brand');
+              // Try fetching as a product first
+              const product = await getHikeupProduct(String(item.offerOnId));
+              if (product) {
+                brandId = (product as any).brand_id;
+                brandName = (product as any).bran_name || (product as any).brand_name;
+                console.log(`    📦 Fetched product ${item.offerOnId}: "${product.name}"`);
+                console.log(`    🏷️  Product's brand_id: ${brandId}`);
+                console.log(`    🏷️  Product's brand name: "${brandName}"`);
               }
             } catch (error) {
-              console.log(`    ⚠️ Error fetching brand name:`, error);
+              console.log(`    ⚠️ Could not fetch product ${item.offerOnId}:`, error);
+            }
+            
+            // If we still don't have brand name, try searching cached products by brand ID
+            if (!brandName && brandId) {
+              console.log(`    🔍 Searching cached products for brand ID ${brandId}...`);
+              try {
+                const cachedProducts = await prisma.hikeupProductCache.findMany({
+                  where: { isActive: true },
+                  take: 100,
+                });
+                
+                for (const cachedProduct of cachedProducts) {
+                  const productData = JSON.parse(cachedProduct.rawData);
+                  const productBrandId = Number(productData.brand_id);
+                  
+                  if (productBrandId === brandId) {
+                    brandName = productData.bran_name || productData.brand_name;
+                    console.log(`    ✅ Found brand name from cache: "${brandName}"`);
+                    break;
+                  }
+                }
+              } catch (error) {
+                console.log(`    ⚠️ Error searching cache:`, error);
+              }
+            }
+            
+            // Store brand ID and name
+            if (brandId) {
+              enrichedOffer.applicableBrandIds!.push(brandId);
+            } else {
+              // Fallback: assume offerOnId IS the brand ID
+              enrichedOffer.applicableBrandIds!.push(item.offerOnId);
+            }
+            
+            if (brandName) {
+              enrichedOffer.applicableBrandNames!.push(brandName);
+              console.log(`    ✅ Stored brand: "${brandName}" (ID: ${brandId || item.offerOnId})`);
+            } else {
+              console.log(`    ❌ Could not determine brand name for offerOnId ${item.offerOnId}`);
               enrichedOffer.applicableBrandNames!.push('Selected brand');
             }
           } else {
