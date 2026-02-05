@@ -11,7 +11,6 @@ import { getTotalWishlist } from "./(carts)/wishlist/action";
 import ChatWidget from "@/components/chat/ChatWidget";
 import { AgeVerification } from "@/components/common/AgeVerification";
 import { LocalBusinessJsonLd, WebsiteJsonLd, OrganizationJsonLd } from "@/components/seo/JsonLd";
-import ComingSoonOverlay from "@/components/common/ComingSoonOverlay";
 
 import "../styles/globals.css";
 
@@ -230,9 +229,6 @@ export default async function RootLayout({
       </head>
       <Providers>
         <body className={GeistSans.className}>
-          {/* Coming Soon Overlay - Mandatory in production, password: "forbidden" */}
-          <ComingSoonOverlay />
-          
           <AgeVerification />
           <Navbar
             session={session}
