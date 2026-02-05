@@ -155,7 +155,8 @@ export default async function SpecialDeals() {
                   {/* Applicable Products/Categories */}
                   <div className="flex flex-wrap items-center gap-3 mb-3">
                     {(offer.applicableProducts && offer.applicableProducts.length > 0) || 
-                     (offer.applicableCategories && offer.applicableCategories.length > 0) ? (
+                     (offer.applicableProductTypeIds && offer.applicableProductTypeIds.length > 0) ||
+                     (offer.applicableBrandIds && offer.applicableBrandIds.length > 0) ? (
                       <>
                         <span className="text-xs font-semibold text-text-muted uppercase tracking-wider">
                           Valid on:
@@ -188,18 +189,18 @@ export default async function SpecialDeals() {
                           </div>
                         )}
                         
-                        {/* Categories */}
-                        {offer.applicableCategories && offer.applicableCategories.length > 0 && (
-                          <div className="flex flex-wrap gap-2">
-                            {offer.applicableCategories.map((category, idx) => (
-                              <span 
-                                key={idx}
-                                className="inline-flex items-center px-2 py-1 text-xs font-semibold rounded-lg bg-primary/10 text-primary border border-primary/20"
-                              >
-                                {category}
-                              </span>
-                            ))}
-                          </div>
+                        {/* Product Type Deals */}
+                        {offer.applicableProductTypeIds && offer.applicableProductTypeIds.length > 0 && (
+                          <span className="inline-flex items-center px-3 py-1.5 text-sm font-semibold rounded-lg bg-blue-50 text-blue-700 border border-blue-200">
+                            📂 Specific product type
+                          </span>
+                        )}
+                        
+                        {/* Brand Deals */}
+                        {offer.applicableBrandIds && offer.applicableBrandIds.length > 0 && (
+                          <span className="inline-flex items-center px-3 py-1.5 text-sm font-semibold rounded-lg bg-purple-50 text-purple-700 border border-purple-200">
+                            🏷️ Specific brand
+                          </span>
                         )}
                       </>
                     ) : (
