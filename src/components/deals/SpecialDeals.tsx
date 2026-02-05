@@ -15,8 +15,8 @@ export default async function SpecialDeals() {
     console.log(`  "${offer.name}": validFrom="${offer.validFrom}", validTo=${offer.validTo === null ? 'NULL (no expiry)' : `"${offer.validTo}"`}`);
   });
 
-  // Limit to first 3 offers for homepage
-  const displayOffers = offers.slice(0, 3);
+  // Display all active offers
+  const displayOffers = offers;
 
   return (
     <section className="pt-12 md:pt-16 pb-20 md:pb-28 bg-white relative overflow-hidden">
@@ -52,16 +52,8 @@ export default async function SpecialDeals() {
           </div>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-12 lg:gap-16 max-w-7xl mx-auto">
-          {/* Left Side - Description */}
-          <div className="lg:w-2/5 flex items-center justify-center">
-            <p className="text-text-light text-lg md:text-xl leading-relaxed text-center">
-              Limited time offers on your favorite products. Don&apos;t miss out!
-            </p>
-          </div>
-
-          {/* Right Side - Deal Cards */}
-          <div className="lg:w-3/5 flex flex-col gap-6">
+        {/* Deal Cards - 2 Column Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-7xl mx-auto">
           {displayOffers.map((offer) => {
             // Parse dates with better error handling
             const startDate = new Date(offer.validFrom);
@@ -85,13 +77,13 @@ export default async function SpecialDeals() {
             return (
               <div
                 key={offer.id}
-                className="group relative bg-white border border-border-primary rounded-xl overflow-hidden hover:shadow-2xl transition-all duration-500 hover:-translate-y-1 flex flex-col md:flex-row"
+                className="group relative bg-white border border-border-primary rounded-xl overflow-hidden hover:shadow-2xl transition-all duration-500 hover:-translate-y-1 flex flex-col"
               >
                 {/* Accent border on hover */}
                 <div className="absolute inset-0 border-2 border-primary rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
                 
-                {/* Discount Badge - Left side on desktop */}
-                <div className="relative bg-gradient-to-br from-primary to-[#C77730] p-6 md:p-8 flex items-center justify-center md:w-48 md:flex-shrink-0">
+                {/* Discount Badge - Top section */}
+                <div className="relative bg-gradient-to-br from-primary to-[#C77730] p-6 md:p-8 flex items-center justify-center">
                   {isExpiring && (
                     <div className="absolute top-3 right-3 bg-red-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg animate-pulse">
                       ⏰ ENDING SOON
@@ -213,22 +205,6 @@ export default async function SpecialDeals() {
               </div>
             );
           })}
-          
-          {/* View All Link */}
-          {offers.length > 3 && (
-            <div className="text-center mt-4">
-              <Link
-                href="/shop"
-                className="group inline-flex items-center gap-3 bg-white border-2 border-primary text-primary px-6 py-3 rounded-xl font-semibold hover:bg-primary hover:text-white transition-all duration-300 hover:shadow-lg text-sm"
-              >
-                View All Deals
-                <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                </svg>
-              </Link>
-            </div>
-          )}
-          </div>
         </div>
       </div>
     </section>
