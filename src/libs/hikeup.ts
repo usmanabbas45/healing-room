@@ -1710,7 +1710,9 @@ export interface HikeupOffer {
   applicableProducts?: { id: number; name: string; image?: string }[];
   applicableCategories?: string[]; // Legacy: stores "product-type-{id}" or "brand-{id}"
   applicableProductTypeIds?: number[]; // Product type IDs this offer applies to
+  applicableProductTypeNames?: string[]; // Product type names for display
   applicableBrandIds?: number[]; // Brand IDs this offer applies to
+  applicableBrandNames?: string[]; // Brand names for display
 }
 
 // Cache for offers
@@ -2304,7 +2306,9 @@ export async function getHikeupOffers(): Promise<HikeupOffer[]> {
         enrichedOffer.applicableProducts = [];
         enrichedOffer.applicableCategories = [];
         enrichedOffer.applicableProductTypeIds = [];
+        enrichedOffer.applicableProductTypeNames = [];
         enrichedOffer.applicableBrandIds = [];
+        enrichedOffer.applicableBrandNames = [];
 
         for (const item of offer.offerItems) {
           console.log(`\n    🔍 Processing offer item: offerOn=${item.offerOn}, offerOnId=${item.offerOnId}`);
@@ -2328,19 +2332,79 @@ export async function getHikeupOffers(): Promise<HikeupOffer[]> {
               console.log(`    ⚠️ Could not fetch product ${item.offerOnId}`);
             }
           } else if (item.offerOn === 1) {
-            // PRODUCT TYPE - Store product type ID for runtime matching
+            // PRODUCT TYPE - Fetch type name from a sample product
             console.log(`    📂 Type: PRODUCT TYPE (offerOn=1) - Product type ID ${item.offerOnId}`);
             console.log(`    ℹ️  Note: Product type deals apply to ALL products of this type`);
             
             enrichedOffer.applicableProductTypeIds!.push(item.offerOnId);
-            console.log(`    ✅ Stored product type ID: ${item.offerOnId} (will match products at runtime)`);
+            
+            // Try to get product type name by fetching products with this type
+            try {
+              // Get all cached products to find one with this product type
+              const cachedProducts = await prisma.hikeupProductCache.findMany({
+                where: { isActive: true },
+                take: 100,
+              });
+              
+              // Find a product with this product type ID
+              for (const cachedProduct of cachedProducts) {
+                const productData = JSON.parse(cachedProduct.rawData);
+                const productTypes = productData.product_type || [];
+                const matchingType = productTypes.find((pt: any) => 
+                  Number(pt.type_id || pt.id) === item.offerOnId
+                );
+                
+                if (matchingType) {
+                  const typeName = matchingType.type_name || matchingType.name || 'Unknown Type';
+                  enrichedOffer.applicableProductTypeNames!.push(typeName);
+                  console.log(`    ✅ Found product type name: "${typeName}"`);
+                  break;
+                }
+              }
+              
+              if (!enrichedOffer.applicableProductTypeNames || enrichedOffer.applicableProductTypeNames.length === 0) {
+                console.log(`    ⚠️ Could not find product type name for ID ${item.offerOnId}`);
+                enrichedOffer.applicableProductTypeNames!.push('Selected product type');
+              }
+            } catch (error) {
+              console.log(`    ⚠️ Error fetching product type name:`, error);
+              enrichedOffer.applicableProductTypeNames!.push('Selected product type');
+            }
           } else if (item.offerOn === 2) {
-            // BRAND - Store brand ID for runtime matching
+            // BRAND - Fetch brand name from a sample product
             console.log(`    🏷️  Type: BRAND (offerOn=2) - Brand ID ${item.offerOnId}`);
             console.log(`    ℹ️  Note: Brand deals apply to ALL products of this brand`);
             
             enrichedOffer.applicableBrandIds!.push(item.offerOnId);
-            console.log(`    ✅ Stored brand ID: ${item.offerOnId} (will match products at runtime)`);
+            
+            // Try to get brand name by fetching products with this brand
+            try {
+              const cachedProducts = await prisma.hikeupProductCache.findMany({
+                where: { isActive: true },
+                take: 100,
+              });
+              
+              // Find a product with this brand ID
+              for (const cachedProduct of cachedProducts) {
+                const productData = JSON.parse(cachedProduct.rawData);
+                const productBrandId = Number(productData.brand_id);
+                
+                if (productBrandId === item.offerOnId) {
+                  const brandName = productData.bran_name || productData.brand_name || 'Unknown Brand';
+                  enrichedOffer.applicableBrandNames!.push(brandName);
+                  console.log(`    ✅ Found brand name: "${brandName}"`);
+                  break;
+                }
+              }
+              
+              if (!enrichedOffer.applicableBrandNames || enrichedOffer.applicableBrandNames.length === 0) {
+                console.log(`    ⚠️ Could not find brand name for ID ${item.offerOnId}`);
+                enrichedOffer.applicableBrandNames!.push('Selected brand');
+              }
+            } catch (error) {
+              console.log(`    ⚠️ Error fetching brand name:`, error);
+              enrichedOffer.applicableBrandNames!.push('Selected brand');
+            }
           } else {
             console.log(`    ⚠️  Unknown offerOn type: ${item.offerOn} - skipping`);
           }
