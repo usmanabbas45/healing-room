@@ -2163,7 +2163,34 @@ export async function getHikeupOffers(): Promise<HikeupOffer[]> {
     console.log(`📊 Total offers found: ${offers.length}`);
     
     if (offers.length > 0) {
-      console.log('📋 Sample offer:', JSON.stringify(offers[0], null, 2));
+      console.log('📋 Sample offer (full object):', JSON.stringify(offers[0], null, 2));
+      
+      // Detailed logging for DATE FIELDS
+      console.log('\n📅 DATE FIELD ANALYSIS:');
+      offers.forEach((offer, idx) => {
+        console.log(`\nOffer ${idx + 1}: "${offer.name}"`);
+        console.log(`  - validFrom (raw): ${JSON.stringify(offer.validFrom)}`);
+        console.log(`  - validFrom (type): ${typeof offer.validFrom}`);
+        console.log(`  - validTo (raw): ${JSON.stringify(offer.validTo)}`);
+        console.log(`  - validTo (type): ${typeof offer.validTo}`);
+        console.log(`  - isActive: ${offer.isActive}`);
+        console.log(`  - offerType: ${offer.offerType}`);
+        console.log(`  - isPercentage: ${offer.isPercentage}`);
+        console.log(`  - offerValue: ${offer.offerValue}`);
+        console.log(`  - offerAmount: ${offer.offerAmount}`);
+        
+        // Try parsing the dates
+        try {
+          const parsedFrom = new Date(offer.validFrom);
+          const parsedTo = new Date(offer.validTo);
+          console.log(`  - Parsed validFrom: ${parsedFrom.toISOString()} (valid: ${!isNaN(parsedFrom.getTime())})`);
+          console.log(`  - Parsed validTo: ${parsedTo.toISOString()} (valid: ${!isNaN(parsedTo.getTime())})`);
+          console.log(`  - Human readable validTo: ${parsedTo.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`);
+        } catch (e) {
+          console.log(`  - ❌ Error parsing dates: ${e}`);
+        }
+      });
+      console.log('\n');
     }
 
     // Filter only active offers
@@ -2179,6 +2206,7 @@ export async function getHikeupOffers(): Promise<HikeupOffer[]> {
         const enrichedOffer = { ...offer };
         
         console.log(`\n🎁 Processing offer: "${offer.name}"`);
+        console.log(`   Dates after enrichment: validFrom=${offer.validFrom}, validTo=${offer.validTo}`);
         
         if (!offer.offerItems || offer.offerItems.length === 0) {
           console.log(`  ℹ️ No specific items - applies to all products`);
@@ -2229,6 +2257,12 @@ export async function getHikeupOffers(): Promise<HikeupOffer[]> {
     );
 
     console.log(`\n✅ Enrichment complete`);
+    
+    // Log final enriched offers with dates
+    console.log('\n📦 FINAL ENRICHED OFFERS (dates):');
+    enrichedOffers.forEach(offer => {
+      console.log(`  "${offer.name}": validFrom=${offer.validFrom}, validTo=${offer.validTo}`);
+    });
 
     // Cache the enriched results
     offersCache = {
