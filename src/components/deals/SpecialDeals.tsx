@@ -9,6 +9,12 @@ export default async function SpecialDeals() {
     return null;
   }
 
+  // Debug: Log offer dates
+  console.log('🎁 Special Deals - Offer dates from Hikeup:');
+  offers.forEach(offer => {
+    console.log(`  "${offer.name}": validFrom="${offer.validFrom}", validTo="${offer.validTo}"`);
+  });
+
   // Limit to first 3 offers for homepage
   const displayOffers = offers.slice(0, 3);
 
@@ -57,12 +63,21 @@ export default async function SpecialDeals() {
           {/* Right Side - Deal Cards */}
           <div className="lg:w-3/5 flex flex-col gap-6">
           {displayOffers.map((offer) => {
+            // Parse dates with better error handling
             const startDate = new Date(offer.validFrom);
             const endDate = new Date(offer.validTo);
-            const isExpiring = endDate.getTime() - Date.now() < 7 * 24 * 60 * 60 * 1000; // Less than 7 days
+            
+            // Check if dates are valid
+            const isValidEndDate = !isNaN(endDate.getTime());
+            const isExpiring = isValidEndDate && (endDate.getTime() - Date.now() < 7 * 24 * 60 * 60 * 1000); // Less than 7 days
             
             // Determine discount value - use offerValue if available, otherwise offerAmount
             const discountValue = offer.offerValue || offer.offerAmount || 0;
+            
+            // Format end date with year
+            const endDateStr = isValidEndDate 
+              ? endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+              : 'TBD';
 
             return (
               <div
@@ -173,7 +188,7 @@ export default async function SpecialDeals() {
                       <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
-                      <span className="font-medium">Until {endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                      <span className="font-medium">Until {endDateStr}</span>
                     </div>
 
                     {/* CTA Button */}
