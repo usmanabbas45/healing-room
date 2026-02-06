@@ -34,6 +34,22 @@ function checkDiscountFromOffers(product: any, offers: HikeupOffer[]): {
   const brandId = product.brand_id ? Number(product.brand_id) : null;
   
   for (const offer of offers) {
+    // Determine quantity threshold
+    const quantityThreshold = offer.minimumQuantity || offer.buyX;
+    
+    // ⚠️ SKIP quantity-based deals (Buy X or more get discount)
+    // These should only be applied in the cart when quantity threshold is met
+    if (quantityThreshold && quantityThreshold > 1) {
+      console.log(`⏭️  Skipping quantity-based offer "${offer.name}" (requires ${quantityThreshold} items - only apply in cart)`);
+      continue;
+    }
+    
+    // ⚠️ SKIP true BOGO deals (Buy X Get X free)
+    if (offer.buyX && offer.getX) {
+      console.log(`⏭️  Skipping BOGO offer "${offer.name}" (Buy ${offer.buyX} Get ${offer.getX} free - only apply in cart)`);
+      continue;
+    }
+    
     // 1. Check if specific product ID matches (offerOn = 5)
     if (offer.applicableProducts && offer.applicableProducts.some(p => p.id === productId)) {
       console.log(`✅ Product ${productId} matches offer "${offer.name}" (specific product)`);

@@ -6,6 +6,7 @@ import { generateOrderNumber } from "@/libs/delivery-config";
 import { rateLimit, rateLimitedResponse } from "@/libs/rate-limit";
 import { generateOrderConfirmationEmail } from "@/libs/email-templates";
 import { createHikeupInvoice } from "@/libs/hikeup-invoice";
+import { getItems } from "@/app/(carts)/cart/action";
 import nodemailer from "nodemailer";
 
 export async function POST(request: NextRequest) {
@@ -62,11 +63,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: "Cart is empty" }, { status: 400 });
     }
     
-    // Validate cart total matches
-    const calculatedSubtotal = user.cart.items.reduce(
+    // Get enriched cart items with quantity-based discounts applied
+    console.log(`🛒 [CHECKOUT] Getting enriched cart items for user ${user.id}...`);
+    const enrichedCartItems = await getItems(user.id);
+    
+    if (!enrichedCartItems || enrichedCartItems.length === 0) {
+      return NextResponse.json({ message: "Cart is empty" }, { status: 400 });
+    }
+    
+    // Calculate subtotal from enriched items (includes quantity-based discounts)
+    const calculatedSubtotal = enrichedCartItems.reduce(
       (sum, item) => sum + item.price * item.quantity,
       0
     );
+    
+    console.log(`🛒 [CHECKOUT] Cart validation:`);
+    console.log(`   Client subtotal: $${subtotal.toFixed(2)}`);
+    console.log(`   Server subtotal (with discounts): $${calculatedSubtotal.toFixed(2)}`);
+    console.log(`   Difference: $${Math.abs(calculatedSubtotal - subtotal).toFixed(2)}`);
     
     if (Math.abs(calculatedSubtotal - subtotal) > 0.01) {
       return NextResponse.json(
@@ -116,17 +130,17 @@ export async function POST(request: NextRequest) {
         deliveryInstructions: deliveryInstructions || null,
         deliveryDistance: deliveryDistance || null,
         
-        // Create order items from cart
+        // Create order items from enriched cart (includes quantity-based discounts)
         items: {
-          create: user.cart.items.map(item => ({
+          create: enrichedCartItems.map(item => ({
             productId: item.productId,
             variantId: item.variantId,
-            productName: item.productName,
+            productName: item.name,
             category: item.category,
             size: item.size,
             quantity: item.quantity,
-            price: item.price,
-            image: item.image,
+            price: item.price, // This includes quantity-based discounts
+            image: item.image[0] || null,
           })),
         },
       },

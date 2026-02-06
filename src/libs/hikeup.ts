@@ -1238,19 +1238,83 @@ export async function searchHikeupProducts(query: string): Promise<HikeupProduct
   }
   
   try {
-    console.log(`🔍 Searching Hikeup for: "${query}"`);
+    console.log(`🔍 Searching for: "${query}"`);
+    const searchTerm = query.toLowerCase();
+    console.log(`   Search term (lowercase): "${searchTerm}"`);
     
-    // Use Hikeup's Filter API
-    const results = await getHikeupProductByFilter(query, 50);
+    // Search in database cache (includes ALL product fields)
+    const cachedProducts = await prisma.hikeupProductCache.findMany({
+      where: {
+        AND: [
+          { isActive: true },
+          { parentId: null }, // Only parent products (not variants)
+        ]
+      },
+      // No limit - search ALL products
+    });
     
-    console.log(`🔍 Raw search results: ${results.length} products`);
+    console.log(`📦 Searching ${cachedProducts.length} cached products`);
     
-    // FILTER: Remove variant products (keep only parent products where parentId = null)
-    const deduplicated = results.filter((product: any) => product.parentId === null);
-    const variantsFiltered = results.length - deduplicated.length;
+    // Search across ALL product fields including brand
+    const matchingProducts: HikeupProduct[] = [];
+    let checkedCount = 0;
     
-    console.log(`✅ Search complete: ${deduplicated.length} parent products (filtered out ${variantsFiltered} variants)`);
-    return deduplicated;
+    for (const cached of cachedProducts) {
+      try {
+        const product = JSON.parse(cached.rawData);
+        checkedCount++;
+        
+        // Fields to search (comprehensive)
+        const searchableFields = {
+          name: product.name || '',
+          description: product.description || '',
+          bran_name: product.bran_name || '',        // Brand name (note the typo in Hikeup API)
+          brand_name: product.brand_name || '',      // Alternative brand field
+          sku: product.sku || '',
+          barcode: product.barcode || '',
+          product_types: (product.product_type || []).map((pt: any) => pt.type_name || pt.name || '').join(', '),
+        };
+        
+        // Log first 3 products for debugging
+        if (checkedCount <= 3) {
+          console.log(`\n   🔬 Product ${checkedCount}: "${product.name}"`);
+          console.log(`      brand (bran_name): "${searchableFields.bran_name}"`);
+          console.log(`      brand (brand_name): "${searchableFields.brand_name}"`);
+          console.log(`      sku: "${searchableFields.sku}"`);
+          console.log(`      types: "${searchableFields.product_types}"`);
+        }
+        
+        // Check if any field contains the search term
+        const fieldArray = Object.values(searchableFields);
+        const matches = fieldArray.some(field => 
+          field.toLowerCase().includes(searchTerm)
+        );
+        
+        if (matches) {
+          matchingProducts.push(product as HikeupProduct);
+          
+          // Debug: Show what matched
+          const matchedFields = Object.entries(searchableFields)
+            .filter(([key, value]) => value.toLowerCase().includes(searchTerm))
+            .map(([key, value]) => `${key}="${value}"`)
+            .join(', ');
+          
+          console.log(`   ✅ Match #${matchingProducts.length}: "${product.name}" (matched in: ${matchedFields})`);
+        }
+      } catch (parseError) {
+        console.error(`Error parsing cached product ${cached.hikeupId}:`, parseError);
+      }
+    }
+    
+    console.log(`\n✅ Search complete: ${matchingProducts.length} products match "${query}" (checked ${checkedCount} products)`);
+    
+    // If no matches, show what we were looking for
+    if (matchingProducts.length === 0) {
+      console.log(`❌ No products found with "${searchTerm}" in any field`);
+      console.log(`   Fields searched: name, description, bran_name, brand_name, sku, barcode, product_types`);
+    }
+    
+    return matchingProducts;
   } catch (error) {
     console.error('❌ Error searching products:', error);
     return [];
@@ -2401,6 +2465,7 @@ export async function getHikeupOffers(): Promise<HikeupOffer[]> {
         
         console.log(`\n🎁 Processing offer: "${offer.name}"`);
         console.log(`   Dates after enrichment: validFrom=${offer.validFrom}, validTo=${offer.validTo}`);
+        console.log(`   📊 Quantity requirements: minimumQuantity=${offer.minimumQuantity ?? 'N/A'}, buyX=${offer.buyX ?? 'N/A'}, getX=${offer.getX ?? 'N/A'}`);
         
         if (!offer.offerItems || offer.offerItems.length === 0) {
           console.log(`  ℹ️ No specific items - applies to all products`);

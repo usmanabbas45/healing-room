@@ -241,9 +241,31 @@ export default async function SpecialDeals() {
 
                     {/* CTA Button */}
                     <Link
-                      href={offer.applicableProducts && offer.applicableProducts.length > 0 
-                        ? `/product/${offer.applicableProducts[0].id}` 
-                        : "/shop"}
+                      href={(() => {
+                        // 1. Specific product deal - go to product page
+                        if (offer.applicableProducts && offer.applicableProducts.length > 0) {
+                          return `/product/${offer.applicableProducts[0].id}`;
+                        }
+                        
+                        // 2. Product type deal - filter shop by type
+                        if (offer.applicableProductTypeNames && offer.applicableProductTypeNames.length > 0) {
+                          // Convert type name to slug (lowercase, hyphenated)
+                          const typeSlug = offer.applicableProductTypeNames[0]
+                            .toLowerCase()
+                            .replace(/\s+/g, '-')
+                            .replace(/[^a-z0-9-]/g, '');
+                          return `/shop?type=${typeSlug}`;
+                        }
+                        
+                        // 3. Brand deal - filter shop by search (since no brand filter yet)
+                        if (offer.applicableBrandNames && offer.applicableBrandNames.length > 0) {
+                          const brandName = encodeURIComponent(offer.applicableBrandNames[0]);
+                          return `/shop?q=${brandName}`;
+                        }
+                        
+                        // 4. Store-wide deal - go to shop
+                        return "/shop";
+                      })()}
                       className="group/btn sm:ml-auto bg-gradient-to-r from-primary to-[#C77730] text-white px-6 py-2.5 rounded-lg font-semibold hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2 text-sm whitespace-nowrap"
                     >
                       Shop Now

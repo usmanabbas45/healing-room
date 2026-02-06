@@ -38,6 +38,134 @@ export type EnrichedCartItem = {
   _id: string;
 };
 
+// Helper: Apply quantity-based discounts (Buy X Get discount)
+async function applyQuantityBasedDiscounts(
+  items: EnrichedCartItem[],
+  offers: HikeupOffer[]
+): Promise<EnrichedCartItem[]> {
+  console.log(`\n🔢 Checking quantity-based discounts for ${items.length} cart items...`);
+  
+  // Filter to only quantity-based offers
+  const quantityOffers = offers.filter(offer => {
+    const threshold = offer.minimumQuantity || offer.buyX;
+    return threshold && threshold > 1;
+  });
+  
+  if (quantityOffers.length === 0) {
+    console.log(`   No quantity-based offers active`);
+    return items;
+  }
+  
+  console.log(`   Found ${quantityOffers.length} quantity-based offer(s)`);
+  
+  // Fetch product data for all cart items (to get brand/type info)
+  const itemsWithProductData = await Promise.all(
+    items.map(async (item) => {
+      try {
+        const product = await getHikeupProduct(item.productId);
+        return {
+          ...item,
+          productData: product,
+        };
+      } catch (error) {
+        console.error(`Error fetching product ${item.productId}:`, error);
+        return { ...item, productData: null };
+      }
+    })
+  );
+  
+  // Check each quantity-based offer
+  for (const offer of quantityOffers) {
+    console.log(`\n   🎁 Checking offer: "${offer.name}"`);
+    console.log(`      Minimum quantity: ${offer.minimumQuantity ?? 'N/A'}`);
+    console.log(`      Buy X: ${offer.buyX ?? 'N/A'}, Get X: ${offer.getX ?? 'N/A'}`);
+    
+    // Determine quantity threshold
+    const quantityThreshold = offer.minimumQuantity || offer.buyX || 1;
+    
+    // Skip true BOGO deals (buyX + getX = free items)
+    if (offer.buyX && offer.getX) {
+      console.log(`      ⏭️  Skipping BOGO logic (Buy ${offer.buyX} Get ${offer.getX} free - not implemented yet)`);
+      continue;
+    }
+    
+    console.log(`      Quantity threshold: ${quantityThreshold}`);
+    
+    // For "Buy X or more" deals
+    if (quantityThreshold > 1) {
+      // Group items that match this offer
+      const matchingItems = itemsWithProductData.filter(item => {
+        if (!item.productData) return false;
+        
+        const productId = Number(item.productId);
+        const productData = item.productData as any;
+        const productTypeIds = (productData.product_type || []).map((pt: any) => Number(pt.type_id || pt.id));
+        const brandId = productData.brand_id ? Number(productData.brand_id) : null;
+        
+        // Check if this offer applies to this product
+        // 1. Specific product
+        if (offer.applicableProducts && offer.applicableProducts.some(p => p.id === productId)) {
+          return true;
+        }
+        
+        // 2. Product type
+        if (offer.applicableProductTypeIds && offer.applicableProductTypeIds.length > 0) {
+          return productTypeIds.some((typeId: number) => offer.applicableProductTypeIds!.includes(typeId));
+        }
+        
+        // 3. Brand
+        if (brandId && offer.applicableBrandIds && offer.applicableBrandIds.length > 0) {
+          return offer.applicableBrandIds.includes(brandId);
+        }
+        
+        return false;
+      });
+      
+      // Calculate total quantity of matching items
+      const totalQuantity = matchingItems.reduce((sum, item) => sum + item.quantity, 0);
+      
+      console.log(`      Found ${matchingItems.length} matching item(s) with total quantity: ${totalQuantity}`);
+      
+      // Apply discount if threshold met
+      if (totalQuantity >= quantityThreshold) {
+        console.log(`      ✅ Threshold met! Applying discount to all matching items`);
+        
+        // Apply discount to each matching item
+        for (const matchingItem of matchingItems) {
+          const itemIndex = itemsWithProductData.findIndex(i => i.id === matchingItem.id);
+          if (itemIndex >= 0) {
+            const item = itemsWithProductData[itemIndex];
+            const currentPrice = item.originalPrice || item.price;
+            
+            let newPrice = currentPrice;
+            if (offer.isPercentage) {
+              newPrice = currentPrice * (1 - (offer.offerValue || offer.offerAmount) / 100);
+            } else {
+              newPrice = Math.max(0, currentPrice - (offer.offerValue || offer.offerAmount));
+            }
+            
+            console.log(`         "${item.name}": $${currentPrice.toFixed(2)} → $${newPrice.toFixed(2)} (${offer.name})`);
+            
+            itemsWithProductData[itemIndex] = {
+              ...item,
+              originalPrice: currentPrice,
+              price: newPrice,
+              discountPercentage: offer.isPercentage ? (offer.offerValue || offer.offerAmount) : 0,
+              discountAmount: !offer.isPercentage ? (offer.offerValue || offer.offerAmount) : 0,
+              offerName: offer.name,
+            };
+          }
+        }
+      } else {
+        console.log(`      ❌ Threshold not met (need ${quantityThreshold}, have ${totalQuantity})`);
+      }
+    }
+  }
+  
+  // Remove productData before returning
+  return itemsWithProductData.map(({ productData, ...item }) => item);
+}
+
 // Helper: Check if discount is still active
 // Now async to fetch full product data for type/brand matching
 async function checkDiscountStillActive(productId: string, offers: HikeupOffer[]): Promise<{
@@ -61,6 +189,19 @@ async function checkDiscountStillActive(productId: string, offers: HikeupOffer[]
   const brandId = product.brand_id ? Number(product.brand_id) : null;
   
   for (const offer of offers) {
+    // Determine quantity threshold
+    const quantityThreshold = offer.minimumQuantity || offer.buyX;
+    
+    // Skip quantity-based offers (handled separately in applyQuantityBasedDiscounts)
+    if (quantityThreshold && quantityThreshold > 1) {
+      continue;
+    }
+    
+    // Skip true BOGO deals
+    if (offer.buyX && offer.getX) {
+      continue;
+    }
+    
     // 1. Check specific product ID match
     if (offer.applicableProducts && offer.applicableProducts.some(p => p.id === numProductId)) {
       return {
@@ -138,8 +279,8 @@ export async function getItems(userId: string): Promise<EnrichedCartItem[] | und
     console.error('Error fetching offers for cart validation:', error);
   }
 
-  // Re-validate each cart item's discount
-  const enrichedItems: EnrichedCartItem[] = await Promise.all(cart.items.map(async (item) => {
+  // Re-validate each cart item's discount (skip quantity-based for now)
+  let enrichedItems: EnrichedCartItem[] = await Promise.all(cart.items.map(async (item) => {
     let finalPrice = item.price;
     let originalPrice = (item as any).originalPrice || undefined;
     let discountPercentage = (item as any).discountPercentage || undefined;
@@ -205,6 +346,9 @@ export async function getItems(userId: string): Promise<EnrichedCartItem[] | und
       purchased: false,
     };
   }));
+
+  // Apply quantity-based discounts (Buy X Get discount)
+  enrichedItems = await applyQuantityBasedDiscounts(enrichedItems, activeOffers);
 
   return enrichedItems;
 }

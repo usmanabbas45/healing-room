@@ -1,6 +1,6 @@
 import { SingleProduct } from "@/components/products/SingleProduct";
 import { Products } from "@/components/products/Products";
-import { getProduct, getRandomProducts } from "@/app/actions";
+import { getProduct, getRandomProducts, getActiveOffers } from "@/app/actions";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/libs/auth";
 import { Session } from "next-auth";
@@ -156,6 +156,7 @@ const AllProducts = async ({ id, category }: { id: string; category: string }) =
   
   const randomProducts = await getRandomProducts(id);
   const wishlist = session?.user ? await getTotalWishlist() : undefined;
+  const offers = await getActiveOffers();
   
   // Get product images (could be 'images' or 'image' depending on source)
   const productImagesArray = (product as any).images || (product as any).image || [];
@@ -243,6 +244,7 @@ const AllProducts = async ({ id, category }: { id: string; category: string }) =
         product={productJSON} 
         session={session}
         wishlistString={JSON.stringify(wishlist)}
+        offersString={JSON.stringify(offers)}
       />
 
       <h2 className="mt-24 mb-5 text-xl font-bold sm:text-2xl">

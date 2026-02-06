@@ -16,13 +16,18 @@ interface SingleProduct {
   product: string;
   session: Session | null;
   wishlistString: string;
+  offersString: string;
 }
 
-export const SingleProduct = ({ product, session, wishlistString }: SingleProduct) => {
+export const SingleProduct = ({ product, session, wishlistString, offersString }: SingleProduct) => {
   const productPlainObject: ProductDocument = JSON.parse(product);
-  const [selectedVariant, setSelectedVariant] = useState<VariantsDocument>(
-    productPlainObject.variants[0]
-  );
+  
+  // Find first in-stock variant, fallback to first variant if all sold out
+  const initialVariant = productPlainObject.variants.find(
+    v => v.inventory === undefined || v.inventory > 0
+  ) || productPlainObject.variants[0];
+  
+  const [selectedVariant, setSelectedVariant] = useState<VariantsDocument>(initialVariant);
 
   if (!product) {
     return <div className="text-text-primary">Product not found</div>;
@@ -139,6 +144,7 @@ export const SingleProduct = ({ product, session, wishlistString }: SingleProduc
               product={productPlainObject}
               selectedVariant={selectedVariant}
               setSelectedVariant={setSelectedVariant}
+              offersString={offersString}
             />
           </div>
           </div>
