@@ -5,6 +5,7 @@ import Link from "next/link";
 import { isHikeupConnected, getTokenStatus } from "@/libs/hikeup";
 import { getAllProducts } from "@/app/actions";
 import prisma from "@/libs/prisma";
+import SyncInventoryButton from "@/components/admin/SyncInventoryButton";
 
 // Force dynamic rendering - no caching
 export const dynamic = 'force-dynamic';
@@ -159,6 +160,7 @@ export default async function AdminPage({
               >
                 View Store
               </Link>
+              <SyncInventoryButton />
               <a
                 href="/api/hikeup/connect"
                 className="bg-white border border-border-primary text-text-primary px-4 py-2.5 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium"
