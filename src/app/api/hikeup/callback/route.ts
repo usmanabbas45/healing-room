@@ -135,6 +135,31 @@ export async function GET(request: NextRequest) {
       token_type: tokenData.token_type,
     });
     
+    // Log initial connection to database for reference
+    const prisma = (await import('@/libs/prisma')).default;
+    await prisma.hikeupLog.create({
+      data: {
+        eventType: 'initial_oauth_connection',
+        message: 'Initial OAuth connection - exchanged code for tokens',
+        statusCode: 200,
+        errorResponse: JSON.stringify({
+          fullHikeupResponse: tokenData,
+          responseKeys: Object.keys(tokenData),
+          allFields: {
+            access_token: tokenData.access_token ? `${tokenData.access_token.substring(0, 20)}...` : 'MISSING',
+            token_type: tokenData.token_type || 'MISSING',
+            expires: tokenData.expires || 'MISSING',
+            expires_in: tokenData.expires_in || 'MISSING',
+            refresh_token: tokenData.refresh_token ? `${tokenData.refresh_token.substring(0, 20)}...` : 'MISSING',
+          }
+        }),
+        metadata: JSON.stringify({
+          expiresInHours: tokenData.expires_in ? Math.round(tokenData.expires_in / 3600) : 'UNKNOWN',
+          hasRefreshToken: !!tokenData.refresh_token,
+        }),
+      },
+    });
+    
     // If no refresh token, use a very long expiry (365 days) and warn
     const expiresIn = tokenData.expires_in || (tokenData.refresh_token ? 3600 : 31536000);
     
@@ -143,14 +168,17 @@ export async function GET(request: NextRequest) {
     }
     
     // Store the tokens in database for persistence
+    // Mark as initial connection to track refresh token age
     await setHikeupToken(
       tokenData.access_token,
       tokenData.refresh_token || '',
-      expiresIn
+      expiresIn,
+      true // isInitialConnection
     );
 
     console.log('✅ Hikeup connected and token saved to database!');
     console.log(`📅 Token expires in: ${Math.round(expiresIn / 3600)} hours (${Math.round(expiresIn / 86400)} days)`);
+    console.log('📅 Initial connection date stored for refresh token lifecycle tracking');
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || request.url;
     return NextResponse.redirect(

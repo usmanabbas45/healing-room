@@ -25,15 +25,10 @@ export async function initializeCronJobs() {
   console.log('📦 [STARTUP] Syncing products to database...');
   await syncProductsToDatabase();
 
-  // Refresh Hikeup token every day at 3 AM
-  cron.schedule('0 3 * * *', async () => {
-    console.log('🔄 [CRON] Starting daily Hikeup token refresh...');
-    await refreshHikeupToken();
-  });
-
-  // Also refresh every 12 hours as backup
-  cron.schedule('0 */12 * * *', async () => {
-    console.log('🔄 [CRON] Starting 12-hour Hikeup token refresh...');
+  // Refresh Hikeup token every 6 hours (4 times per day)
+  // This ensures we stay well ahead of token expiration
+  cron.schedule('0 */6 * * *', async () => {
+    console.log('🔄 [CRON] Starting 6-hour Hikeup token refresh...');
     await refreshHikeupToken();
   });
 
@@ -45,7 +40,7 @@ export async function initializeCronJobs() {
 
   cronInitialized = true;
   console.log('✅ Cron jobs initialized successfully!');
-  console.log('   - Hikeup token refresh: Every day at 3 AM + every 12 hours');
+  console.log('   - Hikeup token refresh: Every 6 hours (4x daily)');
   console.log('   - Product sync: Every 5 minutes');
 }
 
@@ -68,12 +63,32 @@ async function refreshHikeupToken() {
       return;
     }
     
+    // Get initial connection date (stored when first connected)
+    const initialConnectionSetting = await prisma.settings.findUnique({ 
+      where: { key: 'hikeup_initial_connection_date' } 
+    });
+    
+    let daysSinceInitialConnection = 0;
+    if (initialConnectionSetting) {
+      const initialConnectionDate = parseInt(initialConnectionSetting.value);
+      const ageMs = Date.now() - initialConnectionDate;
+      daysSinceInitialConnection = Math.floor(ageMs / 86400000);
+      
+      console.log(`📊 [CRON] Days since initial connection: ${daysSinceInitialConnection}`);
+      
+      // Warn if approaching refresh token expiration (assuming 7-day lifetime)
+      if (daysSinceInitialConnection >= 6) {
+        console.log('⚠️⚠️⚠️ [CRON] WARNING: Refresh token is 6+ days old!');
+        console.log('⚠️⚠️⚠️ [CRON] May expire soon - monitor for reconnection needs');
+      }
+    }
+    
     const expiresAt = expiresAtSetting ? parseInt(expiresAtSetting.value) : Date.now();
     const tokenLifetime = 604800000; // 7 days in milliseconds
     const tokenAge = Date.now() - (expiresAt - tokenLifetime);
     const tokenAgeDays = Math.round(tokenAge / 86400000);
     
-    console.log(`📊 [CRON] Token age: ${tokenAgeDays} days`);
+    console.log(`📊 [CRON] Access token age: ${tokenAgeDays} days`);
     
     // Attempt refresh
     const refreshBody = new URLSearchParams({
@@ -95,8 +110,31 @@ async function refreshHikeupToken() {
       const expiresIn = data.expires_in || 604800;
       const newExpiresAt = Date.now() + (expiresIn * 1000);
       
+      // CRITICAL: Check if we got a new refresh token
+      const gotNewRefreshToken = !!data.refresh_token && data.refresh_token !== refreshTokenSetting.value;
+      
+      if (data.refresh_token) {
+        const oldToken = refreshTokenSetting.value.substring(0, 20);
+        const newToken = data.refresh_token.substring(0, 20);
+        const isSame = data.refresh_token === refreshTokenSetting.value;
+        
+        console.log('✅ [CRON] Received NEW refresh token from Hikeup');
+        console.log(`   Old: ${oldToken}...`);
+        console.log(`   New: ${newToken}...`);
+        console.log(`   Status: ${isSame ? '⚠️ SAME (not rotated)' : '✅ DIFFERENT (rotated)'}`);
+        
+        // If it's DIFFERENT, reset the initial connection date (new 7-day lifecycle)
+        if (gotNewRefreshToken) {
+          console.log('🔄 [CRON] Refresh token rotated - resetting connection date');
+        }
+      } else {
+        console.log('⚠️  [CRON] WARNING: Hikeup did NOT return refresh_token in response!');
+        console.log('⚠️  [CRON] Reusing old refresh token - may cause expiration');
+        console.log(`   Response keys: ${Object.keys(data).join(', ')}`);
+      }
+      
       // Save new tokens
-      await prisma.$transaction([
+      const updates = [
         prisma.settings.update({
           where: { key: 'hikeup_access_token' },
           data: { value: data.access_token },
@@ -109,21 +147,56 @@ async function refreshHikeupToken() {
           where: { key: 'hikeup_expires_at' },
           data: { value: newExpiresAt.toString() },
         }),
-      ]);
+      ];
+      
+      // If we got a new refresh token, reset the initial connection date
+      if (gotNewRefreshToken) {
+        updates.push(
+          prisma.settings.upsert({
+            where: { key: 'hikeup_initial_connection_date' },
+            update: { value: Date.now().toString() },
+            create: { key: 'hikeup_initial_connection_date', value: Date.now().toString() },
+          })
+        );
+      }
+      
+      await prisma.$transaction(updates);
       
       console.log('✅ [CRON] Token refreshed successfully!');
-      console.log(`📅 [CRON] New token expires in ${Math.round(expiresIn / 3600)} hours`);
+      console.log(`📅 [CRON] New access token expires in ${Math.round(expiresIn / 3600)} hours`);
       
-      // Log event
+      // Log event with COMPLETE response data from Hikeup
       await prisma.hikeupLog.create({
         data: {
           eventType: 'token_refreshed_cron',
           message: 'Hikeup token refreshed via automated cron job',
           statusCode: 200,
+          errorResponse: JSON.stringify({
+            fullHikeupResponse: data,
+            responseKeys: Object.keys(data),
+            allFields: {
+              access_token: data.access_token ? `${data.access_token.substring(0, 20)}...` : 'MISSING',
+              token_type: data.token_type || 'MISSING',
+              expires: data.expires || 'MISSING',
+              expires_in: data.expires_in || 'MISSING',
+              refresh_token: data.refresh_token ? `${data.refresh_token.substring(0, 20)}...` : 'MISSING',
+              oldRefreshToken: refreshTokenSetting.value ? `${refreshTokenSetting.value.substring(0, 20)}...` : 'MISSING',
+              tokensMatch: data.refresh_token === refreshTokenSetting.value,
+            },
+            analysis: {
+              hasRefreshTokenInResponse: !!data.refresh_token,
+              refreshTokenRotated: gotNewRefreshToken,
+              reusingOldToken: !data.refresh_token,
+            }
+          }),
           metadata: JSON.stringify({
             tokenAgeDays,
+            daysSinceInitialConnection: daysSinceInitialConnection,
             expiresInHours: Math.round(expiresIn / 3600),
-            cronSchedule: 'Every 12 hours + Daily at 3 AM',
+            cronSchedule: 'Every 6 hours',
+            gotNewRefreshToken: !!data.refresh_token,
+            refreshTokenRotated: gotNewRefreshToken,
+            allResponseKeys: Object.keys(data).join(', '),
           }),
         },
       });
@@ -131,14 +204,33 @@ async function refreshHikeupToken() {
       const errorText = await response.text();
       console.error('❌ [CRON] Token refresh failed:', response.status, errorText);
       
-      // Log failure
+      let errorData: any = {};
+      try {
+        errorData = JSON.parse(errorText);
+      } catch {
+        errorData = { raw: errorText };
+      }
+      
+      // Log failure with complete error details
       await prisma.hikeupLog.create({
         data: {
           eventType: 'cron_refresh_failed',
           message: 'Failed to refresh Hikeup token via cron',
           statusCode: response.status,
-          errorResponse: errorText,
-          metadata: JSON.stringify({ tokenAgeDays }),
+          errorResponse: JSON.stringify({
+            fullErrorResponse: errorData,
+            rawError: errorText,
+            errorKeys: typeof errorData === 'object' ? Object.keys(errorData) : [],
+            requestDetails: {
+              grant_type: 'refresh_token',
+              had_refresh_token: !!refreshTokenSetting?.value,
+              refresh_token_preview: refreshTokenSetting?.value ? `${refreshTokenSetting.value.substring(0, 20)}...` : 'NONE',
+            }
+          }),
+          metadata: JSON.stringify({ 
+            tokenAgeDays,
+            daysSinceInitialConnection: daysSinceInitialConnection,
+          }),
         },
       });
       
@@ -151,9 +243,14 @@ async function refreshHikeupToken() {
             eventType: 'cron_refresh_token_expired',
             message: 'CRITICAL: Refresh token expired - manual reconnection required',
             statusCode: response.status,
-            errorResponse: errorText,
+            errorResponse: JSON.stringify({
+              error: errorData,
+              reason: 'invalid_grant means refresh token is no longer valid',
+              action: 'Must reconnect via /admin to get new tokens',
+            }),
             metadata: JSON.stringify({
               tokenAgeDays,
+              daysSinceInitialConnection: daysSinceInitialConnection,
               action: 'Reconnect Hikeup via /admin',
             }),
           },

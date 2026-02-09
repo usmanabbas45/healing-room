@@ -174,24 +174,64 @@ async function refreshAccessToken(): Promise<string | null> {
       const newRefreshToken = data.refresh_token || token.refreshToken;
       const expiresIn = data.expires_in || 604800; // Default to 7 days
       
-      await setHikeupToken(data.access_token, newRefreshToken, expiresIn);
+      // CRITICAL: Log if we got a new refresh token or reusing old one
+      const gotNewRefreshToken = !!data.refresh_token && data.refresh_token !== token.refreshToken;
+      
+      if (data.refresh_token) {
+        console.log('✅ Received NEW refresh token from Hikeup');
+        console.log(`   Old refresh token: ${token.refreshToken.substring(0, 20)}...`);
+        console.log(`   New refresh token: ${data.refresh_token.substring(0, 20)}...`);
+        console.log(`   Tokens are ${data.refresh_token === token.refreshToken ? 'SAME' : 'DIFFERENT'}`);
+      } else {
+        console.log('⚠️  WARNING: Hikeup did NOT return a new refresh_token in response!');
+        console.log('⚠️  Reusing old refresh token - this may cause expiration issues');
+        console.log('   Response keys:', Object.keys(data));
+      }
+      
+      // If we got a DIFFERENT refresh token, reset the connection date (new 7-day lifecycle)
+      await setHikeupToken(data.access_token, newRefreshToken, expiresIn, gotNewRefreshToken);
       
       console.log('✅ Token refreshed successfully!');
-      console.log(`📅 New token expires in: ${Math.round(expiresIn / 3600)} hours`);
+      console.log(`📅 New access token expires in: ${Math.round(expiresIn / 3600)} hours`);
       
-      // Log successful refresh
+      // Log successful refresh with COMPLETE response data
       await logHikeupEvent('token_refreshed', 'Hikeup token successfully refreshed', {
         statusCode: response.status,
         hadRefreshToken: !!newRefreshToken,
+        errorResponse: JSON.stringify({
+          fullResponse: data,
+          responseKeys: Object.keys(data),
+          allFields: {
+            access_token: data.access_token ? `${data.access_token.substring(0, 20)}...` : 'MISSING',
+            token_type: data.token_type || 'MISSING',
+            expires: data.expires || 'MISSING',
+            expires_in: data.expires_in || 'MISSING',
+            refresh_token: data.refresh_token ? `${data.refresh_token.substring(0, 20)}...` : 'MISSING',
+            oldRefreshToken: token.refreshToken ? `${token.refreshToken.substring(0, 20)}...` : 'MISSING',
+            tokensMatch: data.refresh_token === token.refreshToken,
+          }
+        }),
         metadata: {
           expiresIn: expiresIn,
           expiresInHours: Math.round(expiresIn / 3600),
+          gotNewRefreshToken: !!data.refresh_token,
+          refreshTokenReused: !data.refresh_token,
+          refreshTokenRotated: gotNewRefreshToken,
+          allResponseKeys: Object.keys(data).join(', '),
         },
       });
       
       return data.access_token;
     } else {
       console.error('❌ Token refresh failed:', response.status, response.body);
+      
+      // Try to parse error response
+      let errorData: any = {};
+      try {
+        errorData = JSON.parse(response.body);
+      } catch {
+        errorData = { raw: response.body };
+      }
       
       // Check if it's an invalid_grant error (refresh token expired)
       const isInvalidGrant = response.body.includes('invalid_grant');
@@ -203,20 +243,43 @@ async function refreshAccessToken(): Promise<string | null> {
         // Delete the invalid tokens
         await clearHikeupToken();
         
-        // Log this critical event
+        // Log this critical event with full error details
         await logHikeupEvent('refresh_token_expired', 'Refresh token expired - manual reconnection required', {
           statusCode: response.status,
-          errorResponse: response.body,
+          errorResponse: JSON.stringify({
+            fullErrorResponse: errorData,
+            rawError: response.body,
+            errorKeys: typeof errorData === 'object' ? Object.keys(errorData) : [],
+            requestDetails: {
+              grant_type: 'refresh_token',
+              had_refresh_token: !!token.refreshToken,
+              refresh_token_preview: token.refreshToken ? `${token.refreshToken.substring(0, 20)}...` : 'NONE',
+            },
+            analysis: {
+              error_type: 'invalid_grant',
+              meaning: 'Refresh token is no longer valid',
+              action_required: 'Manual reconnection via /admin',
+            }
+          }),
           metadata: {
             message: 'Both access and refresh tokens are invalid. Please reconnect Hikeup via /admin',
           },
         });
       } else {
-        // Log other refresh failures
+        // Log other refresh failures with full details
         await logHikeupEvent('refresh_failed', 'Failed to refresh Hikeup token', {
           statusCode: response.status,
           hadRefreshToken: !!token.refreshToken,
-          errorResponse: response.body,
+          errorResponse: JSON.stringify({
+            fullErrorResponse: errorData,
+            rawError: response.body,
+            errorKeys: typeof errorData === 'object' ? Object.keys(errorData) : [],
+            requestDetails: {
+              grant_type: 'refresh_token',
+              had_refresh_token: !!token.refreshToken,
+              refresh_token_preview: token.refreshToken ? `${token.refreshToken.substring(0, 20)}...` : 'NONE',
+            }
+          }),
         });
       }
       
@@ -259,7 +322,7 @@ async function saveTokenToDb(accessToken: string, refreshToken: string, expiresA
 /**
  * Set Hikeup token (saves to memory and database)
  */
-export async function setHikeupToken(accessToken: string, refreshToken: string, expiresIn: number) {
+export async function setHikeupToken(accessToken: string, refreshToken: string, expiresIn: number, isInitialConnection = false) {
   const expiresAt = Date.now() + (expiresIn * 1000);
   
   tokenCache.hikeupTokenCache = {
@@ -269,6 +332,20 @@ export async function setHikeupToken(accessToken: string, refreshToken: string, 
   };
   
   await saveTokenToDb(accessToken, refreshToken, expiresAt);
+  
+  // Store initial connection date if this is first time connecting
+  if (isInitialConnection) {
+    try {
+      await prisma.settings.upsert({
+        where: { key: 'hikeup_initial_connection_date' },
+        update: { value: Date.now().toString() },
+        create: { key: 'hikeup_initial_connection_date', value: Date.now().toString() },
+      });
+      console.log('📅 Stored initial connection date for refresh token tracking');
+    } catch (error) {
+      console.error('Error storing initial connection date:', error);
+    }
+  }
   
   const expiryDate = new Date(expiresAt);
   console.log('✅ Hikeup token stored successfully');
