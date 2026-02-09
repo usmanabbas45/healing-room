@@ -70,7 +70,7 @@ export default async function AdminPage({
             <svg className="w-5 h-5 text-primary shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
-            <p className="text-sm text-text-primary">Hikeup POS connected successfully! Token saved to database. Products will now load from your POS.</p>
+            <p className="text-sm text-text-primary">Hikeup POS connected successfully! Token saved to database and inventory synced. Products are now available on your store.</p>
           </div>
         </div>
       )}
@@ -140,8 +140,8 @@ export default async function AdminPage({
         
         <p className="text-sm text-text-muted mb-4">
           {connected 
-            ? 'Your Hikeup POS is connected. Products and inventory are fetched in real-time. Token is stored in database and persists across restarts.'
-            : 'Connect your Hikeup POS to display products and inventory from your store.'}
+            ? 'Your Hikeup POS is connected. Inventory syncs automatically every 5 minutes and on server restart. Use "Sync Inventory" for immediate updates.'
+            : 'Connect your Hikeup POS to display products and inventory from your store. Products will sync immediately after connection.'}
         </p>
         
         <div className="flex flex-wrap gap-3">

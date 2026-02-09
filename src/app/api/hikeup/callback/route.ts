@@ -180,6 +180,17 @@ export async function GET(request: NextRequest) {
     console.log(`📅 Token expires in: ${Math.round(expiresIn / 3600)} hours (${Math.round(expiresIn / 86400)} days)`);
     console.log('📅 Initial connection date stored for refresh token lifecycle tracking');
 
+    // Immediately sync products after successful connection
+    console.log('🔄 [INITIAL CONNECTION] Triggering immediate product sync...');
+    try {
+      const { syncProductsToDatabase } = await import('@/libs/hikeup');
+      await syncProductsToDatabase();
+      console.log('✅ [INITIAL CONNECTION] Product sync completed successfully');
+    } catch (syncError) {
+      console.error('❌ [INITIAL CONNECTION] Product sync failed (non-fatal):', syncError);
+      // Don't fail the connection - sync will happen via cron anyway
+    }
+
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || request.url;
     return NextResponse.redirect(
       new URL('/admin?success=hikeup_connected', baseUrl)
