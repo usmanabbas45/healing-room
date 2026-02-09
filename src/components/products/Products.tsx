@@ -110,6 +110,12 @@ export const Products = async ({
                 {isAvailable ? (
                   <Link href={productLink} className="w-10/12 group/tooltip relative">
                     <h2 className="text-sm font-semibold truncate text-text-primary">{name}</h2>
+                    {/* Show variant/size label if product has multiple sizes */}
+                    {(product as any).variants?.length > 1 && (product as any).size && (product as any).size !== 'Default' && (
+                      <p className="text-xs text-text-muted mt-0.5">
+                        {(product as any).size}
+                      </p>
+                    )}
                     <span className="absolute left-0 -top-10 z-50 hidden group-hover/tooltip:block bg-text-primary text-white text-xs px-3 py-2 rounded-md shadow-lg whitespace-normal max-w-[250px] pointer-events-none">
                       {name}
                       <span className="absolute left-4 top-full border-4 border-transparent border-t-text-primary"></span>

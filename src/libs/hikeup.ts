@@ -1542,12 +1542,37 @@ export function transformHikeupProduct(product: any) {
     });
   }
 
+  // ===== SELECT DEFAULT VARIANT =====
+  // For flower products, prefer 28g/oz variant for grid display
+  // Otherwise use first variant
+  let defaultVariant = variants[0];
+  
+  // Check if this is a flower/cannabis product
+  const isFlowerProduct = categories.some((cat: string) => 
+    ['cannabis', 'indica', 'sativa', 'hybrid'].includes(cat.toLowerCase())
+  );
+  
+  if (isFlowerProduct && variants.length > 1) {
+    // Look for 28g or oz variant (case insensitive)
+    const ozVariant = variants.find((v: any) => {
+      const name = v.name?.toLowerCase() || '';
+      const fullName = v.fullName?.toLowerCase() || '';
+      return name.includes('28g') || name.includes('1oz') || name.includes('oz') ||
+             fullName.includes('28g') || fullName.includes('1oz') || fullName.includes('oz');
+    });
+    
+    if (ozVariant) {
+      defaultVariant = ozVariant;
+      console.log(`🌿 Flower product "${product.name}" - Using ${ozVariant.name} as default (price: $${ozVariant.price})`);
+    }
+  }
+  
   return {
     _id: String(product.id),
     id: String(product.id),
     name: product.name || 'Unnamed Product',
     description: product.description || '',
-    price: price,
+    price: defaultVariant?.price || price,
     category: category,
     categories: categories, // All product types
     sizes: variants.map((v: any) => v.color),
@@ -1563,9 +1588,9 @@ export function transformHikeupProduct(product: any) {
     purchased: false,
     quantity: 0, // Not in cart - 0 indicates not a cart item
     productId: String(product.id),
-    variantId: variants[0]?.priceId || String(product.id),
-    color: variants[0]?.color || 'Default',
-    size: variants[0]?.color || 'Default',
+    variantId: defaultVariant?.priceId || String(product.id),
+    color: defaultVariant?.color || 'Default',
+    size: defaultVariant?.color || 'Default',
   };
 }
 
