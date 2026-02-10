@@ -2097,14 +2097,44 @@ export async function syncProductsToDatabase(): Promise<void> {
     });
     
     if (deleteResult.count > 0) {
-      console.log(`   🗑️  Deleted ${deleteResult.count} products that are no longer in Hikeup`);
+      console.log(`   🗑️  Deleted ${deleteResult.count} products from cache that are no longer in Hikeup`);
+      
+      // Clean up orphaned references in cart and wishlist
+      console.log('🧹 Cleaning up orphaned cart and wishlist items...');
+      
+      // Convert hikeupIds to strings for comparison (productId is stored as string)
+      const validProductIds = hikeupIds.map(id => String(id));
+      
+      // Delete cart items referencing deleted products
+      const deletedCartItems = await prisma.cartItem.deleteMany({
+        where: {
+          productId: {
+            notIn: validProductIds
+          }
+        }
+      });
+      
+      // Delete wishlist items referencing deleted products
+      const deletedWishlistItems = await prisma.wishlistItem.deleteMany({
+        where: {
+          productId: {
+            notIn: validProductIds
+          }
+        }
+      });
+      
+      console.log(`   🗑️  Deleted ${deletedCartItems.count} orphaned cart items`);
+      console.log(`   🗑️  Deleted ${deletedWishlistItems.count} orphaned wishlist items`);
+      console.log(`   ℹ️  Order items preserved for historical records`);
     } else {
       console.log(`   ✅ No stale products to delete`);
     }
     
     const duration = Date.now() - startTime;
     console.log(`✅ [DB SYNC] Completed in ${duration}ms`);
-    console.log(`📊 Database cache: ${cacheRecords.length} products (deleted ${deleteResult.count} stale products)`);
+    console.log(`📊 Sync summary:`);
+    console.log(`   - Active products in cache: ${cacheRecords.length}`);
+    console.log(`   - Stale products deleted: ${deleteResult.count}`)
     
     // Log type distribution
     const typeStats = new Map<string, number>();
