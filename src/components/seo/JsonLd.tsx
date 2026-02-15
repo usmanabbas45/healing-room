@@ -87,7 +87,7 @@ export function LocalBusinessJsonLd() {
     },
     sameAs: [
       'https://www.facebook.com/people/Healing-Room-Six-Nations/61582464719082/',
-      'https://www.instagram.com/healingroom519/',
+      'https://www.instagram.com/healingroom.sixnations/',
     ],
     aggregateRating: {
       '@type': 'AggregateRating',
@@ -263,7 +263,7 @@ export function OrganizationJsonLd() {
     },
     sameAs: [
       'https://www.facebook.com/people/Healing-Room-Six-Nations/61582464719082/',
-      'https://www.instagram.com/healingroom519/',
+      'https://www.instagram.com/healingroom.sixnations/',
     ],
   };
 

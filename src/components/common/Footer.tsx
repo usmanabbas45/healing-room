@@ -49,7 +49,7 @@ export const Footer = () => {
               </svg>
             </a>
             <a
-              href="https://www.instagram.com/healingroom519/"
+              href="https://www.instagram.com/healingroom.sixnations/"
               target="_blank"
               rel="noopener noreferrer"
               className="text-text-muted hover:text-primary transition-colors"
