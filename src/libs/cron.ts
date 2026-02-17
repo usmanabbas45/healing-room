@@ -5,6 +5,7 @@
 import cron from 'node-cron';
 import prisma from '@/libs/prisma';
 import { syncProductsToDatabase } from '@/libs/hikeup';
+import { sendHikeupTokenExpiryEmail } from '@/libs/notify';
 
 let cronInitialized = false;
 
@@ -255,6 +256,9 @@ async function refreshHikeupToken() {
             }),
           },
         });
+
+        // Notify all staff by email so they can reconnect manually
+        await sendHikeupTokenExpiryEmail();
       }
     }
     

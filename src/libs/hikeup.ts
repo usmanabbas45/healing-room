@@ -11,6 +11,7 @@ import prisma from "@/libs/prisma";
 import https from "https";
 import tls from "tls";
 import { applyPriceMarkup } from "@/libs/pricing";
+import { sendHikeupTokenExpiryEmail } from "@/libs/notify";
 
 const HIKEUP_API_BASE = 'https://api.hikeup.com/api/v1';
 
@@ -265,6 +266,9 @@ async function refreshAccessToken(): Promise<string | null> {
             message: 'Both access and refresh tokens are invalid. Please reconnect Hikeup via /admin',
           },
         });
+
+        // Notify all staff by email so they can reconnect manually
+        await sendHikeupTokenExpiryEmail();
       } else {
         // Log other refresh failures with full details
         await logHikeupEvent('refresh_failed', 'Failed to refresh Hikeup token', {
