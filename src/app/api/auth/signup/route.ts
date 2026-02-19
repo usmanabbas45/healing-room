@@ -69,17 +69,16 @@ export async function POST(request: NextRequest) {
         const newHikeupCustomer = await createHikeupCustomer(normalizedEmail, firstName, lastName);
         
         if (!newHikeupCustomer) {
-          // Hikeup customer creation failed - roll back (don't create local user)
-          console.error('❌ Failed to create customer on Hikeup - rolling back signup');
-          return NextResponse.json(
-            { message: "Failed to sync with POS system. Please try again." },
-            { status: 500 },
-          );
+          // Hikeup customer creation failed - but DON'T roll back
+          // Create local account without Hikeup ID (graceful degradation)
+          console.log('⚠️ Could not create/link Hikeup customer - proceeding with local account only');
+          console.log('   (User can still use the site, orders will be created manually on Hikeup)');
+          hikeupCustomerId = null;
+        } else {
+          hikeupCustomerId = newHikeupCustomer.id;
+          hikeupCustomerCreated = true;
+          console.log(`✅ Created Hikeup customer: ID ${newHikeupCustomer.id}`);
         }
-        
-        hikeupCustomerId = newHikeupCustomer.id;
-        hikeupCustomerCreated = true;
-        console.log(`✅ Created Hikeup customer: ID ${newHikeupCustomer.id}`);
       }
     } else {
       console.log('⚠️ Hikeup not connected - skipping POS sync');
@@ -96,7 +95,15 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    console.log(`✅ User created: ${savedUser.email}${hikeupCustomerCreated ? ' (+ Hikeup customer)' : hikeupCustomerId ? ' (linked to existing Hikeup customer)' : ''}`);
+    const hikeupStatus = hikeupCustomerCreated 
+      ? ' (+ Hikeup customer)' 
+      : hikeupCustomerId 
+        ? ' (linked to existing Hikeup customer)' 
+        : hikeupConnected 
+          ? ' (⚠️ Hikeup link failed - local account only)' 
+          : '';
+    
+    console.log(`✅ User created: ${savedUser.email}${hikeupStatus}`);
 
     return NextResponse.json(
       {

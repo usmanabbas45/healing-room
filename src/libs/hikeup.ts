@@ -1769,9 +1769,29 @@ export async function createHikeupCustomer(
     console.log(`✅ Created Hikeup customer: ID ${response.id}`);
     return response;
     
-  } catch (error) {
-    console.error('❌ Error creating Hikeup customer:', error);
+  } catch (error: any) {
+    const errorMessage = error.message || String(error);
+    console.error('❌ Error creating Hikeup customer:', errorMessage);
+    
+    // SPECIAL CASE: If email already exists, try to find and return the existing customer
+    if (errorMessage.includes('Email already exist')) {
+      console.log('🔄 Email already exists on Hikeup - searching for existing customer...');
+      try {
+        // Try to find the existing customer by email
+        const existingCustomer = await getHikeupCustomerByEmail(email);
+        if (existingCustomer) {
+          console.log(`✅ Found existing Hikeup customer: ${existingCustomer.first_name} ${existingCustomer.last_name} (ID: ${existingCustomer.id})`);
+          return existingCustomer;
+        } else {
+          console.log('⚠️ Could not find existing customer even though email exists - will create local account without Hikeup ID');
+        }
+      } catch (searchError) {
+        console.error('⚠️ Error searching for existing customer:', searchError);
+      }
+    }
+    
     // Don't throw - we don't want Hikeup failures to block signup
+    // Return null and let signup continue without Hikeup ID
     return null;
   }
 }
