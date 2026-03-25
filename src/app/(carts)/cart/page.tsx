@@ -9,6 +9,7 @@ import dynamic from "next/dynamic";
 import { EnrichedProducts } from "@/types/types";
 import DeleteButton from "@/components/cart/DeleteButton";
 import ProductCartInfo from "@/components/cart/ProductCartInfo";
+import OrderSummaryWithDiscount from "@/components/cart/OrderSummaryWithDiscount";
 
 const ButtonCheckout = dynamic(
   () => import("../../../components/cart/ButtonCheckout"),
@@ -95,28 +96,12 @@ const ProductsCart = async ({ session }: { session: Session }) => {
           <div className="hidden lg:block w-[360px] flex-shrink-0">
             <div className="sticky top-24 bg-white border border-border-primary rounded-xl p-6 shadow-sm">
               <h2 className="text-lg font-semibold text-text-primary mb-4">Order Summary</h2>
-              
-              <div className="space-y-3 mb-6">
-                <div className="flex justify-between text-sm">
-                  <span className="text-text-muted">Subtotal ({totalItems} items)</span>
-                  <span className="text-text-primary font-medium">${subtotal.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-text-muted">Delivery</span>
-                  <span className="text-text-muted italic text-xs">Calculated at checkout</span>
-                </div>
-                <div className="border-t border-border-primary pt-3">
-                  <div className="flex justify-between">
-                    <span className="text-text-primary font-semibold">Subtotal</span>
-                    <span className="text-xl font-bold text-primary">${subtotal.toFixed(2)}</span>
-                  </div>
-                  <p className="text-xs text-text-muted mt-1">
-                    Final total will be calculated at checkout
-                  </p>
-                </div>
-              </div>
-              
-              <ButtonCheckout session={session} cartWithProducts={filteredCart} />
+              <OrderSummaryWithDiscount
+                subtotal={subtotal}
+                totalItems={totalItems}
+                session={session}
+                cartWithProducts={filteredCart}
+              />
             </div>
           </div>
         </div>
